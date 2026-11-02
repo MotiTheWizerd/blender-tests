@@ -36,11 +36,33 @@ The guard is one AI head, its band cut away, mirrored into the pair and scaled b
 (beak tip 88 mm from the centre on the 52 mm band). The code-built parts it replaced are kept
 in the excluded collections `ravens_from_code` and `guard_from_code`. Render: `source/guard_ai_front.png`.
 
+## The Viking sword, game-ready (`game_viking.py` → `export/viking/`, `viking_game.blend`)
+
+`blender -b langford.blend -P game_viking.py` (headless, ~12 min on 8 CPU cores) bakes the whole
+`viking` scene, 135k faces of procedural materials and AI meshes, onto one low mesh:
+
+| | |
+|---|---|
+| LOD0 / LOD1 / LOD2 | 8,781 / 4,389 / 1,755 tris, one material, one UV set |
+| Low mesh | decimated blade, AI guard and AI pommel; a plain grip cylinder; the two bands as they are |
+| Textures (4096²) | `Viking_BaseColor` (sRGB), `Viking_MetallicSmoothness` (R metal, A smoothness), `Viking_Normal` (OpenGL) |
+| Colliders | `Viking_Blade_COL`, `Viking_Guard_COL`, `Viking_Grip_COL` (convex, 12–20 tris) |
+| Pivot | the grip's centre; the point is Unity +Y |
+
+Runes, knotwork and the wire braid exist only in the textures. Base colour, metal and roughness are
+baked as emission from each high material's own sockets, because a diffuse-colour bake reads black
+on metal. Previews: `export/viking/viking_game_*.png` show the low mesh alone, rendered in EEVEE.
+
+The AI guard's material came from Hunyuan as metallic 0, roughness 1 (chalk). `fit_guard_iron.py`
+darkens its painted texture and makes it iron before the bake.
+
 ## Into Unity
 
 1. Copy `export/Sword.fbx` and the three `Sword_*.png` into `Assets/`.
 2. Copy `export/Editor/SwordImportSetup.cs` into `Assets/Editor/` — it turns the `_COL` meshes into invisible convex colliders.
 3. Unity builds the LOD Group from the `_LOD0/1/2` names by itself.
 4. Material (URP/Lit): Base Map = `Sword_BaseColor`, Metallic Map = `Sword_MetallicSmoothness` (smoothness from its alpha), Normal Map = `Sword_Normal` (set its Texture Type to Normal map).
+
+The Viking sword goes the same way: `export/viking/Viking.fbx` + the three `Viking_*.png`, the same Editor script.
 
 Not yet tested inside Unity. Known: small specks on one cutting edge (bake), LOD1/2 blades shade darker (they share LOD0's normal map).
