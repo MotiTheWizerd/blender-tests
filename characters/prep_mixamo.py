@@ -1,17 +1,19 @@
-"""The Viking warrior, ready for Mixamo's auto-rigger.
+"""A character, ready for Mixamo's auto-rigger.
 
-    blender -b --factory-startup -P prep_mixamo.py
+    blender -b --factory-startup -P prep_mixamo.py -- viking_warrior     (a folder beside this file)
 
 source_apose.jpg  Qwen Image 2.1 via teikna (A-pose, flat light, empty hands)
 source_hunyuan.glb  Hunyuan3D v2.5 via brokkr (50k faces, one PBR texture)
--> viking_warrior_mixamo.fbx: 1.85 m tall, feet on the ground at the origin, facing -Y (Blender
+-> <name>_mixamo.fbx: 1.85 m tall, feet on the ground at the origin, facing -Y (Blender
 front), transforms applied, texture embedded. Upload it at mixamo.com (Upload Character); the
 rigger asks for chin, wrists, elbows, knees and groin markers.
 """
 import bpy, os
 from mathutils import Vector
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+import sys
+NAME = sys.argv[sys.argv.index("--") + 1]
+HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
 HEIGHT = 1.85
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=os.path.join(HERE, "source_hunyuan.glb"))
@@ -28,13 +30,13 @@ s = HEIGHT / (max(zs) - min(zs))
 cx, cy, z0 = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2, min(zs)
 for v in me.vertices:
     v.co = Vector(((v.co.x - cx) * s, (v.co.y - cy) * s, (v.co.z - z0) * s))
-mesh.name = me.name = "VikingWarrior"
+mesh.name = me.name = "".join(w.title() for w in NAME.split("_"))
 for p in me.polygons:
     p.use_smooth = True
 img = next((i for i in bpy.data.images if i.size[0] > 0), None)
 if img:
-    img.filepath_raw = os.path.join(HERE, "viking_warrior_basecolor.png"); img.file_format = "PNG"; img.save()
-bpy.ops.export_scene.fbx(filepath=os.path.join(HERE, "viking_warrior_mixamo.fbx"), use_selection=False,
+    img.filepath_raw = os.path.join(HERE, f"{NAME}_basecolor.png"); img.file_format = "PNG"; img.save()
+bpy.ops.export_scene.fbx(filepath=os.path.join(HERE, f"{NAME}_mixamo.fbx"), use_selection=False,
                          object_types={"MESH"}, apply_unit_scale=True, apply_scale_options="FBX_SCALE_ALL",
                          path_mode="COPY", embed_textures=True, mesh_smooth_type="FACE")
 xs = [v.co.x for v in me.vertices]; ys = [v.co.y for v in me.vertices]; zs = [v.co.z for v in me.vertices]
