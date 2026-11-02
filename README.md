@@ -25,6 +25,17 @@ so every step here is a script you can read and re-run.
 
 Runes: ᚺᚢᚷᛁᚾᚾ · ᛗᚢᚾᛁᚾᚾ on one side, the makers' mark ᛗᛟᛏᛁ · ᚲᛚᚨᚢᛞᛖ on the other.
 
+## The Viking sword's AI parts (scene `viking`)
+
+| Part | Script | Source |
+|---|---|---|
+| Pommel | `fit_pommel.py` | `source/ai3d/hy3d-model.glb` — Moti's Hunyuan3D web run on `crops/pommel.png` |
+| Guard | `fit_guard.py` | `source/ai3d/dragon_head_hunyuan.glb` — Hunyuan3D v2.5 via Siray (Claude's `brokkr`) on `crops/dragon_head_noblade.png` |
+
+The guard is one AI head, its band cut away, mirrored into the pair and scaled by the reference
+(beak tip 88 mm from the centre on the 52 mm band). The code-built parts it replaced are kept
+in the excluded collections `ravens_from_code` and `guard_from_code`. Render: `source/guard_ai_front.png`.
+
 ## Into Unity
 
 1. Copy `export/Sword.fbx` and the three `Sword_*.png` into `Assets/`.
