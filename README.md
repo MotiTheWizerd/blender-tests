@@ -56,6 +56,14 @@ on metal. Previews: `export/viking/viking_game_*.png` show the low mesh alone, r
 The AI guard's material came from Hunyuan as metallic 0, roughness 1 (chalk). `fit_guard_iron.py`
 darkens its painted texture and makes it iron before the bake.
 
+## Beauty shots (`beauty.py`, `render_beauty.py` → `export/beauty/`)
+
+Scene `viking_beauty`: the high-poly sword instanced, a dark studio built for metal (a key softbox,
+two narrow rim strips, a weak fill, a glow on the backdrop, and a strip placed in the blade's mirror
+direction so a highlight runs down the steel), AgX Punchy at -1 exposure, Cycles. Cameras `cam_hero`
+(full sword) and `cam_hilt` (100 mm, f/4, focused on the near dragon). Previews: `-- preview`
+(960x540, 24 samples, ~25 s); finals 1920x1080 at 96 samples + denoise, 3-4 min each on this CPU.
+
 ## Into Unity
 
 1. Copy `export/Sword.fbx` and the three `Sword_*.png` into `Assets/`.
