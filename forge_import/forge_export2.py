@@ -45,6 +45,9 @@ for o in sources:
         hook = wire.get(m.name) if m else None
         if not hook:
             continue
+        if not (os.path.isfile(hook["base"]) or hook["base"] in bpy.data.images):
+            print("WIRE: no image", hook["base"], "for", m.name, "- it keeps its own colour")
+            continue
         m.use_nodes = True
         nt = m.node_tree
         bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
@@ -55,13 +58,16 @@ for o in sources:
         if any(l.to_node == bsdf for l in nt.links if l.to_socket.name == "Base Color"):
             continue  # already hooked (a material shared by several sources)
         uv = nt.nodes.new("ShaderNodeUVMap")
-        uv.uv_map = o.data.uv_layers.active.name
+        uv.uv_map = (o.data.uv_layers.active or o.data.uv_layers[0]).name  # some files leave no layer active
         scale = nt.nodes.new("ShaderNodeVectorMath")
         scale.operation = "MULTIPLY"
         scale.inputs[1].default_value = [hook.get("tile", 1.0)] * 3
         nt.links.new(uv.outputs["UV"], scale.inputs[0])
+        if "roughness" in hook:  # legacy materials come in at 0.5: wet-looking wood
+            bsdf.inputs["Roughness"].default_value = hook["roughness"]
         tex = nt.nodes.new("ShaderNodeTexImage")
-        tex.image = bpy.data.images[hook["base"]]
+        # An image the file holds, by name, or one beside it, by path.
+        tex.image = bpy.data.images.load(hook["base"]) if os.path.isfile(hook["base"]) else bpy.data.images[hook["base"]]
         nt.links.new(scale.outputs["Vector"], tex.inputs["Vector"])
         nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
         if hook.get("normal"):
