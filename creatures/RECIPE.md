@@ -55,6 +55,11 @@ How the dragon's were found (an agent repeats this with `probe.py` and `grid.py`
   z 0.48) and its three finger struts, each ending in a claw on the membrane's lower edge.
 - Chains: spine 3, neck 4, head 1, tail 10, each front leg 3, each hind leg 4, each wing arm 3 and fingers 3+2+2:
   52 bones. No jaw yet (the mouth is fused).
+- **Planted feet** (`"feet"` in landmarks.json): each foot gets an unparented twin `ik_<foot>` that its leg reaches by
+  IK, so the body moves over feet that hold the ground (56 bones with the four). Without it the legs ride on the spine
+  and the creature floats: Moti saw it at once (the dragon's front feet moved 32 mm per metre of height).
+- **Rigid feet**: the skin below each planted foot's ankle goes to the foot bone alone; shared with the lower leg,
+  the sole slides as the leg bends (4-10 mm/m left after IK, 0 after this).
 
 Writes `<name>_rig.blend`, `rig.json` (52 bones, 0 vertices left unweighted), `rig_<view>.png` (bones drawn through
 the see-through body) and `bend_<view>.png` (wings swung, neck and tail turned, a front leg lifted).
@@ -95,11 +100,21 @@ statue until Forge has creatures.
    (`Quaternion.LookRotation(-forward)`), screenshot. Its face toward the camera means it faces +Z, as Forge wants
    (the dragon did: Blender's -Y front exported with forward -Z, up Y comes out right). Its tab shows in the browser.
 
+## 6. Animate (`animate.py`, ~1 min)
+
+Each clip is motion written as curves of time on the chains (`Idle` 4 s, `WingFlap` 1 s so far), keyed every frame,
+each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.png` (frames across a loop), `anim.json`.
+- **The rest pose is the legs' full reach**: the body only ever moves DOWN from it and back (the chest sinks with a
+  breath and returns; it dips on the wings' downstroke). A chest rising past rest pulls planted feet off the ground.
+- **The feet check** (`anim.json`, `FEET` lines): how far the skin on the ground (the lowest 2% of the height) moves
+  over each loop, per metre of height. It must be ~0; the dragon: 0.0 in both clips. Anything else floats or skates.
+- **LOOK** in Blender (Space plays; Dope Sheet > Action Editor picks the clip): weight, no floating, the wing roots.
+
 ## Next (planned, not built)
 
-6. Animate (waits for Forge creatures; the skeleton and weights are in `<name>_rig.blend`): idle breathing, head
-   look-around, wing fold/unfold, wing-flap loop, walk; roar once there is a jaw. Unity: an Animator for a generic
-   rig, spring bones on tail, neck and wing tips.
+7. More clips: head look-around, wing fold/unfold, walk (the feet's IK targets step), roar once there is a jaw.
+8. Forge plays them (waits for Forge creatures): keep the skeleton on import, bake the IK into keys before the FBX,
+   an Animator for a generic rig, spring bones on tail, neck and wing tips.
 
 ## What is kept in git
 

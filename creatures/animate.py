@@ -4,7 +4,9 @@ the same chains gets them too.
     blender -b --factory-startup -P animate.py -- dragon
 
 Reads <name>/<name>_rig.blend (step 3). Each clip is an action keyed on every frame from curves of time; every loop
-ends where it began. A motion is a turn about an axis of the creature's own frame (X across, Y front to back, Z up),
+ends where it began. The rest pose is the legs' full reach (its feet are planted by IK, step 3), so the body only
+ever moves DOWN from it and back: a chest that rose past rest would pull the feet off the ground. A motion is a turn
+about an axis of the creature's own frame (X across, Y front to back, Z up),
 added on top of the bone's parent, so a wing's beat reads the same on both sides with the sign mirrored.
 Writes <name>/<name>_anim.blend (the clips as actions, Idle playing, the frame range set) and, for each clip,
 anim_<clip>.png: frames across one loop, side by side, to look at.
@@ -15,7 +17,7 @@ Clips:
   WingFlap  1 s loop. The wings beat from the shoulder (35 deg up and down), the arms and fingers lagging behind so
             the membrane trails, the body bobbing against the beat, the tail balancing.
 """
-import bpy, math, os, sys
+import bpy, json, math, os, sys
 import numpy as np
 from mathutils import Quaternion, Vector
 
@@ -50,11 +52,12 @@ SIDES = (("L", 1), ("R", -1))       # the left wing is on +X: raising it is a tu
 def idle(t):
     w = 2 * math.pi * t
     breath = math.sin(w)
+    sink = (1 + breath) / 2                              # 0 at rest .. 1: the chest only sinks from rest (DOWN)
     spine = chain("spine")
-    turn(spine[1], X, 1.2 * breath)
-    turn(spine[2], X, 1.5 * breath)
+    turn(spine[1], X, 1.2 * sink)                         # +X tips a bone pointing forward down
+    turn(spine[2], X, 1.5 * sink)
     for i, b in enumerate(chain("neck")):
-        turn(b, X, -0.8 * breath)
+        turn(b, X, -0.8 * sink)
         turn(b, Z, 2.0 * math.sin(w - 0.6))
     turn(chain("head")[0], Z, 2.5 * math.sin(w - 1.0))
     for i, b in enumerate(chain("tail")):
@@ -79,9 +82,10 @@ def wing_flap(t):
             for b in bones[1:]:
                 turn(b, Y, up(5, lag + 0.3))
     spine = chain("spine")
-    turn(spine[0], X, 2.0 * math.cos(w + math.pi))       # the body dips as the wings rise
+    dip = (1 - math.cos(w)) / 2                          # 0 with the wings up .. 1 with them down: DOWN only
+    turn(spine[0], X, 3.0 * dip)                          # the chest sinks on the downstroke, back up with the wings
     for b in chain("neck"):
-        turn(b, X, -1.0 * math.cos(w + math.pi))
+        turn(b, X, -1.2 * dip)
     for i, b in enumerate(chain("tail")):
         turn(b, X, (0.8 + 0.3 * i) * math.sin(w - 0.4 * i))
 
@@ -104,6 +108,25 @@ for name, (motion, seconds) in CLIPS.items():
     action.frame_range = (1, frames + 1)
     action.use_cyclic = True
     print("CLIP", name, frames, "frames")
+
+# The feet hold the ground: how far the vertices standing on it (the lowest 2% of the height) move over each loop.
+# More than a few millimetres a metre and the creature floats or skates.
+dg = bpy.context.evaluated_depsgraph_get()
+rest = [v.co.copy() for v in body.data.vertices]
+height = body.dimensions.z
+ground = [i for i, c in enumerate(rest) if c.z < height * 0.02]
+report = {}
+for name, (_, seconds) in CLIPS.items():
+    rig.animation_data.action = bpy.data.actions[name]
+    frames = int(round(seconds * FPS))
+    moved = 0.0
+    for f in range(1, frames + 1, max(1, frames // 24)):
+        scene.frame_set(f)
+        verts = body.evaluated_get(dg).data.vertices
+        moved = max(moved, max((verts[i].co - rest[i]).length for i in ground))
+    report[name] = {"feet_moved_per_metre": round(moved / height, 4)}
+    print("FEET", name, f"{1000 * moved / height:.1f} mm per metre of height")
+json.dump(report, open(os.path.join(HERE, "anim.json"), "w"), indent=1)
 
 # Pictures: frames across each loop, Workbench in the texture's colours, three-quarter front.
 scene.render.engine = "BLENDER_WORKBENCH"

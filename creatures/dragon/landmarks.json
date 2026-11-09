@@ -1,6 +1,7 @@
 {
  "about": "Joints of the Tripo dragon in its source frame (Blender axes, metres, facing -Y, its left is +X). Read off grid_front/side.png and the mesh slices (2026-11-10). Paired joints are given for the left (+X) side only; rig.py mirrors them. A chain is its points in order; each pair of neighbours is a bone.",
  "mirror": true,
+ "feet": ["arm.L", "leg.L"],
  "chains": {
   "spine": [[0, -0.04, 0.25], [0, -0.12, 0.26], [0, -0.20, 0.27], [0, -0.27, 0.29]],
   "neck": [[0, -0.27, 0.29], [0, -0.315, 0.315], [0, -0.345, 0.36], [0.005, -0.37, 0.405], [0.01, -0.385, 0.435]],

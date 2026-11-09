@@ -10,7 +10,8 @@ its X axis is level (a bend about X lifts and lowers).
 Finding the landmarks is the judgment in this step (the dragon's were read off grid views and mesh slices: see
 RECIPE.md); the rest is mechanical. Writes <name>/<name>_rig.blend, rig.json (bones, vertices no bone moves), and
 pictures: rig_<view>.png (the bones drawn through the body) and bend_<view>.png (wings folded up, neck and tail turned,
-a front leg lifted) to look at for tearing.
+a front leg lifted) to look at for tearing. The chains listed in "feet" stand on the ground: their last bone is held
+by an unparented twin ("ik_<bone>") that the leg reaches by IK, so the body moves over planted feet.
 """
 import bpy, json, math, os, sys
 from mathutils import Vector, Matrix
@@ -58,13 +59,50 @@ for chain in chains:
         owner, _, index = parent.partition(":")
         count = len(chains[owner]) - 1
         edit[bone_name(chain, 0)].parent = edit[bone_name(owner, int(index) if index else count - 1)]
+
+# Planted feet: each foot chain's last bone (the foot on the ground) gets a twin, "ik_<bone>", parented to nothing,
+# so it stays where it stands; the leg reaches it by IK and the foot keeps its turn. The body can then breathe, bob
+# or turn while the feet hold the ground (a leg hung on the spine otherwise rides along and the creature floats).
+feet = list(spec.get("feet", []))
+if spec.get("mirror"):
+    feet += [f[:-2] + ".R" for f in feet if f.endswith(".L")]
+for chain in feet:
+    foot = edit[bone_name(chain, len(chains[chain]) - 2)]
+    ik = edit.new("ik_" + foot.name)
+    ik.head, ik.tail, ik.roll = foot.head, foot.tail, foot.roll
+    ik.use_deform = False
 bpy.ops.object.mode_set(mode="OBJECT")
+for chain in feet:
+    n = len(chains[chain]) - 1                       # bones in the chain; the last is the foot
+    foot = bone_name(chain, n - 1)
+    reach = rig.pose.bones[bone_name(chain, n - 2)].constraints.new("IK")
+    reach.target, reach.subtarget, reach.chain_count = rig, "ik_" + foot, n - 1
+    hold = rig.pose.bones[foot].constraints.new("COPY_ROTATION")
+    hold.target, hold.subtarget = rig, "ik_" + foot
 
 # Automatic (heat) weights.
 bpy.ops.object.select_all(action="DESELECT")
 body.select_set(True); rig.select_set(True)
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+# Feet are rigid: the skin below a planted foot's ankle (its bone's head), near the foot, goes to the foot alone.
+# Shared with the lower leg, a sole slides whenever the leg bends over it, and the planted foot looks to skate.
+for chain in feet:
+    foot = arm_data.bones[bone_name(chain, len(chains[chain]) - 2)]
+    ankle, toe = foot.head_local, foot.tail_local
+    group = body.vertex_groups[foot.name]
+    reach = max(body.dimensions) * 0.07
+    for v in body.data.vertices:
+        if v.co.z > ankle.z:
+            continue
+        flat, a, b = v.co.xy, ankle.xy, toe.xy
+        t = max(0.0, min(1.0, (flat - a).dot(b - a) / max((b - a).length_squared, 1e-9)))
+        if (flat - (a + (b - a) * t)).length > reach:
+            continue
+        for g in list(v.groups):
+            body.vertex_groups[g.group].remove([v.index])
+        group.add([v.index], 1.0, "REPLACE")
+
 groups = {g.index for g in body.vertex_groups}
 unweighted = sum(1 for v in body.data.vertices if not any(g.group in groups and g.weight > 1e-4 for g in v.groups))
 report = {"bones": len(arm_data.bones), "vertices": len(body.data.vertices), "unweighted": unweighted}
@@ -125,6 +163,9 @@ for side, sign in (("L", 1), ("R", -1)):
     turn("finger1." + side, "X", 30)
 turn("neck", "Z", 50)
 turn("tail", "Z", -70)
-turn("arm.L", "X", 60)
+bpy.context.view_layer.update()
+# A front foot lifted: its planted target raised, the leg bending up to it.
+lift = pose["ik_" + bone_name("arm.L", len(chains["arm.L"]) - 2)]
+m = lift.matrix.copy(); m.translation.z += size * 0.1; m.translation.y -= size * 0.05; lift.matrix = m
 bpy.context.view_layer.update()
 shoot("bend")

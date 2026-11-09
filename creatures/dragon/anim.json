@@ -1,0 +1,8 @@
+{
+ "Idle": {
+  "feet_moved_per_metre": 0.0
+ },
+ "WingFlap": {
+  "feet_moved_per_metre": 0.0
+ }
+}
