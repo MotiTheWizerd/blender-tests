@@ -82,12 +82,24 @@ statue until Forge has creatures.
 - **LOOK** at the LODs (LOD2 keeps the silhouette) and the hulls (each on its own region; the overlaps are fine).
   Bounds of each hull: read the FBX back and print them, a picture of overlapping hulls is hard to judge.
 
+## 5. Into Forge (unity-game-test, ~5 min with the tests)
+
+1. Copy `forge/<Name>/` to `Assets/_Project/Content/Models/<Name>/` (new files: a plain copy, then a refresh).
+2. A record in `CoreModels.cs` (the dragon: `forge.core:dragon`, category `Creatures/Dragons`, upright, placed as
+   aimed, at its own size). Compile, no console errors.
+3. *Forge → Models → Build Models* makes `<Name>.mat` and `<Name>.prefab` and lists it in `PrefabCatalog.asset`.
+   **It rebuilds every model folder**, so other prefabs and materials may change with it: commit only your own paths.
+4. *Forge → Generate Core Plugin*: `forge.core.json` should gain only the new record.
+5. EditMode tests (`ModelContentTests` checks the contract: on its pivot, centred, colliders undrawn).
+6. **LOOK** in play mode: instantiate the prefab 30 m in front of the camera turned to face it
+   (`Quaternion.LookRotation(-forward)`), screenshot. Its face toward the camera means it faces +Z, as Forge wants
+   (the dragon did: Blender's -Y front exported with forward -Z, up Y comes out right). Its tab shows in the browser.
+
 ## Next (planned, not built)
 
-5. Into Forge: copy `forge/<Name>/` to `Assets/_Project/Content/Models/<Name>/`, *Forge → Models → Build Models*,
-   a `CoreModels` record, *Forge → Generate Core Plugin*, then stand it in the world and look (which way it faces).
-6. Animate (waits for Forge creatures): idle breathing, head look-around, wing fold/unfold, wing-flap loop, walk;
-   roar once there is a jaw. Unity: an Animator for a generic rig, spring bones on tail, neck and wing tips.
+6. Animate (waits for Forge creatures; the skeleton and weights are in `<name>_rig.blend`): idle breathing, head
+   look-around, wing fold/unfold, wing-flap loop, walk; roar once there is a jaw. Unity: an Animator for a generic
+   rig, spring bones on tail, neck and wing tips.
 
 ## What is kept in git
 
@@ -102,3 +114,4 @@ steps make from it (rerun them: steps 1-2 take about 2 minutes on the RTX 5060).
 | 2 | 40,000 triangles; normals baked at 4096; nearly identical at full view, horn tips and small spikes slightly faceted up close | 106 s (decimate 61 s, bake 18 s) |
 | 3 | 52 bones, 0 vertices unweighted, no tearing in the bend test | 1 min |
 | 4 | 12 x 12.5 x 7 m; LODs 40,000 / 16,000 / 4,800; 12 hulls of 118-246 faces; FBX 2.2 MB, maps 8.5 MB | 1 min |
+| 5 | in Forge as `forge.core:dragon` (unity-game-test 53229a9); faces +Z; EditMode 1246/1246 | 5 min |
