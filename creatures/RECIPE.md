@@ -108,7 +108,11 @@ each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.png` (
   breath and returns; it dips on the wings' downstroke). A chest rising past rest pulls planted feet off the ground.
 - **The feet check** (`anim.json`, `FEET` lines): how far the skin on the ground (the lowest 2% of the height) moves
   over each loop, per metre of height. It must be ~0; the dragon: 0.0 in both clips. Anything else floats or skates.
-- **LOOK** in Blender (Space plays; Dope Sheet > Action Editor picks the clip): weight, no floating, the wing roots.
+- **Loops need Cycles modifiers** on every curve: Blender's "Cyclic Animation" on an action is only a label, and a
+  1 s clip in a 4 s timeline otherwise plays once and stands still (Moti caught it). Saved with the skeleton active,
+  or the Action Editor shows nothing.
+- **LOOK** in Blender (Space plays; select the skeleton, Dope Sheet > Action Editor picks the clip): weight, no
+  floating, the wing roots, each clip repeating.
 
 ## Next (planned, not built)
 

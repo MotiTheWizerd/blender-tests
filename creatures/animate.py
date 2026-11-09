@@ -106,7 +106,12 @@ for name, (motion, seconds) in CLIPS.items():
         for p in pose:
             p.keyframe_insert("rotation_quaternion", frame=f + 1)
     action.frame_range = (1, frames + 1)
-    action.use_cyclic = True
+    action.use_cyclic = True      # a label only: the Cycles modifiers below are what repeat it
+    for layer in action.layers:
+        for strip in layer.strips:
+            for bag in strip.channelbags:
+                for curve in bag.fcurves:
+                    curve.modifiers.new("CYCLES")
     print("CLIP", name, frames, "frames")
 
 # The feet hold the ground: how far the vertices standing on it (the lowest 2% of the height) move over each loop.
@@ -164,5 +169,9 @@ os.remove(os.path.join(HERE, "_frame.png"))
 bpy.data.objects.remove(cam, do_unlink=True)
 rig.animation_data.action = bpy.data.actions["Idle"]
 scene.frame_start, scene.frame_end = 1, int(4.0 * FPS)
+# Saved with the skeleton chosen, so the Action Editor shows its clip on opening (it shows only the active object's).
+bpy.ops.object.select_all(action="DESELECT")
+rig.select_set(True)
+bpy.context.view_layer.objects.active = rig
 scene.render.engine = "BLENDER_EEVEE"
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, f"{NAME}_anim.blend"))
