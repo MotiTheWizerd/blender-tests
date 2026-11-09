@@ -1,8 +1,14 @@
 {
  "Idle": {
+  "reach_miss_per_metre": 0.0,
   "feet_moved_per_metre": 0.0
  },
  "WingFlap": {
+  "reach_miss_per_metre": 0.0,
   "feet_moved_per_metre": 0.0
+ },
+ "Walk": {
+  "reach_miss_per_metre": 0.0,
+  "speed_body_lengths_per_second": 0.1354
  }
 }

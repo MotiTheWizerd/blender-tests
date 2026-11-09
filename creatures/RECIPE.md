@@ -10,6 +10,10 @@ Each creature has a folder here (`dragon/`), and every script takes its name: `b
 - tripo3d.ai Studio, image to model, **H3.1, 4K PBR** (the dragon: `picture-2.png`, 55 credits).
 - Export needs a paid plan (the free plan's Export opens the upgrade page). Pro: 3,000 credits a month.
 - Export **GLB, 4K textures**, saved as `<name>/source_tripo.glb` (the dragon: 67 MB).
+- **The source picture is part of the recipe**: the pose decides what can be rigged. Legs apart, wings spread, tail
+  free, and **the mouth slightly open**, teeth showing: Tripo then models the inside, and a jaw bone can close it. A
+  closed mouth has nothing inside (the dragon), so it can't roar without a mouth built by hand.
+- For a creature, keep **one skin** (not parts): it bends smoothly at the joints; parts crack at the seams.
 - Not tried yet: **Generate in Parts**, which may give a separate jaw (see step 1: a closed mouth can't roar).
 - Later, for agents: the Tripo API does the same without the browser.
 
@@ -102,11 +106,17 @@ statue until Forge has creatures.
 
 ## 6. Animate (`animate.py`, ~1 min)
 
-Each clip is motion written as curves of time on the chains (`Idle` 4 s, `WingFlap` 1 s so far), keyed every frame,
+Each clip is motion written as curves of time on the chains (`Idle` 4 s, `WingFlap` 1 s, `Walk` 1.6 s), keyed every frame,
 each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.png` (frames across a loop), `anim.json`.
 - **The rest pose is the legs' full reach**: the body only ever moves DOWN from it and back (the chest sinks with a
   breath and returns; it dips on the wings' downstroke). A chest rising past rest pulls planted feet off the ground.
-- **The feet check** (`anim.json`, `FEET` lines): how far the skin on the ground (the lowest 2% of the height) moves
+- **Walk in place**: the feet's targets step (a lateral-sequence walk, hind-fore-hind-fore a quarter apart, 70% of
+  the cycle on the ground), the game moves the creature at the speed the feet carry (`anim.json`, the dragon 0.135
+  body lengths a second: 1.6 m/s at 12 m), or the feet skate. The body is **lowered for the whole walk** (5.5% of the
+  height): near-straight legs at rest have no slack for a stride and would fall short of their feet.
+- **The reach check** (`REACH` lines): how far each leg falls short of its foot's target, every clip. Must be ~0
+  (the dragon: 0.0 in all three).
+- **The feet check** (`anim.json`, `FEET` lines, clips that stand): how far the skin on the ground (the lowest 2% of the height) moves
   over each loop, per metre of height. It must be ~0; the dragon: 0.0 in both clips. Anything else floats or skates.
 - **Loops need Cycles modifiers** on every curve: Blender's "Cyclic Animation" on an action is only a label, and a
   1 s clip in a 4 s timeline otherwise plays once and stands still (Moti caught it). Saved with the skeleton active,
@@ -116,7 +126,7 @@ each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.png` (
 
 ## Next (planned, not built)
 
-7. More clips: head look-around, wing fold/unfold, walk (the feet's IK targets step), roar once there is a jaw.
+7. More clips: head look-around, wing fold/unfold, turn on the spot, run; roar once there is a jaw.
 8. Forge plays them (waits for Forge creatures): keep the skeleton on import, bake the IK into keys before the FBX,
    an Animator for a generic rig, spring bones on tail, neck and wing tips.
 
