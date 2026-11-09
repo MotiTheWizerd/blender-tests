@@ -40,10 +40,30 @@ The AI mesh is film-scale (the dragon: 1.89M triangles); a game creature wants 2
 - **LOOK** at the comparison: silhouette (claws, spikes, horn tips, wing edges keep their shape?), the wing membrane
   (no holes where its two sides met), the scales still read in the head close-up.
 
+## 3. Rig (`rig.py`, ~1 min), from `<name>/landmarks.json`
+
+The judgment of this step is the landmarks: each chain's joints in the source frame. `rig.py` turns them into bones,
+mirrors the left (+X) side, skins with automatic (heat) weights and renders the checks; the rest is mechanical.
+
+How the dragon's were found (an agent repeats this with `probe.py` and `grid.py`, both run on `<name>_low.blend`):
+- **Slices along the body** (every 4 cm in Y, core vertices only) give the centre line: the spine is level at
+  z 0.25-0.29, and the tail curves off to +X (its tip 0.38 m to the side), so its bones follow the slices, not a line.
+- **Feet** are the vertices on the ground (z < 3 cm), split in four by side and by front/back; each leg is traced up
+  from its foot by the centroid of 3 cm slabs. Left and right agreed to 2 mm, so mirroring is safe.
+- **Grid views** (`grid_front/side/top.png`, 5 cm lines, 1500 px a metre) for what slices can't tell: the elbows and
+  knees (the hind leg bends back at the hock, digitigrade), the wing's wrist (the hooked claw at the top, x 0.18
+  z 0.48) and its three finger struts, each ending in a claw on the membrane's lower edge.
+- Chains: spine 3, neck 4, head 1, tail 10, each front leg 3, each hind leg 4, each wing arm 3 and fingers 3+2+2:
+  52 bones. No jaw yet (the mouth is fused).
+
+Writes `<name>_rig.blend`, `rig.json` (52 bones, 0 vertices left unweighted), `rig_<view>.png` (bones drawn through
+the see-through body) and `bend_<view>.png` (wings swung, neck and tail turned, a front leg lifted).
+- **LOOK** at `rig_*`: every bone inside its limb, the finger bones along the struts. At `bend_*`: no tearing
+  (the dragon: none), smooth curves (the tail curls evenly), stretching where a limb meets the body (the dragon: the
+  back skin stretches at the wing roots when a whole wing swings 40 deg; watch it in the fold animation).
+
 ## Next (planned, not built)
 
-3. Rig: a skeleton built from landmarks found on the mesh (spine, neck, head, jaw, tail chain, four legs, two wings
-   with finger bones), automatic weights, then the wings and neck checked. **LOOK**: bend each chain, no tearing.
 4. Animate: idle breathing, head look-around, wing fold/unfold, wing-flap loop, walk; roar once there is a jaw.
 5. Export FBX into Forge's model contract; Unity: Animator, spring bones on tail, neck and wing tips.
 6. LODs and colliders, as the other Forge models.
