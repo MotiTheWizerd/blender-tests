@@ -1,0 +1,28 @@
+{
+ "length": 12.0,
+ "scale": 12.747,
+ "size_m": [
+  12.49,
+  12.0,
+  7.0
+ ],
+ "triangles": {
+  "Dragon_LOD0": 40000,
+  "Dragon_LOD1": 16000,
+  "Dragon_LOD2": 4800
+ },
+ "colliders": {
+  "Dragon_Body_COL": 240,
+  "Dragon_Neck_COL": 140,
+  "Dragon_Head_COL": 246,
+  "Dragon_TailBase_COL": 118,
+  "Dragon_TailMid_COL": 240,
+  "Dragon_TailEnd_COL": 218,
+  "Dragon_ArmL_COL": 140,
+  "Dragon_ArmR_COL": 142,
+  "Dragon_LegL_COL": 238,
+  "Dragon_LegR_COL": 238,
+  "Dragon_WingL_COL": 208,
+  "Dragon_WingR_COL": 206
+ }
+}

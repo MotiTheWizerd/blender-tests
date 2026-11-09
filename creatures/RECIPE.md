@@ -62,11 +62,32 @@ the see-through body) and `bend_<view>.png` (wings swung, neck and tail turned, 
   (the dragon: none), smooth curves (the tail curls evenly), stretching where a limb meets the body (the dragon: the
   back skin stretches at the wing roots when a whole wing swings 40 deg; watch it in the fold animation).
 
+## 4. Export for Forge (`export.py -- <name> [length]`, ~1 min; `check_export.py` to look)
+
+Forge's model contract (unity-game-test ARCHITECTURE.md, "Models"): `<Name>.fbx` in metres with `<Name>_LOD0/1/2` and
+`…_COL` convex colliders, `<Name>_BaseColor`, `_Normal` (OpenGL), `_MetallicSmoothness` (metal R, smoothness A).
+**Forge imports models still** (no animation; characters are a humanoid-only path), so a creature goes in as a
+statue until Forge has creatures.
+
+- The game size is chosen: `length` front to back (the dragon: 12 m, so 12.5 m across the wings and 7 m tall).
+  Pivot at the lowest point, the footprint centred on it.
+- LODs: the reduced mesh, 40% and 12% of it (the dragon: 40,000 / 16,000 / 4,800 triangles).
+- **Colliders from the skeleton**: each vertex goes to the region of its strongest bone (body, neck, head, tail in
+  three, each leg, each wing); one convex hull per region, at most 250 faces (PhysX: 255). One hull for the whole
+  creature would fill the air between its wings and legs.
+- Maps at 2048 (what Forge builds at). glTF's `rm` (roughness G, metal B) becomes URP's MetallicSmoothness.
+- `CREDITS.md`: made by Tripo on Moti's Pro plan (private models, commercial use).
+- Writes `<name>/forge/<Name>/` (git-ignored, rerun it) and `export.json`. `check_export.py` reads the FBX back:
+  `export_colliders.png`, `export_lods.png`.
+- **LOOK** at the LODs (LOD2 keeps the silhouette) and the hulls (each on its own region; the overlaps are fine).
+  Bounds of each hull: read the FBX back and print them, a picture of overlapping hulls is hard to judge.
+
 ## Next (planned, not built)
 
-4. Animate: idle breathing, head look-around, wing fold/unfold, wing-flap loop, walk; roar once there is a jaw.
-5. Export FBX into Forge's model contract; Unity: Animator, spring bones on tail, neck and wing tips.
-6. LODs and colliders, as the other Forge models.
+5. Into Forge: copy `forge/<Name>/` to `Assets/_Project/Content/Models/<Name>/`, *Forge → Models → Build Models*,
+   a `CoreModels` record, *Forge → Generate Core Plugin*, then stand it in the world and look (which way it faces).
+6. Animate (waits for Forge creatures): idle breathing, head look-around, wing fold/unfold, wing-flap loop, walk;
+   roar once there is a jaw. Unity: an Animator for a generic rig, spring bones on tail, neck and wing tips.
 
 ## What is kept in git
 
@@ -79,3 +100,5 @@ steps make from it (rerun them: steps 1-2 take about 2 minutes on the RTX 5060).
 |---|---|---|
 | 1 | 1 shell, 944,353 vertices welded, 1,888,702 triangles, 0 open edges; 3 maps at 4096 | 30 s |
 | 2 | 40,000 triangles; normals baked at 4096; nearly identical at full view, horn tips and small spikes slightly faceted up close | 106 s (decimate 61 s, bake 18 s) |
+| 3 | 52 bones, 0 vertices unweighted, no tearing in the bend test | 1 min |
+| 4 | 12 x 12.5 x 7 m; LODs 40,000 / 16,000 / 4,800; 12 hulls of 118-246 faces; FBX 2.2 MB, maps 8.5 MB | 1 min |
