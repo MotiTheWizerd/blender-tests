@@ -3,7 +3,7 @@ no moving creatures yet).
 
     blender -b --factory-startup -P export.py -- dragon [length=12]
 
-Reads <name>/<name>_rig.blend (step 3: the reduced mesh, its maps, its skeleton's weights). Writes <name>/forge/<Name>/,
+Reads build/<name>_rig.blend (step 3: the reduced mesh, its maps, its skeleton's weights). Writes build/forge/<Name>/,
 ready to copy to unity-game-test Assets/_Project/Content/Models/<Name>/:
   <Name>.fbx     metres, `length` long front to back, standing on its pivot at its footprint's middle; meshes
                  <Name>_LOD0/1/2 (the reduced mesh, 40% and 12% of it) and <Name>_<Region>_COL, a convex hull for each
@@ -19,9 +19,11 @@ from mathutils import Matrix, Vector
 args = sys.argv[sys.argv.index("--") + 1:]
 NAME = args[0]
 LENGTH = float(args[1]) if len(args) > 1 else 12.0
-Title = NAME.capitalize()
-HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
-OUT = os.path.join(HERE, "forge", Title)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from place import Creature, save_blend
+C = Creature(NAME)
+Title = C.title
+OUT = C.build("forge", Title)
 os.makedirs(OUT, exist_ok=True)
 MAPS = 2048
 LODS = (0.4, 0.12)
@@ -34,7 +36,7 @@ REGIONS = {
     "WingL": ["wing_*.L", "finger"], "WingR": ["wing_*.R", "finger"],
 }
 
-bpy.ops.wm.open_mainfile(filepath=os.path.join(HERE, f"{NAME}_rig.blend"))
+bpy.ops.wm.open_mainfile(filepath=C.blend("rig"))
 scene = bpy.context.scene
 body = next(o for o in scene.objects if o.type == "MESH")
 mesh = body.data.copy()
@@ -147,5 +149,5 @@ dims = [round(float(d), 2) for d in (co.max(0) - co.min(0)) * k]
 report = {"length": LENGTH, "scale": round(k, 3), "size_m": dims,
           "triangles": {o.name: sum(len(p.vertices) - 2 for p in o.data.polygons) for o in drawn},
           "colliders": {c.name: len(c.data.polygons) for c in cols}}
-json.dump(report, open(os.path.join(HERE, "export.json"), "w"), indent=1)
+json.dump(report, open(C.checks("export.json"), "w"), indent=1)
 print("EXPORT", json.dumps(report))

@@ -1,0 +1,66 @@
+"""The whole recipe for one creature, every step in order: plain Python, each step a headless Blender.
+
+    python run.py dragon                    every step, from the source to the clips
+    python run.py dragon --from rig         from a step on (after editing landmarks.json, say)
+    python run.py dragon --only animate     one step
+    python run.py --steps                   the steps, in order
+
+Needs <name>/source_tripo.glb (step 0, by hand) and, from the rig on, <name>/landmarks.json (step 3's judgment:
+probe.py and grid.py help find it). Blender is $BLENDER, else Blender 5.2's Windows install. Each step's output
+goes to <name>/build/<step>.log; its last lines are shown, and the run stops at the first step that fails.
+What each step makes and what to look at: RECIPE.md.
+"""
+import os
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BLENDER = os.environ.get("BLENDER", r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe")
+# (step, script, extra arguments after the creature's name)
+STEPS = [
+    ("inspect", "inspect.py", []),
+    ("reduce", "reduce.py", []),
+    ("rig", "rig.py", []),
+    ("export", "export.py", []),
+    ("check_export", "check_export.py", []),
+    ("animate", "animate.py", []),
+]
+# The lines each step prints that say how it went.
+SAYS = ("INSPECT", "REDUCE", "RIG", "EXPORT", "CLIP", "FEET", "REACH", "WALK", "Error", "Traceback")
+
+
+def main(argv):
+    if "--steps" in argv:
+        print("\n".join(step for step, _, _ in STEPS))
+        return 0
+    name = argv[0]
+    names = [step for step, _, _ in STEPS]
+    first, only = 0, None
+    if "--from" in argv:
+        first = names.index(argv[argv.index("--from") + 1])
+    if "--only" in argv:
+        only = argv[argv.index("--only") + 1]
+    build = os.path.join(HERE, name, "build")
+    os.makedirs(build, exist_ok=True)
+    for step, script, extra in STEPS[first:]:
+        if only and step != only:
+            continue
+        started = time.time()
+        log = os.path.join(build, f"{step}.log")
+        with open(log, "w", encoding="utf-8", errors="replace") as out:
+            done = subprocess.run([BLENDER, "-b", "--factory-startup", "-P", os.path.join(HERE, script), "--", name, *extra],
+                                  stdout=out, stderr=subprocess.STDOUT)
+        said = [line.rstrip() for line in open(log, encoding="utf-8", errors="replace") if line.startswith(SAYS)]
+        failed = done.returncode != 0 or any(line.startswith(("Error", "Traceback")) for line in said)
+        print(f"{step:13} {'FAILED' if failed else 'ok':6} {time.time() - started:5.0f} s")
+        for line in said[-8:]:
+            print("   ", line[:160])
+        if failed:
+            print(f"    see {log}")
+            return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

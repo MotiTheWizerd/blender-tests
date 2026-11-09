@@ -1,6 +1,6 @@
 """Step 3a for a creature: measurements to place its landmarks by (the joints rig.py builds bones from).
 
-    blender -b <name>/<name>_low.blend -P probe.py
+    blender -b <name>/build/<name>_low.blend -P probe.py
 
 Prints the centre line (slices every 4 cm along Y: the core's middle x and its height), the four feet (vertices
 on the ground, by side and front/back) with each leg traced up by the centroid of 3 cm slabs, and the +X wing by

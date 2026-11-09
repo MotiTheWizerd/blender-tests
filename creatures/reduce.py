@@ -7,13 +7,12 @@ collapses the copy to `triangles`, keeping its UVs, so the AI's own colour and r
 Only the shape's detail is lost, so only the normal map is baked again: Cycles on the GPU, from the full mesh with
 its own normal map (so the bake carries both the sculpted scales and the map's fine grain) onto the reduced one.
 
-Writes <name>/:
+Writes, in <name>/build/ (made again by running it):
   <Name>_BaseColor.jpg, <Name>_RM.jpg   the AI's maps, unchanged (R unused, G roughness, B metal: glTF's packing)
   <Name>_Normal.png                     the baked tangent-space normals (OpenGL, Y+, as Unity wants)
   <name>_low.blend                      the reduced mesh with its material, for the rig (step 3)
-  reduce_compare.png                    full (left) and reduced (right) side by side, EEVEE, the same light
-  reduce_head_high/low.png              the head close, full and reduced
-  reduce.json                           triangles before and after, timings
+and in <name>/checks/: reduce_compare.jpg (full left, reduced right, EEVEE, the same light), reduce_head_high/low.jpg
+(the head close), reduce.json (triangles before and after, timings).
 """
 import bmesh, bpy, json, math, os, sys, time
 from mathutils import Vector
@@ -22,13 +21,15 @@ args = sys.argv[sys.argv.index("--") + 1:]
 NAME = args[0]
 TRIANGLES = int(args[1]) if len(args) > 1 else 40000
 BAKE = int(args[2]) if len(args) > 2 else 4096
-HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
-Title = NAME.capitalize()
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from place import Creature, pictures_as_jpeg, save_blend
+C = Creature(NAME)
+Title = C.title
 report = {"triangles_target": TRIANGLES, "bake_size": BAKE}
 t0 = time.time()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=os.path.join(HERE, "source_tripo.glb"))
+bpy.ops.import_scene.gltf(filepath=C.source)
 scene = bpy.context.scene
 high = next(o for o in scene.objects if o.type == "MESH")
 high.data.transform(high.matrix_world)       # the glTF's root baked in; the mesh stands on its own
@@ -53,9 +54,9 @@ def save(image, path, fmt):
     image.save()
 for name, node in images.items():
     if "basecolor" in name:
-        save(node.image, os.path.join(HERE, f"{Title}_BaseColor.jpg"), "JPEG")
+        save(node.image, C.build(f"{Title}_BaseColor.jpg"), "JPEG")
     elif "_rm" in name:
-        save(node.image, os.path.join(HERE, f"{Title}_RM.jpg"), "JPEG")
+        save(node.image, C.build(f"{Title}_RM.jpg"), "JPEG")
 normal_node = next(n for name, n in images.items() if "normal" in name)
 
 # The reduced copy: collapse keeps the UVs, triangulated so Unity shades it exactly as it was baked.
@@ -103,7 +104,7 @@ bpy.context.view_layer.objects.active = low
 t = time.time()
 bpy.ops.object.bake(type="NORMAL")
 report["bake_s"] = round(time.time() - t, 1)
-save(baked, os.path.join(HERE, f"{Title}_Normal.png"), "PNG")
+save(baked, C.build(f"{Title}_Normal.png"), "PNG")
 own_normal = next(n for n in low_mat.node_tree.nodes if n.type == "TEX_IMAGE" and n.image is normal_node.image)
 own_normal.image = baked
 low_mat.node_tree.nodes.remove(target)
@@ -111,6 +112,7 @@ low_mat.node_tree.nodes.remove(target)
 # Side by side: the full mesh left, the reduced right, in EEVEE under one light.
 scene.render.engine = "BLENDER_EEVEE"
 scene.render.resolution_x, scene.render.resolution_y = 1800, 900
+pictures_as_jpeg(scene)
 world = bpy.data.worlds.new("w"); scene.world = world
 world.use_nodes = True
 world.node_tree.nodes["Background"].inputs[0].default_value = (0.05, 0.05, 0.06, 1)
@@ -131,13 +133,13 @@ def shoot(path, centre, scale, d):
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
 mid = Vector((0, 0, size * 0.28))
-shoot(os.path.join(HERE, "reduce_compare.png"), mid, offset * 2.1, (0.5, -1, 0.35))
+shoot(C.picture("reduce_compare"), mid, offset * 2.1, (0.5, -1, 0.35))
 # The head close: each dragon's own head, one above the other is not possible in one frame, so two shots.
 head = max(high.data.vertices, key=lambda v: v.co.z - v.co.y * 0.5).co.copy()   # far up and forward: the horns
 for which, obj in (("high", high), ("low", low)):
     for o in (high, low):
         o.hide_render = o is not obj
-    shoot(os.path.join(HERE, f"reduce_head_{which}.png"), obj.location + head - Vector((0, 0, size * 0.06)), size * 0.3, (0.6, -1, 0.15))
+    shoot(C.picture(f"reduce_head_{which}"), obj.location + head - Vector((0, 0, size * 0.06)), size * 0.3, (0.6, -1, 0.15))
 for o in (high, low):
     o.hide_render = False
 low.location = (0, 0, 0)
@@ -150,7 +152,7 @@ for image in bpy.data.images:
     if image.filepath_raw:
         image.filepath = image.filepath_raw     # point at the saved files, not the glb's packed copies
 bpy.ops.file.make_paths_relative()
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, f"{NAME}_low.blend"))
+save_blend(bpy, C.blend("low"))
 report["total_s"] = round(time.time() - t0, 1)
-json.dump(report, open(os.path.join(HERE, "reduce.json"), "w"), indent=1)
+json.dump(report, open(C.checks("reduce.json"), "w"), indent=1)
 print("REDUCE", json.dumps(report))

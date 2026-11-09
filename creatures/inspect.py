@@ -3,16 +3,18 @@
     blender -b --factory-startup -P inspect.py -- dragon     (a folder beside this file, holding source_tripo.glb)
 
 Prints the meshes (vertices, faces, the shells once the UV seams are welded, open edges), the materials and their images, and the
-size; writes <name>/inspect.json and four views (front, side, top, three-quarter) to <name>/inspect_<view>.png.
+size; writes checks/inspect.json and four views (front, side, top, three-quarter), checks/inspect_<view>.jpg.
 """
 import bmesh, bpy, json, os, sys
 from mathutils import Vector
 
 NAME = sys.argv[sys.argv.index("--") + 1]
-HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from place import Creature, pictures_as_jpeg, save_blend
+C = Creature(NAME)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=os.path.join(HERE, "source_tripo.glb"))
+bpy.ops.import_scene.gltf(filepath=C.source)
 scene = bpy.context.scene
 meshes = [o for o in scene.objects if o.type == "MESH"]
 
@@ -73,7 +75,7 @@ report["size_m"] = [round(x, 3) for x in (hi - lo)]
 report["min"] = [round(x, 3) for x in lo]
 report["armatures"] = [o.name for o in scene.objects if o.type == "ARMATURE"]
 report["animations"] = [a.name for a in bpy.data.actions]
-json.dump(report, open(os.path.join(HERE, "inspect.json"), "w"), indent=1)
+json.dump(report, open(C.checks("inspect.json"), "w"), indent=1)
 print("INSPECT", json.dumps(report, indent=1))
 
 # Four views in Workbench with the texture's colours, the model framed by its bounds.
@@ -82,6 +84,7 @@ scene.display.shading.light = "STUDIO"
 scene.display.shading.color_type = "TEXTURE"
 scene.render.resolution_x, scene.render.resolution_y = 1200, 900
 scene.render.film_transparent = False
+pictures_as_jpeg(scene)
 world = bpy.data.worlds.new("w"); scene.world = world
 center, size = (lo + hi) / 2, max(hi - lo)
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
@@ -95,6 +98,6 @@ for view, d in views.items():
     cam.location = center + d * size * 3
     cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
     cam.data.clip_end = size * 10
-    scene.render.filepath = os.path.join(HERE, f"inspect_{view}.png")
+    scene.render.filepath = C.picture(f"inspect_{view}")
     bpy.ops.render.render(write_still=True)
 print("VIEWS", list(views))

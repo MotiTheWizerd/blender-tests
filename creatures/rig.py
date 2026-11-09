@@ -2,14 +2,14 @@
 
     blender -b --factory-startup -P rig.py -- dragon
 
-Reads <name>/<name>_low.blend (step 2) and <name>/landmarks.json: named chains of joints in the source frame, the
+Reads build/<name>_low.blend (step 2) and <name>/landmarks.json: named chains of joints in the source frame, the
 paired ones (".L", the creature's left, +X) mirrored to ".R" when "mirror" is set, and each chain's parent ("spine" is
 its last bone, "spine:0" its first). Bones are "<chain>_<i>" ("tail_3", "finger1_2.L"), each chain connected, rolled so
 its X axis is level (a bend about X lifts and lowers).
 
 Finding the landmarks is the judgment in this step (the dragon's were read off grid views and mesh slices: see
-RECIPE.md); the rest is mechanical. Writes <name>/<name>_rig.blend, rig.json (bones, vertices no bone moves), and
-pictures: rig_<view>.png (the bones drawn through the body) and bend_<view>.png (wings folded up, neck and tail turned,
+RECIPE.md); the rest is mechanical. Writes build/<name>_rig.blend, checks/rig.json (bones, vertices no bone moves), and
+pictures: rig_<view>.jpg (the bones drawn through the body) and bend_<view>.jpg (wings folded up, neck and tail turned,
 a front leg lifted) to look at for tearing. The chains listed in "feet" stand on the ground: their last bone is held
 by an unparented twin ("ik_<bone>") that the leg reaches by IK, so the body moves over planted feet.
 """
@@ -17,11 +17,13 @@ import bpy, json, math, os, sys
 from mathutils import Vector, Matrix
 
 NAME = sys.argv[sys.argv.index("--") + 1]
-HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
-bpy.ops.wm.open_mainfile(filepath=os.path.join(HERE, f"{NAME}_low.blend"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from place import Creature, pictures_as_jpeg, save_blend
+C = Creature(NAME)
+bpy.ops.wm.open_mainfile(filepath=C.blend("low"))
 scene = bpy.context.scene
 body = next(o for o in scene.objects if o.type == "MESH")
-spec = json.load(open(os.path.join(HERE, "landmarks.json")))
+spec = json.load(open(C.landmarks))
 
 chains, parents = dict(spec["chains"]), dict(spec["parents"])
 if spec.get("mirror"):
@@ -107,14 +109,15 @@ groups = {g.index for g in body.vertex_groups}
 unweighted = sum(1 for v in body.data.vertices if not any(g.group in groups and g.weight > 1e-4 for g in v.groups))
 report = {"bones": len(arm_data.bones), "vertices": len(body.data.vertices), "unweighted": unweighted}
 print("RIG", json.dumps(report))
-json.dump(report, open(os.path.join(HERE, "rig.json"), "w"), indent=1)
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, f"{NAME}_rig.blend"))
+json.dump(report, open(C.checks("rig.json"), "w"), indent=1)
+save_blend(bpy, C.blend("rig"))
 
 # Pictures. Workbench draws no armature, so the bones are drawn as sticks, the body see-through.
 scene.render.engine = "BLENDER_WORKBENCH"
 shading = scene.display.shading
 shading.light = "STUDIO"
 scene.render.resolution_x, scene.render.resolution_y = 1400, 1000
+pictures_as_jpeg(scene)
 scene.world = bpy.data.worlds.new("w")
 size = max(body.dimensions)
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); scene.collection.objects.link(cam); scene.camera = cam
@@ -128,7 +131,7 @@ def shoot(prefix):
         d = Vector(d).normalized()
         cam.location = centre + d * size * 3
         cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
-        scene.render.filepath = os.path.join(HERE, f"{prefix}_{view}.png")
+        scene.render.filepath = C.picture(f"{prefix}_{view}")
         bpy.ops.render.render(write_still=True)
 
 

@@ -3,13 +3,14 @@ the same chains gets them too.
 
     blender -b --factory-startup -P animate.py -- dragon
 
-Reads <name>/<name>_rig.blend (step 3). Each clip is an action keyed on every frame from curves of time; every loop
+Reads build/<name>_rig.blend (step 3). Each clip is an action keyed on every frame from curves of time; every loop
 ends where it began. The rest pose is the legs' full reach (its feet are planted by IK, step 3), so the body only
 ever moves DOWN from it and back: a chest that rose past rest would pull the feet off the ground. A motion is a turn
 about an axis of the creature's own frame (X across, Y front to back, Z up),
 added on top of the bone's parent, so a wing's beat reads the same on both sides with the sign mirrored.
-Writes <name>/<name>_anim.blend (the clips as actions, Idle playing, the frame range set) and, for each clip,
-anim_<clip>.png: frames across one loop, side by side, to look at.
+Writes build/<name>_anim.blend (the clips as actions, Idle playing, the frame range set) and, in checks/, for each
+clip anim_<clip>.jpg (frames across one loop, side by side) and, for a clip that moves, anim_<clip>_side.jpg (four
+large side views over the ground, a quarter cycle apart).
 
 Clips:
   Idle      4 s loop. Breathing (the chest rises and the neck answers), the head swaying slowly, the tail moving
@@ -31,9 +32,11 @@ import numpy as np
 from mathutils import Quaternion, Vector
 
 NAME = sys.argv[sys.argv.index("--") + 1]
-HERE = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from place import Creature, pictures_as_jpeg, save_blend
+C = Creature(NAME)
 FPS = 30
-bpy.ops.wm.open_mainfile(filepath=os.path.join(HERE, f"{NAME}_rig.blend"))
+bpy.ops.wm.open_mainfile(filepath=C.blend("rig"))
 scene = bpy.context.scene
 scene.render.fps = FPS
 rig = next(o for o in scene.objects if o.type == "ARMATURE")
@@ -200,7 +203,7 @@ for name, (_, seconds, moves, _) in CLIPS.items():
         print("FEET", name, f"{1000 * moved / HEIGHT:.1f} mm per metre of height")
     print("REACH", name, f"{1000 * miss / HEIGHT:.1f} mm per metre of height")
     report[name] = entry
-json.dump(report, open(os.path.join(HERE, "anim.json"), "w"), indent=1)
+json.dump(report, open(C.checks("anim.json"), "w"), indent=1)
 
 # Pictures: frames across each loop, Workbench in the texture's colours, from each clip's view.
 scene.render.engine = "BLENDER_WORKBENCH"
@@ -208,6 +211,7 @@ shading = scene.display.shading
 shading.light = "STUDIO"; shading.color_type = "TEXTURE"
 W, H = 480, 360
 scene.render.resolution_x, scene.render.resolution_y = W, H
+pictures_as_jpeg(scene)
 scene.world = bpy.data.worlds.new("w")
 size = max(body.dimensions)
 cam = bpy.data.objects.new("anim_cam", bpy.data.cameras.new("anim_cam")); scene.collection.objects.link(cam)
@@ -224,7 +228,7 @@ for name, (_, seconds, _, view) in CLIPS.items():
     sheet = np.zeros((H, W * shots, 4), np.float32)
     for k in range(shots):
         scene.frame_set(1 + round(k * frames / shots))
-        path = os.path.join(HERE, "_frame.png")
+        path = C.build("_frame.jpg")
         scene.render.filepath = path
         bpy.ops.render.render(write_still=True)
         img = bpy.data.images.load(path)
@@ -232,8 +236,38 @@ for name, (_, seconds, _, view) in CLIPS.items():
         bpy.data.images.remove(img)
     out = bpy.data.images.new(f"anim_{name}", W * shots, H, alpha=True)
     out.pixels.foreach_set(sheet.ravel())
-    out.filepath_raw = os.path.join(HERE, f"anim_{name}.png"); out.file_format = "PNG"; out.save()
-os.remove(os.path.join(HERE, "_frame.png"))
+    out.filepath_raw = C.picture(f"anim_{name}"); out.file_format = "JPEG"; out.save()
+
+# A clip that moves its feet, close: four large side views a quarter cycle apart, over a ground plane, the legs and
+# feet big enough to judge whether each foot is planted or swinging.
+floor = bpy.data.meshes.new("floor")
+floor.from_pydata([(-size, -size, 0), (size, -size, 0), (size, size, 0), (-size, size, 0)], [], [(0, 1, 2, 3)])
+ground_plane = bpy.data.objects.new("floor", floor); scene.collection.objects.link(ground_plane)
+SW, SH = 900, 520
+scene.render.resolution_x, scene.render.resolution_y = SW, SH
+cam.data.ortho_scale = size * 0.75
+d = Vector((1, -0.1, 0.05)).normalized()
+cam.location = Vector((0, -0.15 * size, 0.2 * size)) + d * size * 3
+cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+for name, (_, seconds, moves, _) in CLIPS.items():
+    if not moves:
+        continue
+    rig.animation_data.action = bpy.data.actions[name]
+    frames = int(round(seconds * FPS))
+    sheet = np.zeros((SH * 2, SW * 2, 4), np.float32)
+    for k in range(4):
+        scene.frame_set(1 + round(k * frames / 4))
+        scene.render.filepath = C.build("_frame.jpg")
+        bpy.ops.render.render(write_still=True)
+        img = bpy.data.images.load(C.build("_frame.jpg"))
+        row, col = 1 - k // 2, k % 2                      # first frame top left (images count rows from the bottom)
+        sheet[row * SH:(row + 1) * SH, col * SW:(col + 1) * SW] = np.array(img.pixels[:], np.float32).reshape(SH, SW, 4)
+        bpy.data.images.remove(img)
+    out = bpy.data.images.new(f"anim_{name}_side", SW * 2, SH * 2, alpha=True)
+    out.pixels.foreach_set(sheet.ravel())
+    out.filepath_raw = C.picture(f"anim_{name}_side"); out.file_format = "JPEG"; out.save()
+bpy.data.objects.remove(ground_plane, do_unlink=True)
+os.remove(C.build("_frame.jpg"))
 
 bpy.data.objects.remove(cam, do_unlink=True)
 rig.animation_data.action = bpy.data.actions["Idle"]
@@ -243,4 +277,4 @@ bpy.ops.object.select_all(action="DESELECT")
 rig.select_set(True)
 bpy.context.view_layer.objects.active = rig
 scene.render.engine = "BLENDER_EEVEE"
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, f"{NAME}_anim.blend"))
+save_blend(bpy, C.blend("anim"))

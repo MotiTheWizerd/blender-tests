@@ -3,11 +3,6 @@
 view.png
 __pycache__/
 .venv/
-# creatures: the AI source (re-export from Tripo) and what the steps make from it (rerun the step)
-creatures/*/source_tripo.glb
-creatures/*/*.blend
-creatures/*/*_BaseColor.jpg
-creatures/*/*_RM.jpg
-creatures/*/*_Normal.png
-creatures/*/*.log
-creatures/*/forge/
+# creatures: the private AI source, and build/ (everything the steps make again: python creatures/run.py <name>)
+creatures/*/source_*
+creatures/*/build/

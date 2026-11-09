@@ -5,6 +5,30 @@ agent can run the whole recipe on the next creature; what needs an eye is marked
 Each creature has a folder here (`dragon/`), and every script takes its name: `blender -b --factory-startup -P
 <step>.py -- dragon`. Blender 5.2.3; on this PC `C:/Program Files/Blender Foundation/Blender 5.2/blender.exe`.
 
+## Coming back to it
+
+```
+python creatures/run.py dragon                 # every step, source to clips (~4 min on the RTX 5060)
+python creatures/run.py dragon --from rig      # after editing dragon/landmarks.json
+python creatures/run.py dragon --only animate  # after editing a clip in animate.py
+```
+
+Each creature's folder holds three things (`place.py` says where, for every script):
+
+| Where | What | In git |
+|---|---|---|
+| `<name>/source_tripo.glb` | the AI model (step 0) | **no**: private (this repo is public); kept in Tripo and backed up (below) |
+| `<name>/landmarks.json` | its joints (step 3's judgment) | yes |
+| `<name>/checks/` | each step's pictures (JPEG) and numbers (json): the record of the last run | yes |
+| `<name>/build/` | the .blend files, the maps, the Forge export, a log per step | no: `run.py` makes it again |
+
+**Change scripts and inputs, never a .blend by hand**: every .blend is rebuilt, so a hand edit is lost on the next
+run. A change found by eye in Blender goes back into the script or `landmarks.json`, then `run.py`.
+
+**The private source's backup**: Moti's laptop (Tailscale `motithewizerdlab@100.74.136.46`, it asks him to approve
+the first SSH of a session), `~/backups/creatures/<name>/` with its `landmarks.json`; checked by sha256 when copied
+(the dragon: `8f6223e0ebc95aee...`). The source also stays in Moti's Tripo account (Assets), downloadable on Pro.
+
 ## 0. The model (Tripo, by hand for now)
 
 - tripo3d.ai Studio, image to model, **H3.1, 4K PBR** (the dragon: `picture-2.png`, 55 credits).
@@ -19,7 +43,7 @@ Each creature has a folder here (`dragon/`), and every script takes its name: `b
 
 ## 1. Inspect: what did the AI make? (`inspect.py`, ~30 s)
 
-Writes `inspect.json` and four views, `inspect_front/side/top/three_quarter.png` (Workbench, texture colours).
+Writes `checks/inspect.json` and four views, `inspect_front/side/top/three_quarter.jpg` (Workbench, texture colours).
 
 - **A glTF splits its vertices along the UV seams**, so a model can look like hundreds of loose pieces when it is
   one skin (the dragon: 388 patches). Weld first (1e-5), then count: the dragon is **1 shell, 0 open edges, 0
@@ -40,7 +64,7 @@ The AI mesh is film-scale (the dragon: 1.89M triangles); a game creature wants 2
   so the bake carries the sculpted scales and the map's grain together. Extrusion 0.4% and ray 1.2% of the size.
 - Triangulated and smooth-shaded, so Unity shades it exactly as it was baked.
 - Writes `<Name>_BaseColor.jpg`, `<Name>_RM.jpg`, `<Name>_Normal.png`, `<name>_low.blend` (the input to step 3),
-  `reduce_compare.png` (full left, reduced right), `reduce_head_high/low.png`, `reduce.json` (timings).
+  `reduce_compare.jpg` (full left, reduced right), `reduce_head_high/low.jpg`, `reduce.json` (timings).
 - **LOOK** at the comparison: silhouette (claws, spikes, horn tips, wing edges keep their shape?), the wing membrane
   (no holes where its two sides met), the scales still read in the head close-up.
 
@@ -54,7 +78,7 @@ How the dragon's were found (an agent repeats this with `probe.py` and `grid.py`
   z 0.25-0.29, and the tail curves off to +X (its tip 0.38 m to the side), so its bones follow the slices, not a line.
 - **Feet** are the vertices on the ground (z < 3 cm), split in four by side and by front/back; each leg is traced up
   from its foot by the centroid of 3 cm slabs. Left and right agreed to 2 mm, so mirroring is safe.
-- **Grid views** (`grid_front/side/top.png`, 5 cm lines, 1500 px a metre) for what slices can't tell: the elbows and
+- **Grid views** (`grid_front/side/top.jpg`, 5 cm lines, 1500 px a metre) for what slices can't tell: the elbows and
   knees (the hind leg bends back at the hock, digitigrade), the wing's wrist (the hooked claw at the top, x 0.18
   z 0.48) and its three finger struts, each ending in a claw on the membrane's lower edge.
 - Chains: spine 3, neck 4, head 1, tail 10, each front leg 3, each hind leg 4, each wing arm 3 and fingers 3+2+2:
@@ -65,8 +89,8 @@ How the dragon's were found (an agent repeats this with `probe.py` and `grid.py`
 - **Rigid feet**: the skin below each planted foot's ankle goes to the foot bone alone; shared with the lower leg,
   the sole slides as the leg bends (4-10 mm/m left after IK, 0 after this).
 
-Writes `<name>_rig.blend`, `rig.json` (52 bones, 0 vertices left unweighted), `rig_<view>.png` (bones drawn through
-the see-through body) and `bend_<view>.png` (wings swung, neck and tail turned, a front leg lifted).
+Writes `<name>_rig.blend`, `rig.json` (52 bones, 0 vertices left unweighted), `rig_<view>.jpg` (bones drawn through
+the see-through body) and `bend_<view>.jpg` (wings swung, neck and tail turned, a front leg lifted).
 - **LOOK** at `rig_*`: every bone inside its limb, the finger bones along the struts. At `bend_*`: no tearing
   (the dragon: none), smooth curves (the tail curls evenly), stretching where a limb meets the body (the dragon: the
   back skin stretches at the wing roots when a whole wing swings 40 deg; watch it in the fold animation).
@@ -87,7 +111,7 @@ statue until Forge has creatures.
 - Maps at 2048 (what Forge builds at). glTF's `rm` (roughness G, metal B) becomes URP's MetallicSmoothness.
 - `CREDITS.md`: made by Tripo on Moti's Pro plan (private models, commercial use).
 - Writes `<name>/forge/<Name>/` (git-ignored, rerun it) and `export.json`. `check_export.py` reads the FBX back:
-  `export_colliders.png`, `export_lods.png`.
+  `export_colliders.jpg`, `export_lods.jpg`.
 - **LOOK** at the LODs (LOD2 keeps the silhouette) and the hulls (each on its own region; the overlaps are fine).
   Bounds of each hull: read the FBX back and print them, a picture of overlapping hulls is hard to judge.
 
@@ -107,7 +131,7 @@ statue until Forge has creatures.
 ## 6. Animate (`animate.py`, ~1 min)
 
 Each clip is motion written as curves of time on the chains (`Idle` 4 s, `WingFlap` 1 s, `Walk` 1.6 s), keyed every frame,
-each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.png` (frames across a loop), `anim.json`.
+each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.jpg` (frames across a loop), `anim.json`.
 - **The rest pose is the legs' full reach**: the body only ever moves DOWN from it and back (the chest sinks with a
   breath and returns; it dips on the wings' downstroke). A chest rising past rest pulls planted feet off the ground.
 - **Walk in place**: the feet's targets step (a lateral-sequence walk, hind-fore-hind-fore a quarter apart, 70% of
@@ -129,11 +153,6 @@ each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.png` (
 7. More clips: head look-around, wing fold/unfold, turn on the spot, run; roar once there is a jaw.
 8. Forge plays them (waits for Forge creatures): keep the skeleton on import, bake the IK into keys before the FBX,
    an Animator for a generic rig, spring bones on tail, neck and wing tips.
-
-## What is kept in git
-
-The scripts, this recipe, each step's json and pictures. Not the Tripo source (re-export it, step 0) nor what the
-steps make from it (rerun them: steps 1-2 take about 2 minutes on the RTX 5060).
 
 ## Results, the dragon
 
