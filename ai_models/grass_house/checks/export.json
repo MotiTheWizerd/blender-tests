@@ -1,0 +1,17 @@
+{
+ "length": 16.0,
+ "scale": 16.301,
+ "size_m": [
+  8.43,
+  16.0,
+  6.38
+ ],
+ "triangles": {
+  "GrassHouse_LOD0": 30000,
+  "GrassHouse_LOD1": 12000,
+  "GrassHouse_LOD2": 3599
+ },
+ "colliders": {
+  "GrassHouse_Body_COL": 240
+ }
+}

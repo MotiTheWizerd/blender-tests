@@ -133,7 +133,7 @@ def shoot(path, centre, scale, d):
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
 mid = Vector((0, 0, size * 0.28))
-shoot(C.picture("reduce_compare"), mid, offset * 2.1, (0.5, -1, 0.35))
+shoot(C.picture("reduce_compare"), mid, max(offset * 2.1, size * 1.7), (0.5, -1, 0.35))   # wide (wings) or long (a house)
 # The head close: each dragon's own head, one above the other is not possible in one frame, so two shots.
 head = max(high.data.vertices, key=lambda v: v.co.z - v.co.y * 0.5).co.copy()   # far up and forward: the horns
 for which, obj in (("high", high), ("low", low)):

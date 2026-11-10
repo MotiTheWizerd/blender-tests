@@ -9,7 +9,7 @@ so every step here is a script you can read and re-run.
 
 | Folder | What | Start at |
 |---|---|---|
-| `creatures/` | AI models (Tripo) made into game creatures: inspect, reduce, rig, export to Forge, animate. One script per step, one command for all; written to be run by agents | `creatures/RECIPE.md` |
+| `ai_models/` | AI models (Tripo) made game-ready for Forge: creatures (inspect, reduce, rig, export, animate) and buildings (inspect, reduce, export). One script per step, one command for all; written to be run by agents | `ai_models/RECIPE.md` |
 | `forge_import/` | free art (OpenGameArt, Poly Haven) made into Forge models: `forge_export2.py` and a batch per set | `forge_import/run_*.py` |
 | `characters/` | humanoid characters for Mixamo (`prep_mixamo.py`) and their dances | `characters/prep_mixamo.py` |
 | root | the first studies: the Langford arcs, the longship, the sword and the Viking sword (below) | the sections below |

@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_eafba455-55a5-4889-a1b4-92c5ae5f57cd",
+   "vertices": 1012769,
+   "welded_vertices": 962846,
+   "faces": 1925786,
+   "triangles": 1925786,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_eafba455-55a5-4889-a1b4-92c5ae5f57cd"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    962846
+   ],
+   "open_edges": 105,
+   "non_manifold_edges": 59
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_eafba455-55a5-4889-a1b4-92c5ae5f57cd",
+   "maps": {
+    "Base Color": "grass_roofed_house_3d_model_basecolor.jpg",
+    "Color": "grass_roofed_house_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "grass_roofed_house_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "grass_roofed_house_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "grass_roofed_house_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.518,
+  0.981,
+  0.391
+ ],
+ "min": [
+  -0.259,
+  -0.491,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

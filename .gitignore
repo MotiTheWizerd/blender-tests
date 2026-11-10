@@ -3,6 +3,6 @@
 view.png
 __pycache__/
 .venv/
-# creatures: the private AI source, and build/ (everything the steps make again: python creatures/run.py <name>)
-creatures/*/source_*
-creatures/*/build/
+# ai_models: the private AI source, and build/ (everything the steps make again: python ai_models/run.py <name>)
+ai_models/*/source_*
+ai_models/*/build/

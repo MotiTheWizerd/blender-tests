@@ -1,0 +1,7 @@
+{
+ "kind": "building",
+ "about": "A Viking longhouse: grass roof with mossy stones, dragon-head carvings on both gables, plank walls on a stone base, a double door at the front (-Y). Sized by the door: 0.125 model units tall, a 2 m door, so 16 m long.",
+ "length": 16,
+ "triangles": 30000,
+ "hulls": []
+}

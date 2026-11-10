@@ -1,13 +1,15 @@
 """Where a creature's files live, the same for every step and every creature.
 
-    creatures/<name>/              what a person decides: source_tripo.glb (the AI model; private, not in git),
-                                   landmarks.json (its joints, step 3's judgment)
-    creatures/<name>/checks/       what each step shows: its pictures and numbers (in git: the record of the run)
-    creatures/<name>/build/        what the steps make and can make again: the .blend files, the maps, the Forge
+    ai_models/<name>/              what a person decides: source_tripo.glb (the AI model; private, not in git),
+                                   model.json (what it is: "kind" creature or building, its "length" in metres, its
+                                   "triangles"; a building's "hulls"), landmarks.json (a creature's joints)
+    ai_models/<name>/checks/       what each step shows: its pictures and numbers (in git: the record of the run)
+    ai_models/<name>/build/        what the steps make and can make again: the .blend files, the maps, the Forge
                                    export, the logs (not in git; `run.py <name>` rebuilds it all in a few minutes)
 
 A step script imports it from beside itself: `sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))`.
 """
+import json
 import os
 
 HOME = os.path.dirname(os.path.abspath(__file__))
@@ -16,7 +18,7 @@ HOME = os.path.dirname(os.path.abspath(__file__))
 class Creature:
     def __init__(self, name):
         self.name = name
-        self.title = name.capitalize()
+        self.title = "".join(part.capitalize() for part in name.split("_"))   # Forge's folder name: grass_house -> GrassHouse
         self.root = os.path.join(HOME, name)
         for folder in ("checks", "build"):
             os.makedirs(os.path.join(self.root, folder), exist_ok=True)
@@ -24,6 +26,12 @@ class Creature:
     @property
     def source(self):
         return os.path.join(self.root, "source_tripo.glb")
+
+    @property
+    def spec(self):
+        """model.json: {"kind": "creature" | "building", "length": metres front to back, "triangles": ..., ...}."""
+        path = os.path.join(self.root, "model.json")
+        return json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {"kind": "creature"}
 
     @property
     def landmarks(self):

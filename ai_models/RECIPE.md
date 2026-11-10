@@ -1,4 +1,4 @@
-# Creatures: from an AI model to an animated creature in Forge
+# AI models: from a Tripo model to a game-ready one in Forge (creatures and buildings)
 
 Moti + Claude, first run on the Tripo dragon, started 2026-11-10. Every step is a script that runs headless, so an
 agent can run the whole recipe on the next creature; what needs an eye is marked **LOOK**, with what to look for.
@@ -8,17 +8,24 @@ Each creature has a folder here (`dragon/`), and every script takes its name: `b
 ## Coming back to it
 
 ```
-python creatures/run.py dragon                 # every step, source to clips (~4 min on the RTX 5060)
-python creatures/run.py dragon --from rig      # after editing dragon/landmarks.json
-python creatures/run.py dragon --only animate  # after editing a clip in animate.py
+python ai_models/run.py dragon                 # every step, source to clips (~4 min on the RTX 5060)
+python ai_models/run.py dragon --from rig      # after editing dragon/landmarks.json
+python ai_models/run.py dragon --only animate  # after editing a clip in animate.py
 ```
 
-Each creature's folder holds three things (`place.py` says where, for every script):
+Two kinds, said by each model's `model.json` ("kind", "length" in metres front to back, "triangles"):
+**creature** (every step) and **building** (inspect, reduce, export, check_export: no rig, no clips; its colliders
+are slabs of its height cut at `"hulls"`, none for one hull). `python ai_models/run.py --steps` lists which runs for
+which. Models so far: `dragon` (creature, 12 m), `grass_house` (building, a Viking longhouse, 16 m: sized by its door,
+0.125 model units tall for a 2 m door).
+
+Each model's folder holds three things (`place.py` says where, for every script):
 
 | Where | What | In git |
 |---|---|---|
 | `<name>/source_tripo.glb` | the AI model (step 0) | **no**: private (this repo is public); kept in Tripo and backed up (below) |
-| `<name>/landmarks.json` | its joints (step 3's judgment) | yes |
+| `<name>/model.json` | its kind, length, triangles (buildings: hulls) | yes |
+| `<name>/landmarks.json` | a creature's joints (step 3's judgment) | yes |
 | `<name>/checks/` | each step's pictures (JPEG) and numbers (json): the record of the last run | yes |
 | `<name>/build/` | the .blend files, the maps, the Forge export, a log per step | no: `run.py` makes it again |
 
@@ -26,7 +33,7 @@ Each creature's folder holds three things (`place.py` says where, for every scri
 run. A change found by eye in Blender goes back into the script or `landmarks.json`, then `run.py`.
 
 **The private source's backup**: Moti's laptop (Tailscale `motithewizerdlab@100.74.136.46`, it asks him to approve
-the first SSH of a session), `~/backups/creatures/<name>/` with its `landmarks.json`; checked by sha256 when copied
+the first SSH of a session), `~/backups/ai_models/<name>/` with its `landmarks.json`; checked by sha256 when copied
 (the dragon: `8f6223e0ebc95aee...`). The source also stays in Moti's Tripo account (Assets), downloadable on Pro.
 
 ## 0. The model (Tripo, by hand for now)
