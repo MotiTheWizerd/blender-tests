@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_649fb1db-4f71-4629-904b-7c9dfd2dce38",
+   "vertices": 1143236,
+   "welded_vertices": 962640,
+   "faces": 1925305,
+   "triangles": 1925305,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_649fb1db-4f71-4629-904b-7c9dfd2dce38"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    962640
+   ],
+   "open_edges": 2,
+   "non_manifold_edges": 1
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_649fb1db-4f71-4629-904b-7c9dfd2dce38",
+   "maps": {
+    "Base Color": "log_cabin_3d_model_basecolor.jpg",
+    "Color": "log_cabin_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "log_cabin_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "log_cabin_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "log_cabin_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.979,
+  0.499,
+  0.779
+ ],
+ "min": [
+  -0.49,
+  -0.249,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

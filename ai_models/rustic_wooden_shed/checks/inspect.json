@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_88da8895-0ef4-43b6-9ae6-31ff1c1bad08",
+   "vertices": 1004888,
+   "welded_vertices": 925882,
+   "faces": 1851777,
+   "triangles": 1851777,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_88da8895-0ef4-43b6-9ae6-31ff1c1bad08"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    925882
+   ],
+   "open_edges": 13,
+   "non_manifold_edges": 8
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_88da8895-0ef4-43b6-9ae6-31ff1c1bad08",
+   "maps": {
+    "Base Color": "rustic_wooden_shed_3d_model_basecolor.jpg",
+    "Color": "rustic_wooden_shed_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "rustic_wooden_shed_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "rustic_wooden_shed_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "rustic_wooden_shed_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.981,
+  0.684,
+  0.762
+ ],
+ "min": [
+  -0.491,
+  -0.342,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

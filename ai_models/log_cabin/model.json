@@ -1,0 +1,9 @@
+{
+ "kind": "building",
+ "about": "A small log cabin: round-log walls with notched corners, a wood-shingle gable roof with a ridge log and two carved knotwork posts at its ends, a plank door with iron strap hinges and a ring handle, a four-pane window with a plank shutter, a stacked woodpile and a small gable window, all at the front (-Y). Sized by the door: its recessed panel is 0.315 model units tall for a 2 m door (from a front-face depth probe; 0.15 wide, so 0.95 m), so a unit is 6.35 m and its 0.498 units front to back are 3.2 m; 6.2 m wide, 4.9 m tall, the eaves at about 2.8 m. Cross-check: the wall logs come out about 0.38 m thick.",
+ "length": 3.2,
+ "triangles": 30000,
+ "hulls": [0.57],
+ "uv_seams": 1,
+ "bake_size": 2048
+}

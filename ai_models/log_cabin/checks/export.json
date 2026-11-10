@@ -1,0 +1,18 @@
+{
+ "length": 3.2,
+ "scale": 6.411,
+ "size_m": [
+  6.28,
+  3.2,
+  5.0
+ ],
+ "triangles": {
+  "LogCabin_LOD0": 29999,
+  "LogCabin_LOD1": 11999,
+  "LogCabin_LOD2": 3599
+ },
+ "colliders": {
+  "LogCabin_Part0_COL": 240,
+  "LogCabin_Part1_COL": 128
+ }
+}

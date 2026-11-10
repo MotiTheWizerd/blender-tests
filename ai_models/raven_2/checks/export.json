@@ -1,0 +1,17 @@
+{
+ "length": 0.62,
+ "scale": 0.632,
+ "size_m": [
+  0.36,
+  0.62,
+  0.52
+ ],
+ "triangles": {
+  "Raven2_LOD0": 20000,
+  "Raven2_LOD1": 8000,
+  "Raven2_LOD2": 2400
+ },
+ "colliders": {
+  "Raven2_Body_COL": 238
+ }
+}

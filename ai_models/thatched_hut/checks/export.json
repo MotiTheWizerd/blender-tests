@@ -1,0 +1,17 @@
+{
+ "length": 7.3,
+ "scale": 7.8,
+ "size_m": [
+  7.66,
+  7.3,
+  4.59
+ ],
+ "triangles": {
+  "ThatchedHut_LOD0": 39999,
+  "ThatchedHut_LOD1": 15999,
+  "ThatchedHut_LOD2": 4799
+ },
+ "colliders": {
+  "ThatchedHut_Body_COL": 238
+ }
+}

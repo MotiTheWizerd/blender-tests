@@ -87,6 +87,53 @@ bpy.ops.object.select_all(action="DESELECT")
 body.select_set(True); rig.select_set(True)
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+
+
+def unweighted_count():
+    groups = {g.index for g in body.vertex_groups}
+    return sum(1 for v in body.data.vertices if not any(g.group in groups and g.weight > 1e-4 for g in v.groups))
+
+
+# Heat weighting gives up on a skin of thin loose spikes (raven_1's feathers: 94% left unweighted). Then a closed,
+# smooth copy (a voxel remesh) is weighted instead, and its weights are carried to the skin from the nearest face.
+if unweighted_count() > 0.01 * len(body.data.vertices):
+    proxy = body.copy(); proxy.data = body.data.copy(); scene.collection.objects.link(proxy)
+    proxy.modifiers.clear(); proxy.vertex_groups.clear(); proxy.parent = None
+    remesh = proxy.modifiers.new("remesh", "REMESH")
+    remesh.mode, remesh.voxel_size = "VOXEL", max(body.dimensions) * 0.008
+    bpy.ops.object.select_all(action="DESELECT")
+    proxy.select_set(True); bpy.context.view_layer.objects.active = proxy
+    bpy.ops.object.modifier_apply(modifier=remesh.name)
+    rig.select_set(True); bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    for g in list(body.vertex_groups):
+        body.vertex_groups.remove(g)
+    for g in proxy.vertex_groups:
+        body.vertex_groups.new(name=g.name)
+    carry = body.modifiers.new("carry", "DATA_TRANSFER")
+    carry.object, carry.use_vert_data = proxy, True
+    carry.data_types_verts = {"VGROUP_WEIGHTS"}
+    carry.vert_mapping = "POLYINTERP_NEAREST"
+    carry.layers_vgroup_select_src, carry.layers_vgroup_select_dst = "ALL", "NAME"
+    bpy.ops.object.select_all(action="DESELECT")
+    body.select_set(True); bpy.context.view_layer.objects.active = body
+    bpy.ops.object.modifier_move_to_index(modifier=carry.name, index=0)
+    bpy.ops.object.modifier_apply(modifier=carry.name)
+    bpy.data.objects.remove(proxy, do_unlink=True)
+    print("RIG weights carried from a voxel proxy")
+    # A few slivers fall outside every proxy face and get nothing: left behind at rest, they would stretch into
+    # spikes as soon as the body moves (raven_1's take-off trailed four). Each takes its nearest weighted neighbour's.
+    from mathutils.kdtree import KDTree
+    weighted = [v for v in body.data.vertices if any(g.weight > 1e-4 for g in v.groups)]
+    tree = KDTree(len(weighted))
+    for k, v in enumerate(weighted):
+        tree.insert(v.co, k)
+    tree.balance()
+    for v in body.data.vertices:
+        if not any(g.weight > 1e-4 for g in v.groups):
+            near = weighted[tree.find(v.co)[1]]
+            for g in near.groups:
+                body.vertex_groups[g.group].add([v.index], g.weight, "REPLACE")
 # Feet are rigid: the skin below a planted foot's ankle (its bone's head), near the foot, goes to the foot alone.
 # Shared with the lower leg, a sole slides whenever the leg bends over it, and the planted foot looks to skate.
 for chain in feet:
@@ -105,9 +152,7 @@ for chain in feet:
             body.vertex_groups[g.group].remove([v.index])
         group.add([v.index], 1.0, "REPLACE")
 
-groups = {g.index for g in body.vertex_groups}
-unweighted = sum(1 for v in body.data.vertices if not any(g.group in groups and g.weight > 1e-4 for g in v.groups))
-report = {"bones": len(arm_data.bones), "vertices": len(body.data.vertices), "unweighted": unweighted}
+report = {"bones": len(arm_data.bones), "vertices": len(body.data.vertices), "unweighted": unweighted_count()}
 print("RIG", json.dumps(report))
 json.dump(report, open(C.checks("rig.json"), "w"), indent=1)
 save_blend(bpy, C.blend("rig"))
@@ -167,8 +212,10 @@ for side, sign in (("L", 1), ("R", -1)):
 turn("neck", "Z", 50)
 turn("tail", "Z", -70)
 bpy.context.view_layer.update()
-# A front foot lifted: its planted target raised, the leg bending up to it.
-lift = pose["ik_" + bone_name("arm.L", len(chains["arm.L"]) - 2)]
-m = lift.matrix.copy(); m.translation.z += size * 0.1; m.translation.y -= size * 0.05; lift.matrix = m
-bpy.context.view_layer.update()
+# A foot lifted (the first planted one: the dragon's front left, the raven's left): its target raised, the leg bending
+# up to it. A creature made in the air (raven_1_fly) plants none.
+if feet:
+    lift = pose["ik_" + bone_name(feet[0], len(chains[feet[0]]) - 2)]
+    m = lift.matrix.copy(); m.translation.z += size * 0.1; m.translation.y -= size * 0.05; lift.matrix = m
+    bpy.context.view_layer.update()
 shoot("bend")

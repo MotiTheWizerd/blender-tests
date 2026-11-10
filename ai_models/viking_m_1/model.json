@@ -1,0 +1,6 @@
+{
+ "kind": "character",
+ "about": "The player, a Viking man from Tripo (Moti's player.glb, the 8K export: colour 8192, normal and roughness/metal 4096): muscular, in underwear, blond beard and a braided top, A-pose, facing -Y. One shell, 0 open edges. 1.85 m tall like the hero he replaces. Rigged by Mixamo for Forge's humanoid path.",
+ "height": 1.85,
+ "triangles": 50000
+}

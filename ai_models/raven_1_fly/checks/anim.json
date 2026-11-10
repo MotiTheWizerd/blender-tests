@@ -1,0 +1,10 @@
+{
+ "Fly": {
+  "reach_miss_per_metre": 0.0,
+  "feet_moved_per_metre": 0.0
+ },
+ "Glide": {
+  "reach_miss_per_metre": 0.0,
+  "feet_moved_per_metre": 0.0
+ }
+}

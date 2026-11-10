@@ -1,0 +1,18 @@
+{
+ "length": 4.0,
+ "scale": 5.846,
+ "size_m": [
+  5.73,
+  4.0,
+  4.45
+ ],
+ "triangles": {
+  "RusticWoodenShed_LOD0": 29999,
+  "RusticWoodenShed_LOD1": 11999,
+  "RusticWoodenShed_LOD2": 3599
+ },
+ "colliders": {
+  "RusticWoodenShed_Part0_COL": 196,
+  "RusticWoodenShed_Part1_COL": 194
+ }
+}

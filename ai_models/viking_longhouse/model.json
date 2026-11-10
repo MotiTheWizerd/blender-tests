@@ -1,0 +1,11 @@
+{
+ "kind": "building",
+ "about": "A Viking hall with a shingled roof: a tall gabled hall (dragon-head carvings on both gable peaks) with its carved double door at the front (-Y), and a lower hip-roofed wing on its right (+X); plank walls hung with round shields on a dry-stone base. Sized by the door: 0.155 model units tall for a 2 m door, so a unit is 12.9 m and its 0.793 units front to back are 10 m (the shields come out 0.9 m across, as Viking shields are). 12.4 m wide, 10 m tall to the carving's top.",
+ "length": 10,
+ "triangles": 60000,
+ "hulls": [
+  0.45,
+  0.67
+ ],
+ "uv_seams": 1
+}

@@ -1,0 +1,11 @@
+{
+ "triangles_target": 30000,
+ "bake_size": 2048,
+ "uv_seams": 1.0,
+ "seam_vertices": 138916,
+ "triangles_source": 1925305,
+ "decimate_s": 23.3,
+ "triangles": 29999,
+ "bake_s": 3.5,
+ "total_s": 44.0
+}

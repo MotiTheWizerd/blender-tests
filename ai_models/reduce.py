@@ -33,6 +33,12 @@ bpy.ops.import_scene.gltf(filepath=C.source)
 scene = bpy.context.scene
 high = next(o for o in scene.objects if o.type == "MESH")
 high.data.transform(high.matrix_world)       # the glTF's root baked in; the mesh stands on its own
+# model.json "turn" (optional, degrees about Z, counter-clockwise from above): a model the AI faced elsewhere than -Y
+# is turned to face it here, so every later step (landmarks, rig, clips, export) sees it straight. raven_2 faced -X
+# (90); raven_1_fly came yawed (-14.5).
+if C.spec.get("turn"):
+    from mathutils import Matrix
+    high.data.transform(Matrix.Rotation(math.radians(C.spec["turn"]), 4, "Z"))
 high.parent = None
 high.matrix_world.identity()
 for o in list(scene.objects):
@@ -42,6 +48,18 @@ high.name = high.data.name = Title + "_High"
 
 bm = bmesh.new(); bm.from_mesh(high.data)
 bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+# model.json "uv_seams" (a cost factor; absent: 0, the old collapse): the vertices on a UV seam are made dear to
+# collapse, so the reduced faces don't span two of the AI's texture islands and stretch the colour across them (the
+# viking_longhouse's shingle roof, cut into many small islands, smeared without it). The seams get half weight:
+# at full weight Blender never collapses them at all (the longhouse stopped at 288k triangles of 40k asked).
+SEAMS = float(C.spec.get("uv_seams", 0))
+seam_verts = []
+if SEAMS:
+    uv = bm.loops.layers.uv.active
+    seam_verts = [v.index for v in bm.verts
+                  if len({(round(l[uv].uv.x, 5), round(l[uv].uv.y, 5)) for l in v.link_loops}) > 1]
+    report["uv_seams"] = SEAMS
+    report["seam_vertices"] = len(seam_verts)
 bm.to_mesh(high.data); bm.free()
 report["triangles_source"] = sum(len(f.vertices) - 2 for f in high.data.polygons)
 
@@ -57,7 +75,8 @@ for name, node in images.items():
         save(node.image, C.build(f"{Title}_BaseColor.jpg"), "JPEG")
     elif "_rm" in name:
         save(node.image, C.build(f"{Title}_RM.jpg"), "JPEG")
-normal_node = next(n for name, n in images.items() if "normal" in name)
+# Absent for some models (elf_m_1 came with a colour map only): the bake then carries the sculpt alone.
+normal_node = next((n for name, n in images.items() if "normal" in name), None)
 
 # The reduced copy: collapse keeps the UVs, triangulated so Unity shades it exactly as it was baked.
 low = high.copy(); low.data = high.data.copy()
@@ -68,8 +87,16 @@ mod = low.modifiers.new("reduce", "DECIMATE")
 mod.decimate_type = "COLLAPSE"
 mod.ratio = TRIANGLES / report["triangles_source"]
 mod.use_collapse_triangulate = True
+if SEAMS:
+    group = low.vertex_groups.new(name="uv_seams")
+    group.add(seam_verts, 0.5, "REPLACE")
+    mod.vertex_group = group.name
+    mod.invert_vertex_group = True          # Blender's collapse: weight 1 is cheap, 0 dear; the seams are the dear ones
+    mod.vertex_group_factor = SEAMS
 t = time.time()
 bpy.ops.object.modifier_apply(modifier=mod.name)
+if SEAMS:
+    low.vertex_groups.remove(low.vertex_groups["uv_seams"])
 report["decimate_s"] = round(time.time() - t, 1)
 report["triangles"] = sum(len(f.vertices) - 2 for f in low.data.polygons)
 for f in low.data.polygons:
@@ -105,9 +132,16 @@ t = time.time()
 bpy.ops.object.bake(type="NORMAL")
 report["bake_s"] = round(time.time() - t, 1)
 save(baked, C.build(f"{Title}_Normal.png"), "PNG")
-own_normal = next(n for n in low_mat.node_tree.nodes if n.type == "TEX_IMAGE" and n.image is normal_node.image)
-own_normal.image = baked
-low_mat.node_tree.nodes.remove(target)
+if normal_node:
+    own_normal = next(n for n in low_mat.node_tree.nodes if n.type == "TEX_IMAGE" and n.image is normal_node.image)
+    own_normal.image = baked
+    low_mat.node_tree.nodes.remove(target)
+else:
+    # No map of its own to swap: the bake is wired in through a normal-map node, as the glTF importer would.
+    nodes, links = low_mat.node_tree.nodes, low_mat.node_tree.links
+    normal_map = nodes.new("ShaderNodeNormalMap")
+    links.new(target.outputs["Color"], normal_map.inputs["Color"])
+    links.new(normal_map.outputs["Normal"], next(n for n in nodes if n.type == "BSDF_PRINCIPLED").inputs["Normal"])
 
 # Side by side: the full mesh left, the reduced right, in EEVEE under one light.
 scene.render.engine = "BLENDER_EEVEE"

@@ -1,0 +1,9 @@
+{
+ "triangles_target": 50000,
+ "bake_size": 4096,
+ "triangles_source": 1933528,
+ "decimate_s": 62.7,
+ "triangles": 50000,
+ "bake_s": 25.2,
+ "total_s": 113.0
+}

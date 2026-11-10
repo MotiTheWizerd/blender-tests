@@ -20,11 +20,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BLENDER = os.environ.get("BLENDER", r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe")
 # (step, script, the kinds it is for, its extra arguments from model.json after the name)
 STEPS = [
-    ("inspect", "inspect.py", ("creature", "building"), lambda spec: []),
-    ("reduce", "reduce.py", ("creature", "building"), lambda spec: [str(spec.get("triangles", 40000))]),
+    # "still": a creature standing as it was made, no rig (the ravens); exported as a building is
+    ("inspect", "inspect.py", ("creature", "building", "still"), lambda spec: []),
+    # model.json "bake_size" (optional; absent: reduce.py's 4096): a smaller normal bake when memory is short
+    ("reduce", "reduce.py", ("creature", "building", "still"),
+     lambda spec: [str(spec.get("triangles", 40000))] + ([str(spec["bake_size"])] if "bake_size" in spec else [])),
     ("rig", "rig.py", ("creature",), lambda spec: []),
-    ("export", "export.py", ("creature", "building"), lambda spec: [str(spec.get("length", 12))]),
-    ("check_export", "check_export.py", ("creature", "building"), lambda spec: []),
+    ("export", "export.py", ("creature", "building", "still"), lambda spec: [str(spec.get("length", 12))]),
+    ("check_export", "check_export.py", ("creature", "building", "still"), lambda spec: []),
     ("animate", "animate.py", ("creature",), lambda spec: []),
 ]
 # The lines each step prints that say how it went.

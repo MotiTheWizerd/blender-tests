@@ -143,12 +143,224 @@ def walk(t):
         turn(chain("wing", side)[0], Y, s * (12 + 2 * math.sin(2 * w)))   # folded down a little, bouncing with the steps
 
 
+# The bird set (model.json "clips": "bird"; raven_1): chains spine (2 bones), neck, head (skull, beak), tail, leg.L/R
+# (planted), wing.L/R folded along the body. A folded wing can lift and ruffle but not open to fly: the feathers were
+# made folded.
+
+def ease(q):
+    q = max(0.0, min(1.0, q))
+    return q * q * (3 - 2 * q)
+
+
+def blend_keys(t, keys, snap):
+    """A value held at each key (time, value...) and snapped to the next over `snap` of the cycle (a bird's head
+    holds still and moves in jerks). The keys wrap: the last one snaps back to the first by t = 1."""
+    keys = list(keys) + [(1.0,) + tuple(keys[0][1:])]
+    for (t0, *a), (t1, *b) in zip(keys, keys[1:]):
+        if t0 <= t < t1 or t1 == 1.0:
+            q = ease((t - (t1 - snap)) / snap)
+            return [x + (y - x) * q for x, y in zip(a, b)]
+
+
+def flick(t, at, width):
+    """0 .. 1 .. 0 over `width` of the cycle centred on `at`: a quick flick."""
+    d = abs(t - at) / (width / 2)
+    return 0.0 if d >= 1 else math.sin(math.pi * (1 - d) / 2) ** 2
+
+
+def bird_head(yaw, roll, pitch):
+    """Look: the neck takes a third, the head the rest. Yaw +Z is the bird's left, roll about Y cocks the head,
+    pitch +X looks down."""
+    neck, head = chain("neck"), chain("head")[0]
+    for b in neck:
+        turn(b, Z, yaw / 3 / len(neck)); turn(b, X, pitch / 3 / len(neck))
+    turn(head, Z, yaw * 2 / 3); turn(head, Y, roll); turn(head, X, pitch * 2 / 3)
+
+
+def bird_idle(t):
+    w = 2 * math.pi * t
+    sink = (1 - math.cos(3 * w)) / 2                     # three breaths a loop, the chest only sinking from rest
+    spine = chain("spine")
+    turn(spine[1], X, 1.0 * sink)
+    turn(chain("neck")[0], X, -1.0 * sink)
+    bird_head(*blend_keys(t, [(0.0, 0, 0, 0), (0.16, 35, 0, -4), (0.34, 35, -18, 0), (0.52, -30, 0, -6),
+                              (0.72, -12, 12, 10), (0.88, 0, 0, 0)], 0.03))
+    up = 12 * flick(t, 0.3, 0.05) + 9 * flick(t, 0.66, 0.05)   # two quick flicks of the tail
+    for i, b in enumerate(chain("tail")):
+        turn(b, X, up / 3 + 0.8 * math.sin(w - 0.4 * i))
+    for side, s in SIDES:
+        turn(chain("wing", side)[0], Y, -s * 1.5 * sink)
+
+
+def bird_peck(t):
+    down = ease(t / 0.3) * (1 - ease((t - 0.72) / 0.28))     # tip forward, hold, come back up
+    jabs = flick(t, 0.42, 0.14) + flick(t, 0.6, 0.14)        # two pecks while down
+    spine = chain("spine")
+    turn(spine[0], X, 14 * down)
+    turn(spine[1], X, 16 * down)
+    for b in chain("neck"):
+        turn(b, X, (22 + 10 * jabs) * down)
+    turn(chain("head")[0], X, (12 + 6 * jabs) * down)
+    for i, b in enumerate(chain("tail")):
+        turn(b, X, (3 + 2 * i) * down)                        # the tail rises with the bow (+X lifts a bone pointing back)
+    for side, s in SIDES:
+        turn(chain("wing", side)[0], Y, -s * 3 * down)
+
+
+BIRD_STRIDE = 0.07 * HEIGHT
+BIRD_LIFT = 0.06 * HEIGHT
+BIRD_STANCE = 0.6
+BIRD_WALK_SECONDS = 0.9
+
+
+def bird_walk(t):
+    w = 2 * math.pi * t
+    for side, phase in (("L", 0.0), ("R", 0.5)):
+        target = next(p for p in pose if p.name.startswith("ik_leg_") and p.name.endswith("." + side))
+        p = (t - phase) % 1.0
+        if p < BIRD_STANCE:
+            y, z = -BIRD_STRIDE + 2 * BIRD_STRIDE * p / BIRD_STANCE, 0.0
+        else:
+            q = (p - BIRD_STANCE) / (1 - BIRD_STANCE)
+            y, z = BIRD_STRIDE - 2 * BIRD_STRIDE * ease(q), BIRD_LIFT * math.sin(math.pi * q)
+        shift(target, (0, y, z))
+    spine = chain("spine")
+    dip = 0.015 * HEIGHT * (1 - math.cos(2 * w)) / 2         # twice a cycle, down only
+    shift(spine[0], (0.015 * HEIGHT * math.sin(w), 0, -0.03 * HEIGHT - dip))
+    turn(spine[0], Y, 4 * math.sin(w))                        # the swagger: the body rolls over the standing foot
+    turn(spine[0], Z, 3 * math.sin(w))
+    thrust = math.sin(2 * w)                                  # the head thrusts forward with each step
+    for b in chain("neck"):
+        turn(b, X, 4 * thrust)
+    turn(chain("head")[0], X, -4 * thrust)
+    for i, b in enumerate(chain("tail")):
+        turn(b, Z, -(2 + i) * math.sin(w - 0.4 * i))
+
+
+def bird_shake(t):
+    env = math.sin(math.pi * t) ** 2                          # from rest to rest
+    shiver = math.sin(2 * math.pi * 6 * t)
+    turn(chain("spine")[1], Y, 6 * env * shiver)
+    for side, s in SIDES:
+        out = 22 * env * (0.6 + 0.4 * math.sin(2 * math.pi * 2 * t)) ** 2
+        wing = chain("wing", side)
+        turn(wing[0], Y, -s * out)
+        turn(wing[1], Z, -s * out * 0.4)                      # the primaries part a little
+    for i, b in enumerate(chain("tail")):
+        turn(b, Z, 5 * env * math.sin(2 * math.pi * 6 * t - 0.5 * i))
+        turn(b, X, 6 * env)
+    bird_head(0, 10 * env * math.sin(2 * math.pi * 6 * t + 1.0), -3 * env)
+
+
+TAKEOFF_SECONDS = 1.8
+TAKEOFF_BEATS = 3.5             # wingbeats a second once it is up
+
+
+def bird_takeoff(t):
+    """Played once: a crouch, a spring off the ground with the first downstroke, then the climb, beating. It moves
+    itself (up about its height, forward half its length), so it ends in the air where the game takes over. The folded
+    wings swing out from the body and beat; they don't fan open (the feathers were made folded)."""
+    crouch = ease(t / 0.2) * (1 - ease((t - 0.22) / 0.1))           # down, then sprung out of
+    climb = ease((t - 0.25) / 0.75) ** 0.8                           # up and forward from the spring
+    air = ease((t - 0.28) / 0.12)                                    # the feet off the ground and tucking
+    opened = ease((t - 0.08) / 0.17)                                 # the wings out from the body
+    beat = math.cos(2 * math.pi * TAKEOFF_BEATS * TAKEOFF_SECONDS * max(0.0, t - 0.27))   # +1 up, -1 down
+    bob = 0.03 * HEIGHT * air * -math.sin(2 * math.pi * TAKEOFF_BEATS * TAKEOFF_SECONDS * max(0.0, t - 0.27))
+    lift = (-0.08 * HEIGHT * crouch + 0.9 * HEIGHT * climb + bob)
+    ahead = -0.5 * LENGTH * climb                                    # forward is -Y
+    spine = chain("spine")
+    shift(spine[0], (0, ahead, lift))
+    turn(spine[0], X, 12 * crouch + 28 * air)                        # tips forward to crouch, and towards level to fly
+    # The feet hold the ground until the spring, then ride with the body, tucked up and back under it.
+    for side, s in SIDES:
+        target = next(p for p in pose if p.name.startswith("ik_leg_") and p.name.endswith("." + side))
+        shift(target, (0, (ahead + 0.12 * LENGTH * air) * air, (lift + 0.12 * HEIGHT) * air))
+    for side, s in SIDES:
+        wing = chain("wing", side)
+        turn(wing[0], Z, -s * 55 * opened)                            # out from the body, sideways
+        # and beating about the body's axis: the folded wing slopes down at rest, so 45 +- 40 is just below level to high
+        turn(wing[0], Y, -s * opened * (45 + 40 * (beat if t > 0.27 else 1.0)))
+        turn(wing[1], Z, -s * 20 * opened)                            # the primaries swung out to a longer line
+        turn(wing[1], Y, -s * 15 * opened * math.cos(2 * math.pi * TAKEOFF_BEATS * TAKEOFF_SECONDS * max(0.0, t - 0.27) - 0.7))
+    for b in chain("neck"):
+        turn(b, X, -6 * crouch - 9 * air)                             # looks up in the crouch, and ahead in the air
+    turn(chain("head")[0], X, -10 * air)                              # the head kept level against the forward-tipped body
+    for i, b in enumerate(chain("tail")):
+        turn(b, X, 10 * crouch - 6 * air + 4 * air * beat)           # up in the crouch, down and pumping in the air
+
+
+# The flying set (model.json "clips": "bird_fly"; raven_1_fly, made with its wings spread): chains spine, neck, head,
+# tail, wing.L/R (shoulder, elbow, wrist, then the hand in two bones). No feet: it is in the air.
+FLY_SECONDS = 0.32              # one wingbeat: a raven beats about three times a second
+
+
+def bird_fly(t):
+    """One wingbeat. Down with the wing spread; up with the hand folded back and bent, the way a wing recovers
+    without lifting air against itself. The body rises on the downstroke; the tail and head steady it."""
+    w = 2 * math.pi * t
+    up = math.cos(w)                                       # +1 at the top of the beat, -1 at the bottom
+    recover = max(0.0, -math.sin(w))                        # 0 .. 1 .. 0 over the upstroke (the second half)
+    for side, s in SIDES:
+        wing = chain("wing", side)
+        turn(wing[0], Y, -s * (8 + 42 * up))                 # the shoulder: 50 up .. 34 down
+        turn(wing[1], Y, -s * 12 * math.cos(w - 0.5))         # the arm lags the shoulder
+        turn(wing[2], Z, s * 38 * recover)                    # the hand sweeps back on the way up (+Z sweeps a left wing back)
+        turn(wing[2], Y, -s * 18 * math.cos(w - 1.0))         # and trails the arm
+        turn(wing[3], Y, -s * 14 * math.cos(w - 1.4))         # the tips trail most
+    spine = chain("spine")
+    shift(spine[0], (0, 0, 0.03 * HEIGHT * math.sin(w)))   # lifted by the downstroke
+    turn(spine[0], X, 10 + 2 * math.sin(w))                  # flies a little more level than it was made
+    for b in chain("neck"):
+        turn(b, X, -4 - 1.5 * math.sin(w))                    # the head held steady against the body
+    for i, b in enumerate(chain("tail")):
+        turn(b, X, 3 * math.sin(w - 0.6 - 0.3 * i))
+
+
+def bird_glide(t):
+    """Soaring: the wings held in a shallow V, slow banking rolls, the tail steering against them, the head looking
+    about."""
+    w = 2 * math.pi * t
+    bank = math.sin(w)
+    spine = chain("spine")
+    turn(spine[0], Y, 9 * bank)                               # roll into the turn
+    turn(spine[0], X, 6 + 2 * math.sin(2 * w))
+    shift(spine[0], (0, 0, 0.02 * HEIGHT * math.sin(2 * w + 0.5)))
+    for side, s in SIDES:
+        wing = chain("wing", side)
+        turn(wing[0], Y, -s * (10 + 3 * math.sin(2 * w + (0.4 if s > 0 else 0))))   # the V, breathing in the air
+        turn(wing[2], Y, s * 4 * math.sin(2 * w + 1.0))       # the hands flex a little
+        turn(wing[3], Y, -s * 6 * math.sin(2 * w + 1.6))      # the tips give to the air
+    for i, b in enumerate(chain("tail")):
+        turn(b, Y, -6 * bank)                                 # the tail twists against the roll
+        turn(b, Z, 4 * math.sin(w - 0.8))
+    for b in chain("neck"):
+        turn(b, Y, -6 * bank)                                 # the head stays level while the body banks
+    turn(chain("head")[0], Z, 20 * math.sin(w + 1.2))         # and looks about
+
+
 # name: (motion, seconds, whether its feet move, the view its picture is taken from)
-CLIPS = {
-    "Idle": (idle, 4.0, False, (0.8, -1, 0.35)),
-    "WingFlap": (wing_flap, 1.0, False, (0.8, -1, 0.35)),
-    "Walk": (walk, WALK_SECONDS, True, (1, -0.15, 0.12)),
-}
+if C.spec.get("clips") == "bird_fly":
+    CLIPS = {
+        "Fly": (bird_fly, FLY_SECONDS, False, (0.7, -1, 0.4)),
+        "Glide": (bird_glide, 4.0, False, (0.7, -1, 0.4)),
+    }
+elif C.spec.get("clips") == "bird":
+    STRIDE, STANCE, WALK_SECONDS = BIRD_STRIDE, BIRD_STANCE, BIRD_WALK_SECONDS     # the walk's speed, below
+    CLIPS = {
+        "Idle": (bird_idle, 6.0, False, (0.8, -1, 0.35)),
+        "Peck": (bird_peck, 1.6, False, (1, -0.3, 0.2)),
+        "Walk": (bird_walk, BIRD_WALK_SECONDS, True, (1, -0.15, 0.12)),
+        "Shake": (bird_shake, 1.6, False, (0.6, 1, 0.5)),
+        "TakeOff": (bird_takeoff, TAKEOFF_SECONDS, True, (1, -0.2, 0.3)),
+    }
+else:
+    CLIPS = {
+        "Idle": (idle, 4.0, False, (0.8, -1, 0.35)),
+        "WingFlap": (wing_flap, 1.0, False, (0.8, -1, 0.35)),
+        "Walk": (walk, WALK_SECONDS, True, (1, -0.15, 0.12)),
+    }
+
+ONCE = {"TakeOff"}               # clips that don't loop
 
 rig.animation_data_create()
 for name, (motion, seconds, _, _) in CLIPS.items():
@@ -166,6 +378,9 @@ for name, (motion, seconds, _, _) in CLIPS.items():
             p.keyframe_insert("rotation_quaternion", frame=f + 1)
             p.keyframe_insert("location", frame=f + 1)
     action.frame_range = (1, frames + 1)
+    if name in ONCE:              # played once (it ends somewhere else): no repeat
+        print("CLIP", name, frames, "frames, once")
+        continue
     action.use_cyclic = True      # a label only: the Cycles modifiers below are what repeat it
     for layer in action.layers:
         for strip in layer.strips:
@@ -179,8 +394,12 @@ for name, (motion, seconds, _, _) in CLIPS.items():
 # can't reach leaves its foot in the air. Both per metre of height; both must be ~0, or the creature floats or skates.
 dg = bpy.context.evaluated_depsgraph_get()
 rest = [v.co.copy() for v in body.data.vertices]
-ground = [i for i, c in enumerate(rest) if c.z < HEIGHT * 0.02]
 targets = [p for p in pose if p.name.startswith("ik_")]
+# The skin on the ground is the legs' (a raven's tail tip hangs 1.5 cm up, inside the 2%, and is meant to move).
+legs = tuple(t.name[3:].split("_")[0] + "_" for t in targets)
+names = {g.index: g.name for g in body.vertex_groups}
+ground = [i for i, c in enumerate(rest) if c.z < HEIGHT * 0.02 and body.data.vertices[i].groups
+          and names[max(body.data.vertices[i].groups, key=lambda g: g.weight).group].startswith(legs)]
 report = {}
 for name, (_, seconds, moves, _) in CLIPS.items():
     rig.animation_data.action = bpy.data.actions[name]
@@ -190,11 +409,13 @@ for name, (_, seconds, moves, _) in CLIPS.items():
         scene.frame_set(f)
         for t in targets:
             miss = max(miss, (pose[t.name[3:]].head - t.head).length)
-        if not moves:
+        if not moves and ground:            # (a creature in the air has no ground)
             verts = body.evaluated_get(dg).data.vertices
             moved = max(moved, max((verts[i].co - rest[i]).length for i in ground))
     entry = {"reach_miss_per_metre": round(miss / HEIGHT, 4)}
-    if moves:
+    if moves and name in ONCE:
+        pass                                                # it travels: no stance to measure
+    elif moves:
         speed = 2 * STRIDE / (STANCE * seconds)             # what the feet carry: the game moves it at this
         entry["speed_body_lengths_per_second"] = round(speed / LENGTH, 4)
         print("WALK", name, f"{speed / LENGTH:.3f} body lengths a second")
@@ -270,8 +491,9 @@ bpy.data.objects.remove(ground_plane, do_unlink=True)
 os.remove(C.build("_frame.jpg"))
 
 bpy.data.objects.remove(cam, do_unlink=True)
-rig.animation_data.action = bpy.data.actions["Idle"]
-scene.frame_start, scene.frame_end = 1, int(4.0 * FPS)
+first = next(iter(CLIPS))                      # Idle, or a flying set's Fly
+rig.animation_data.action = bpy.data.actions[first]
+scene.frame_start, scene.frame_end = 1, int(CLIPS[first][1] * FPS)
 # Saved with the skeleton chosen, so the Action Editor shows its clip on opening (it shows only the active object's).
 bpy.ops.object.select_all(action="DESELECT")
 rig.select_set(True)

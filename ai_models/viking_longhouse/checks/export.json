@@ -1,0 +1,19 @@
+{
+ "length": 10.0,
+ "scale": 12.618,
+ "size_m": [
+  12.37,
+  10.0,
+  10.01
+ ],
+ "triangles": {
+  "VikingLonghouse_LOD0": 60000,
+  "VikingLonghouse_LOD1": 24000,
+  "VikingLonghouse_LOD2": 7200
+ },
+ "colliders": {
+  "VikingLonghouse_Part0_COL": 228,
+  "VikingLonghouse_Part1_COL": 164,
+  "VikingLonghouse_Part2_COL": 100
+ }
+}

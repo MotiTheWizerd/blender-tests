@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_9ebe8348-ce91-4b9c-b122-d0a5654d470e",
+   "vertices": 984405,
+   "welded_vertices": 942923,
+   "faces": 1885844,
+   "triangles": 1885844,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_9ebe8348-ce91-4b9c-b122-d0a5654d470e"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    942923
+   ],
+   "open_edges": 4,
+   "non_manifold_edges": 2
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_9ebe8348-ce91-4b9c-b122-d0a5654d470e",
+   "maps": {
+    "Base Color": "black_raven_3d_model_basecolor.jpg",
+    "Color": "black_raven_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "black_raven_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "black_raven_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "black_raven_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.981,
+  0.562,
+  0.822
+ ],
+ "min": [
+  -0.49,
+  -0.281,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

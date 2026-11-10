@@ -1,0 +1,16 @@
+{
+ "about": "Joints of raven_1 in its source frame (Blender axes, metres, facing -Y, its left is +X; 0.98 m beak to tail here). Read off grid_front/side/top.jpg (grid.py -- 0.4 1000), 2026-11-10. Paired joints for the left (+X) side only; rig.py mirrors them. The wings are folded along the body: shoulder, the wrist at the folded wing's front bend, the primaries back over the tail.",
+ "mirror": true,
+ "feet": ["leg.L"],
+ "chains": {
+  "spine": [[0, 0.05, 0.24], [0, -0.05, 0.36], [0, -0.15, 0.48]],
+  "neck": [[0, -0.15, 0.48], [0, -0.20, 0.57], [0, -0.24, 0.65]],
+  "head": [[0, -0.24, 0.65], [0, -0.33, 0.68], [0, -0.49, 0.65]],
+  "tail": [[0, 0.05, 0.24], [0, 0.10, 0.22], [0, 0.28, 0.13], [0, 0.46, 0.05]],
+  "leg.L": [[0.07, 0.0, 0.26], [0.10, -0.08, 0.18], [0.11, -0.01, 0.10], [0.11, -0.065, 0.03], [0.11, -0.18, 0.012]],
+  "wing.L": [[0.08, -0.15, 0.50], [0.20, -0.16, 0.45], [0.20, 0.05, 0.33], [0.12, 0.33, 0.20]]
+ },
+ "parents": {
+  "spine": null, "neck": "spine", "head": "neck", "tail": "spine:0", "leg.L": "spine:0", "wing.L": "spine"
+ }
+}

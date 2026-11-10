@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_22f94add-d1f0-42d1-bbd6-e77428c456ac",
+   "vertices": 1011871,
+   "welded_vertices": 987838,
+   "faces": 1975710,
+   "triangles": 1975710,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_22f94add-d1f0-42d1-bbd6-e77428c456ac"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    987838
+   ],
+   "open_edges": 4,
+   "non_manifold_edges": 3
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_22f94add-d1f0-42d1-bbd6-e77428c456ac",
+   "maps": {
+    "Base Color": "fantasy_elf_female_3d_model_basecolor.jpg",
+    "Color": "fantasy_elf_female_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "fantasy_elf_female_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "fantasy_elf_female_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "fantasy_elf_female_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.441,
+  0.215,
+  0.979
+ ],
+ "min": [
+  -0.221,
+  -0.107,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

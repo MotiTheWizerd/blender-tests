@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_401d8823-80ca-4b10-98aa-973329be7544",
+   "vertices": 987128,
+   "welded_vertices": 966762,
+   "faces": 1933528,
+   "triangles": 1933528,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_401d8823-80ca-4b10-98aa-973329be7544"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    966762
+   ],
+   "open_edges": 0,
+   "non_manifold_edges": 0
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_401d8823-80ca-4b10-98aa-973329be7544",
+   "maps": {
+    "Base Color": "muscular_human_3d_model_basecolor.jpg",
+    "Color": "muscular_human_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "muscular_human_3d_model_basecolor.jpg",
+   "size": [
+    8192,
+    8192
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "muscular_human_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "muscular_human_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.596,
+  0.199,
+  0.979
+ ],
+ "min": [
+  -0.298,
+  -0.099,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

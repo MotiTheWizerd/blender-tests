@@ -1,0 +1,21 @@
+{
+ "Idle": {
+  "reach_miss_per_metre": 0.0,
+  "feet_moved_per_metre": 0.0
+ },
+ "Peck": {
+  "reach_miss_per_metre": 0.0,
+  "feet_moved_per_metre": 0.0074
+ },
+ "Walk": {
+  "reach_miss_per_metre": 0.0,
+  "speed_body_lengths_per_second": 0.2075
+ },
+ "Shake": {
+  "reach_miss_per_metre": 0.0,
+  "feet_moved_per_metre": 0.0
+ },
+ "TakeOff": {
+  "reach_miss_per_metre": 0.0
+ }
+}

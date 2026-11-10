@@ -1,0 +1,21 @@
+{
+ "kind": "character",
+ "about": "A male NPC from Tripo (Moti's elf-evil-male-1.glb): a tall, lean dark elf, grey skin, pointed ears, a long black ponytail, in black shorts, arms hanging a little out from the body, facing -Y. One shell, 0 open edges; colour 4096 only. 1.90 m tall, chosen (an elf a head above the 1.70 m woman, beside the hero's 1.85 m). Rigged by Mixamo for Forge's humanoid path.",
+ "height": 1.9,
+ "triangles": 50000,
+ "cut": [
+  {
+   "about": "the goatee, a thin spike under the chin",
+   "min": [
+    -0.015,
+    -0.175,
+    1.55
+   ],
+   "max": [
+    0.015,
+    -0.14,
+    1.603
+   ]
+  }
+ ]
+}

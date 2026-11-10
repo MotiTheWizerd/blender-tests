@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_e013a7be-e453-46e2-8472-fe15aba89669",
+   "vertices": 1045435,
+   "welded_vertices": 899962,
+   "faces": 1800076,
+   "triangles": 1800076,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_e013a7be-e453-46e2-8472-fe15aba89669"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    899962
+   ],
+   "open_edges": 4,
+   "non_manifold_edges": 4
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_e013a7be-e453-46e2-8472-fe15aba89669",
+   "maps": {
+    "Base Color": "viking_longhouse_3d_model_basecolor.jpg",
+    "Color": "viking_longhouse_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "viking_longhouse_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "viking_longhouse_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "viking_longhouse_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.98,
+  0.793,
+  0.793
+ ],
+ "min": [
+  -0.49,
+  -0.396,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

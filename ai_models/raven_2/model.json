@@ -1,0 +1,7 @@
+{
+ "kind": "still",
+ "about": "A common raven from Tripo (Moti's raven-2.glb): perched upright, wings folded, a heavy beak, glossy black feathers, facing -X (turned 90 to face -Y). One shell, 4 open edges. 0.62 m beak to tail, chosen (a real raven's length). Stands still; no rig yet.",
+ "turn": 90,
+ "length": 0.62,
+ "triangles": 20000
+}

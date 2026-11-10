@@ -37,12 +37,13 @@ REGIONS = {
     "WingL": ["wing_*.L", "finger"], "WingR": ["wing_*.R", "finger"],
 }
 
-BUILDING = C.spec.get("kind") == "building"
+# "still" (a creature standing as it was made, no rig: the ravens) takes the building's path.
+BUILDING = C.spec.get("kind") in ("building", "still")
 bpy.ops.wm.open_mainfile(filepath=C.blend("low" if BUILDING else "rig"))
 scene = bpy.context.scene
 body = next(o for o in scene.objects if o.type == "MESH")
 mesh = body.data.copy()
-mesh.transform(body.matrix_world)
+mesh.transform(body.matrix_world)          # (model.json "turn" was applied by reduce.py)
 
 # Size and pivot: `length` along Y (front to back), the lowest point on the pivot, the footprint centred on it.
 co = np.empty(len(mesh.vertices) * 3); mesh.vertices.foreach_get("co", co); co = co.reshape(-1, 3)

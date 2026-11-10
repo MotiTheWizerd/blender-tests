@@ -1,0 +1,24 @@
+{
+ "length": 0.62,
+ "scale": 0.631,
+ "size_m": [
+  0.3,
+  0.62,
+  0.5
+ ],
+ "triangles": {
+  "Raven1_LOD0": 19999,
+  "Raven1_LOD1": 7999,
+  "Raven1_LOD2": 2399
+ },
+ "colliders": {
+  "Raven1_Body_COL": 240,
+  "Raven1_Neck_COL": 224,
+  "Raven1_Head_COL": 240,
+  "Raven1_TailBase_COL": 134,
+  "Raven1_LegL_COL": 68,
+  "Raven1_LegR_COL": 74,
+  "Raven1_WingL_COL": 240,
+  "Raven1_WingR_COL": 240
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_00928c2b-6e09-4e65-9688-0ad68f3ed899",
+   "vertices": 993086,
+   "welded_vertices": 969826,
+   "faces": 1939688,
+   "triangles": 1939688,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_node_00928c2b-6e09-4e65-9688-0ad68f3ed899_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    969826
+   ],
+   "open_edges": 0,
+   "non_manifold_edges": 2
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_node_00928c2b-6e09-4e65-9688-0ad68f3ed899_material",
+   "maps": {
+    "Base Color": "fantasy_humanoid_3d_model_basecolor.jpg"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "fantasy_humanoid_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  }
+ ],
+ "size_m": [
+  0.408,
+  0.221,
+  0.98
+ ],
+ "min": [
+  -0.204,
+  -0.111,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

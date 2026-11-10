@@ -1,0 +1,11 @@
+{
+ "kind": "building",
+ "about": "A small rustic wooden shed: vertical-plank walls on a dry-stone base, a turf roof with mossy stones and grass tufts between carved gable boards, a plank door with iron strap hinges and a ring handle and a shuttered window, both at the front (-Y). Sized by the door: its opening is 0.34 model units tall for a 2 m door (and 0.18 wide, so 1.06 m), so a unit is 5.88 m and its 0.684 units front to back are 4 m; 5.8 m wide, 4.5 m tall, the eaves at about 2.5 m.",
+ "length": 4,
+ "triangles": 30000,
+ "hulls": [
+  0.55
+ ],
+ "uv_seams": 1,
+ "bake_size": 2048
+}

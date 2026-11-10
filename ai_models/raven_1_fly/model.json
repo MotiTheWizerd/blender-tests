@@ -1,0 +1,8 @@
+{
+ "kind": "creature",
+ "about": "raven_1 in flight, from Tripo (Moti's flytd.glb, from an edited picture of the same raven gliding toward the camera): wings spread level, the primaries apart like fingers, the tail fanned, legs tucked, the head turned a little; it came yawed 14.5 deg off -Y (turn -14.5 sets it straight). One shell, 5 open edges. 0.62 m beak to tail like raven_1 (about 1.04 m across the wings). The game swaps raven_1 for it at the take-off's spring.",
+ "length": 0.62,
+ "triangles": 30000,
+ "clips": "bird_fly",
+ "turn": -14.5
+}

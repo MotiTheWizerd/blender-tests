@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_4b28e5b9-b810-4003-a69e-4f03d32145d8",
+   "vertices": 1005989,
+   "welded_vertices": 983292,
+   "faces": 1966604,
+   "triangles": 1966604,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_material_4b28e5b9-b810-4003-a69e-4f03d32145d8"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    983292
+   ],
+   "open_edges": 0,
+   "non_manifold_edges": 0
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_material_4b28e5b9-b810-4003-a69e-4f03d32145d8",
+   "maps": {
+    "Base Color": "female_athletic_figure_3d_model_basecolor.jpg",
+    "Color": "female_athletic_figure_3d_model_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "female_athletic_figure_3d_model_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "female_athletic_figure_3d_model_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "female_athletic_figure_3d_model_rm.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.447,
+  0.18,
+  0.978
+ ],
+ "min": [
+  -0.224,
+  -0.09,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

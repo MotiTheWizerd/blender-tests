@@ -1,0 +1,7 @@
+{
+ "kind": "creature",
+ "about": "A common raven from Tripo (Moti's raven-1.glb): perched, wings folded, head turned a little, glossy black feathers, facing -Y. One shell, 6 open edges. 0.62 m beak to tail, chosen (a real raven's length). Rigged from landmarks.json (rig.py), its clips by animate.py.",
+ "length": 0.62,
+ "triangles": 20000,
+ "clips": "bird"
+}
