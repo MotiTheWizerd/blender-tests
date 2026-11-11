@@ -6,6 +6,8 @@ Reads <name>/source_tripo.glb. Welds the glTF's UV-seam splits (they stay seams 
 collapses the copy to `triangles`, keeping its UVs, so the AI's own colour and roughness/metal maps still fit it.
 Only the shape's detail is lost, so only the normal map is baked again: Cycles on the GPU, from the full mesh with
 its own normal map (so the bake carries both the sculpted scales and the map's fine grain) onto the reduced one.
+A sliced model is read as join.py made it (one mesh, the parts' maps in one atlas), and the reduced mesh is unwrapped
+afresh and its colour baked from the full one as well (UNWRAP; any model can ask for it, "unwrap": true).
 
 Writes, in <name>/build/ (made again by running it):
   <Name>_BaseColor.jpg, <Name>_RM.jpg   the AI's maps, unchanged (R unused, G roughness, B metal: glTF's packing)
@@ -29,7 +31,7 @@ report = {"triangles_target": TRIANGLES, "bake_size": BAKE}
 t0 = time.time()
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=C.source)
+bpy.ops.import_scene.gltf(filepath=C.whole)
 scene = bpy.context.scene
 high = next(o for o in scene.objects if o.type == "MESH")
 high.data.transform(high.matrix_world)       # the glTF's root baked in; the mesh stands on its own
@@ -99,6 +101,30 @@ if SEAMS:
     low.vertex_groups.remove(low.vertex_groups["uv_seams"])
 report["decimate_s"] = round(time.time() - t, 1)
 report["triangles"] = sum(len(f.vertices) - 2 for f in low.data.polygons)
+
+
+# A sliced model (join.py), or any whose model.json asks ("unwrap": true), gets UVs of its own instead of the AI's:
+# the collapse keeps each vertex's UVs, but a face it stretches over one of the AI's UV islands' edges takes corners
+# from two islands and smears what lies between across itself (the black gap, or another part's square of the atlas;
+# woman_1: patches on the forearm, belly and hip). Keeping seams dear to the collapse ("uv_seams") folded faces over
+# instead (woman_1: 200 faces turned against the surface, dark slivers in the light), and no choice of one island per
+# face can map a face that truly lies across a seam. Unwrapped, the reduced mesh's own islands follow its own faces,
+# and its colour is baked from the full mesh as its normals are (below), so nothing can smear.
+UNWRAP = bool(C.spec.get("sliced") or C.spec.get("unwrap"))
+if UNWRAP:
+    if any("_rm" in name for name in images):
+        raise SystemExit("REDUCE unwrap: this model has a roughness/metal map, which isn't baked yet")
+    for layer in list(low.data.uv_layers):
+        low.data.uv_layers.remove(layer)
+    low.data.uv_layers.new(name="UVMap")
+    bpy.ops.object.select_all(action="DESELECT")
+    low.select_set(True)
+    bpy.context.view_layer.objects.active = low
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.002, scale_to_bounds=False)
+    bpy.ops.uv.pack_islands(rotate=True, margin=0.002)
+    bpy.ops.object.mode_set(mode="OBJECT")
 for f in low.data.polygons:
     f.use_smooth = True
 
@@ -121,13 +147,37 @@ scene.cycles.samples = 1
 size = max(high.dimensions)
 bake = scene.render.bake
 bake.use_selected_to_active = True
-bake.cage_extrusion = 0.004 * size        # out past the reduced surface, so the rays start outside the full one
-bake.max_ray_distance = 0.012 * size
+# Out past the reduced surface, so the rays start outside the full one, and back in: model.json "bake_reach" (share of
+# the size; absent: 0.004, the ray 3x as long). Too far out, a ray starting across a narrow fold lands on the far side
+# of it (woman_1 at 0.004: stripes in the cleavage and the groin); her reduced surface lies within ~0.0005 of the full.
+REACH = float(C.spec.get("bake_reach", 0.004))
+bake.cage_extrusion = REACH * size
+bake.max_ray_distance = 3 * REACH * size
 bake.margin = 8
 bake.normal_space = "TANGENT"
 bpy.ops.object.select_all(action="DESELECT")
 high.select_set(True); low.select_set(True)
 bpy.context.view_layer.objects.active = low
+if UNWRAP:
+    # The colour, as the full mesh shows it, at its atlas's size: the base colour alone (no light), margin round the
+    # islands for the mipmaps. It replaces the AI's map as <Title>_BaseColor and on the reduced material.
+    colour_node = next(n for n in low_mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED").inputs["Base Color"].links[0].from_node
+    side = colour_node.image.size[0]
+    colour = bpy.data.images.new(f"{Title}_BaseColor", side, side, alpha=False)
+    colour_target = low_mat.node_tree.nodes.new("ShaderNodeTexImage")
+    colour_target.image = colour
+    low_mat.node_tree.nodes.active = colour_target
+    bake.margin = 16
+    bake.use_pass_direct = bake.use_pass_indirect = False
+    bake.use_pass_color = True
+    t = time.time()
+    bpy.ops.object.bake(type="DIFFUSE")
+    report["colour_bake_s"] = round(time.time() - t, 1)
+    save(colour, C.build(f"{Title}_BaseColor.jpg"), "JPEG")
+    colour_node.image = colour
+    low_mat.node_tree.nodes.remove(colour_target)
+    low_mat.node_tree.nodes.active = target
+    bake.margin = 8
 t = time.time()
 bpy.ops.object.bake(type="NORMAL")
 report["bake_s"] = round(time.time() - t, 1)

@@ -1,0 +1,10 @@
+{
+ "triangles_target": 50000,
+ "bake_size": 4096,
+ "triangles_source": 1916974,
+ "decimate_s": 29.9,
+ "triangles": 50000,
+ "colour_bake_s": 120.6,
+ "bake_s": 23.3,
+ "total_s": 194.2
+}

@@ -1,0 +1,147 @@
+{
+ "atlas": 8192,
+ "parts": {
+  "tripo_part_0": {
+   "map": 4096,
+   "at": [
+    0,
+    0
+   ]
+  },
+  "tripo_part_9": {
+   "map": 2048,
+   "at": [
+    4096,
+    0
+   ]
+  },
+  "tripo_part_6": {
+   "map": 2048,
+   "at": [
+    6144,
+    0
+   ]
+  },
+  "tripo_part_5": {
+   "map": 2048,
+   "at": [
+    4096,
+    2048
+   ]
+  },
+  "tripo_part_4": {
+   "map": 2048,
+   "at": [
+    6144,
+    2048
+   ]
+  },
+  "tripo_part_3": {
+   "map": 2048,
+   "at": [
+    0,
+    4096
+   ]
+  },
+  "tripo_part_2": {
+   "map": 2048,
+   "at": [
+    2048,
+    4096
+   ]
+  },
+  "tripo_part_16": {
+   "map": 2048,
+   "at": [
+    0,
+    6144
+   ]
+  },
+  "tripo_part_15": {
+   "map": 2048,
+   "at": [
+    2048,
+    6144
+   ]
+  },
+  "tripo_part_10": {
+   "map": 2048,
+   "at": [
+    4096,
+    4096
+   ]
+  },
+  "tripo_part_1": {
+   "map": 2048,
+   "at": [
+    6144,
+    4096
+   ]
+  },
+  "tripo_part_8": {
+   "map": 1024,
+   "at": [
+    4096,
+    6144
+   ]
+  },
+  "tripo_part_7": {
+   "map": 1024,
+   "at": [
+    5120,
+    6144
+   ]
+  },
+  "tripo_part_14": {
+   "map": 1024,
+   "at": [
+    4096,
+    7168
+   ]
+  },
+  "tripo_part_13": {
+   "map": 1024,
+   "at": [
+    5120,
+    7168
+   ]
+  },
+  "tripo_part_12": {
+   "map": 1024,
+   "at": [
+    6144,
+    6144
+   ]
+  },
+  "tripo_part_11": {
+   "map": 1024,
+   "at": [
+    7168,
+    6144
+   ]
+  },
+  "tripo_part_18": {
+   "map": 512,
+   "at": [
+    6144,
+    7168
+   ]
+  },
+  "tripo_part_17": {
+   "map": 512,
+   "at": [
+    6656,
+    7168
+   ]
+  }
+ },
+ "atlas_used": 0.9766,
+ "open_edges_before": 12750,
+ "open_edges_welded": 12,
+ "holes_filled_faces": 6,
+ "open_edges_after": 0,
+ "vertices": 958477,
+ "triangles": 1916974,
+ "pad_s": 127.2,
+ "total_s": 183.6
+}

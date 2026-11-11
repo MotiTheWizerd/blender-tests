@@ -59,7 +59,11 @@ bm.to_mesh(me); bm.free(); me.update()
 material = me.materials[0]
 nodes = material.node_tree.nodes
 bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
-colour = bsdf.inputs["Base Color"].links[0].from_node.image
+colour_node = bsdf.inputs["Base Color"].links[0].from_node
+colour = colour_node.image
+# The checks' Workbench shows the material's active image node, which reduce left on its baked normal map when the
+# model had none of its own (elf_m_1, woman_1): the pictures came out normal-map blue.
+nodes.active = colour_node
 for link in list(material.node_tree.links):
     if link.to_node == bsdf and link.to_socket.name != "Base Color":
         material.node_tree.links.remove(link)

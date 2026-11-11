@@ -1,0 +1,8 @@
+{
+ "kind": "character",
+ "about": "A woman from Tripo (Moti's charactor-1.glb, made 2026-11-11 on the Max plan): nude, short hair in an updo, A-pose (arms out, hands open), facing -Y. The first final character: SLICED into 19 parts, each its own colour map (4096 chest, 2048 head and the big parts, 1024 hands, forearms and feet, 512 two small patches), no normal or roughness map; every cut meets its neighbour exactly, so join.py welds them into one body and copies the maps into one 8192 atlas. 1.70 m tall, chosen (as the Viking woman). Rigged by Mixamo for Forge's humanoid path.",
+ "height": 1.7,
+ "triangles": 50000,
+ "sliced": true,
+ "bake_reach": 0.0015
+}

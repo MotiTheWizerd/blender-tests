@@ -61,6 +61,21 @@ Writes `checks/inspect.json` and four views, `inspect_front/side/top/three_quart
   apart (the dragon's mouth is closed and part of the skin: no roar until a jaw is cut or made in parts).
 - The maps: base colour (sRGB), normal, and `rm` (roughness in G, metal in B: glTF's packing), all 4096.
 
+## 1b. A sliced model: join it (`join.py -- <name> [atlas]`, ~3 min; model.json `"sliced": true`)
+
+Tripo can make a model in parts (woman_1: 19, head to feet), each its own mesh and colour map, cut where they meet.
+
+- The parts are welded where they meet (their cut vertices are the same on both sides: woman_1 at distance 0) into
+  one closed body; what still gapes (woman_1: 12 edges) is closed. Tripo's normals go (each part's were made alone,
+  so every cut showed as a crease); the body is shaded from its own shape.
+- The maps go into one atlas (default 8192) at their own size, each in its own square, and are padded 64 texels round
+  every UV island (Tripo leaves black between them, which a reduced face over an edge, or a game's mipmaps, pick up).
+- Writes `build/<name>_joined.glb` (reduce reads it in place of the source) and `<Title>_Atlas_basecolor.jpg`;
+  `checks/join.json`: each part's square, the open edges before and after.
+- Step 2 then **unwraps the reduced mesh afresh and bakes its colour** from the joined one as it bakes the normals,
+  since the collapse can't keep UVs from smearing across islands that aren't one map (any model can ask: `"unwrap"`).
+  `"bake_reach"` (default 0.004 of the size) where folds are narrow: woman_1 used 0.0015 (cleavage, groin).
+
 ## 2. Reduce and bake (`reduce.py -- <name> [triangles] [bake size]`)
 
 The AI mesh is film-scale (the dragon: 1.89M triangles); a game creature wants 20-60k (default 40,000).

@@ -1,0 +1,647 @@
+{
+ "objects": [
+  {
+   "name": "tripo_part_0",
+   "vertices": 126440,
+   "welded_vertices": 124686,
+   "faces": 247510,
+   "triangles": 247510,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_0_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    124686
+   ],
+   "open_edges": 1866,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_1",
+   "vertices": 121839,
+   "welded_vertices": 119230,
+   "faces": 237813,
+   "triangles": 237813,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_1_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    119230
+   ],
+   "open_edges": 657,
+   "non_manifold_edges": 1
+  },
+  {
+   "name": "tripo_part_2",
+   "vertices": 90228,
+   "welded_vertices": 88610,
+   "faces": 176096,
+   "triangles": 176096,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_2_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    88610
+   ],
+   "open_edges": 1126,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_3",
+   "vertices": 91783,
+   "welded_vertices": 90256,
+   "faces": 179385,
+   "triangles": 179385,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_3_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    90256
+   ],
+   "open_edges": 1129,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_4",
+   "vertices": 92330,
+   "welded_vertices": 90782,
+   "faces": 179725,
+   "triangles": 179725,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_4_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    90782
+   ],
+   "open_edges": 1841,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_5",
+   "vertices": 56622,
+   "welded_vertices": 55413,
+   "faces": 110252,
+   "triangles": 110252,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_5_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    55413
+   ],
+   "open_edges": 574,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_6",
+   "vertices": 54256,
+   "welded_vertices": 53400,
+   "faces": 106193,
+   "triangles": 106193,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_6_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    53400
+   ],
+   "open_edges": 607,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_7",
+   "vertices": 33474,
+   "welded_vertices": 32783,
+   "faces": 65287,
+   "triangles": 65287,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_7_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    32783
+   ],
+   "open_edges": 277,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_8",
+   "vertices": 31361,
+   "welded_vertices": 30866,
+   "faces": 61485,
+   "triangles": 61485,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_8_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    30866
+   ],
+   "open_edges": 245,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_9",
+   "vertices": 32285,
+   "welded_vertices": 31582,
+   "faces": 62515,
+   "triangles": 62515,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_9_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    31582
+   ],
+   "open_edges": 649,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_10",
+   "vertices": 33520,
+   "welded_vertices": 32780,
+   "faces": 64899,
+   "triangles": 64899,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_10_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    32780
+   ],
+   "open_edges": 661,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_11",
+   "vertices": 28343,
+   "welded_vertices": 28147,
+   "faces": 55914,
+   "triangles": 55914,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_11_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    28147
+   ],
+   "open_edges": 380,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_12",
+   "vertices": 28643,
+   "welded_vertices": 27355,
+   "faces": 54559,
+   "triangles": 54559,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_12_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    27355
+   ],
+   "open_edges": 153,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_13",
+   "vertices": 27696,
+   "welded_vertices": 27570,
+   "faces": 54741,
+   "triangles": 54741,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_13_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    27570
+   ],
+   "open_edges": 399,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_14",
+   "vertices": 28629,
+   "welded_vertices": 27470,
+   "faces": 54803,
+   "triangles": 54803,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_14_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    27470
+   ],
+   "open_edges": 139,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_15",
+   "vertices": 46606,
+   "welded_vertices": 45618,
+   "faces": 90242,
+   "triangles": 90242,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_15_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    45618
+   ],
+   "open_edges": 994,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_16",
+   "vertices": 54809,
+   "welded_vertices": 53667,
+   "faces": 106272,
+   "triangles": 106272,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_16_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    53667
+   ],
+   "open_edges": 1060,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_17",
+   "vertices": 2881,
+   "welded_vertices": 2811,
+   "faces": 5398,
+   "triangles": 5398,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_17_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    2811
+   ],
+   "open_edges": 222,
+   "non_manifold_edges": 0
+  },
+  {
+   "name": "tripo_part_18",
+   "vertices": 2177,
+   "welded_vertices": 2008,
+   "faces": 3879,
+   "triangles": 3879,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_part_18_material"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    2008
+   ],
+   "open_edges": 135,
+   "non_manifold_edges": 0
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_part_0_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_0_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_10_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_10_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_11_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_11_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_12_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_12_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_13_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_13_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_14_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_14_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_15_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_15_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_16_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_16_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_17_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_17_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_18_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_18_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_1_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_1_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_2_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_2_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_3_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_3_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_4_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_4_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_5_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_5_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_6_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_6_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_7_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_7_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_8_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_8_basecolor.jpg"
+   }
+  },
+  {
+   "name": "tripo_part_9_material",
+   "maps": {
+    "Base Color": "charactor-1_tripo_part_9_basecolor.jpg"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "charactor-1_tripo_part_0_basecolor.jpg",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_10_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_11_basecolor.jpg",
+   "size": [
+    1024,
+    1024
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_12_basecolor.jpg",
+   "size": [
+    1024,
+    1024
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_13_basecolor.jpg",
+   "size": [
+    1024,
+    1024
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_14_basecolor.jpg",
+   "size": [
+    1024,
+    1024
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_15_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_16_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_17_basecolor.jpg",
+   "size": [
+    512,
+    512
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_18_basecolor.jpg",
+   "size": [
+    512,
+    512
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_1_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_2_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_3_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_4_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_5_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_6_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_7_basecolor.jpg",
+   "size": [
+    1024,
+    1024
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_8_basecolor.jpg",
+   "size": [
+    1024,
+    1024
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "charactor-1_tripo_part_9_basecolor.jpg",
+   "size": [
+    2048,
+    2048
+   ],
+   "colorspace": "sRGB"
+  }
+ ],
+ "size_m": [
+  0.432,
+  0.24,
+  0.979
+ ],
+ "min": [
+  -0.216,
+  -0.12,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

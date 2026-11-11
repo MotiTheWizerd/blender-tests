@@ -28,6 +28,12 @@ class Creature:
         return os.path.join(self.root, "source_tripo.glb")
 
     @property
+    def whole(self):
+        """The model as one mesh with one colour map, which reduce reads: a sliced model's parts joined by join.py
+        (model.json "sliced": true), else the AI's own."""
+        return self.build(f"{self.name}_joined.glb") if self.spec.get("sliced") else self.source
+
+    @property
     def spec(self):
         """model.json: {"kind": "creature" | "building", "length": metres front to back, "triangles": ..., ...}."""
         path = os.path.join(self.root, "model.json")
