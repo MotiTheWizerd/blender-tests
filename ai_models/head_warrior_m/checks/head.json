@@ -6,5 +6,20 @@
     0.255,
     0.336
   ],
-  "triangles": 94112
+  "triangles": 94112,
+  "nose_tip": [
+    0.0001,
+    -0.1277,
+    0.1883
+  ],
+  "chin_front": [
+    0.0001,
+    -0.1069,
+    0.1076
+  ],
+  "shapes": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin"
+  ]
 }

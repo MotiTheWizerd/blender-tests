@@ -55,9 +55,37 @@ print(f"crown {crown:.4f} chin {chin:.4f} nose {nose * step:.4f} -> scale {scale
 head.scale = (scale,) * 3
 bpy.ops.object.transform_apply(scale=True)
 co = np.array([v.co[:] for v in head.data.vertices])
-head.location = Vector((-(co[:, 0].max() + co[:, 0].min()) / 2, -(co[:, 1].max() + co[:, 1].min()) / 2, -co[:, 2].min()))
+shift = np.array([-(co[:, 0].max() + co[:, 0].min()) / 2, -(co[:, 1].max() + co[:, 1].min()) / 2, -co[:, 2].min()])
+head.location = Vector(shift)
 bpy.ops.object.transform_apply(location=True)
 head.name = head.data.name = TITLE
+
+# The face's sliders, each a shape key Forge's face editor drives by its part and name ("Nose" "Width": NoseWidth), at
+# 100 the most one way and, driven negative, the other. Each pushes the vertices round a landmark (the nose tip, the
+# chin's front, in the final frame: metres, front -Y, up Z) by a soft falloff, so nothing near the neck moves.
+nose_tip = np.array([0.0, bins[nose], nose * step]) * scale + shift
+chin_front = np.array([0.0, bins[chin_k + 1], (chin_k + 1) * step]) * scale + shift
+co = np.array([v.co[:] for v in head.data.vertices])
+
+
+def falloff(centre, radii):
+    """1 at <centre>, 0.14 at its <radii> (an ellipsoid's), nearly 0 past one and a half of them."""
+    return np.exp(-2.0 * (((co - centre) / radii) ** 2).sum(1))
+
+
+def shape(name, moved):
+    key = head.shape_key_add(name=name, from_mix=False)
+    key.data.foreach_set("co", moved.astype(np.float32).ravel())
+
+
+head.shape_key_add(name="Basis")
+f = falloff(nose_tip + [0, 0.012, -0.004], np.array([0.022, 0.02, 0.02]))
+shape("NoseWidth", co + np.c_[co[:, 0] * 0.30 * f, 0 * f, 0 * f])
+f = falloff(chin_front + [0, 0.06, 0.025], np.array([0.2, 0.07, 0.035]))
+shape("JawWidth", co + np.c_[co[:, 0] * 0.15 * f, 0 * f, 0 * f])
+f = falloff(chin_front + [0, 0, 0.012], np.array([0.03, 0.03, 0.025]))
+shape("JawChin", co + np.c_[0 * f, -0.012 * f, 0 * f])
+print("LANDMARKS nose", nose_tip.round(4), "chin", chin_front.round(4))
 
 
 def image_of(label):
@@ -111,6 +139,8 @@ open(os.path.join(OUT, "CREDITS.md"), "w").write(
 co = np.array([v.co[:] for v in head.data.vertices])
 report = {"chin_to_crown": HEAD_HEIGHT, "scale": round(float(scale), 4),
           "size_m": [round(float(d), 3) for d in co.max(0) - co.min(0)],
-          "triangles": sum(len(p.vertices) - 2 for p in head.data.polygons)}
+          "triangles": sum(len(p.vertices) - 2 for p in head.data.polygons),
+          "nose_tip": [round(float(c), 4) for c in nose_tip], "chin_front": [round(float(c), 4) for c in chin_front],
+          "shapes": [k.name for k in head.data.shape_keys.key_blocks[1:]]}
 json.dump(report, open(os.path.join(ROOT, "checks", "head.json"), "w"), indent=2)
 print("REPORT", report)
