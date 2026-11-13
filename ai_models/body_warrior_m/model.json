@@ -1,0 +1,6 @@
+{
+ "kind": "character",
+ "about": "The male base body for the player's replaceable body (Moti, 2026-11-13): the same Nordic warrior as the WarriorM head, from Iris's three-view sheet through Tripo (FBX export, quads, 8K colour): bald, in plain dark grey briefs, barefoot, A-pose, facing -Y. Its head is replaced at the neck by the face editor's head. 1.80 m tall. Rigged by Mixamo for Forge's humanoid path.",
+ "height": 1.8,
+ "triangles": 50000
+}

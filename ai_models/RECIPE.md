@@ -170,6 +170,25 @@ each loop ending where it began. Writes `<name>_anim.blend`, `anim_<clip>.jpg` (
 - **LOOK** in Blender (Space plays; select the skeleton, Dope Sheet > Action Editor picks the clip): weight, no
   floating, the wing roots, each clip repeating.
 
+## 6b. A replaceable body (`pieces.py -- <name>`, ~1 min; a character, after Mixamo)
+
+The player's base body, cut as Skyrim's into the pieces equipment replaces: **Body** (torso, arms, legs), **Head**
+(the face editor's head takes its place), **Hands**, **Feet**, each a mesh on the one Mixamo skeleton. The route:
+`reduce.py` (50k, as every character) → `mixamo.py` → Mixamo by hand (Upload Character, the markers, download FBX
+with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Tripo source) → `pieces.py`.
+- **The seams come from the rig**: a plane square to a bone part way along it (the neck 0.4 up the Neck, the wrists
+  0.8 down the forearm, the ankles 0.8 down the shin), so every body is cut at the same places and armour made for
+  one fits its seams. The plane cuts only the limb it crosses; the piece is what the limb's end reaches without
+  crossing the cut, and a cut with a gap is refused.
+- **Small holes the AI left are closed first** (up to 24 edges); bits joined to nothing (an ear's fold, the mouth)
+  go with the piece past whose seam they lie.
+- **The check** (`checks/pieces.json`, on the pieces and again on the FBX read back): each seam's two sides have
+  the same vertices, **0 mm apart and their normals within a fraction of a degree**. Anything else shows as a line.
+  body_warrior_m: neck 156, wrists 84 and 91, ankles 111 and 112 vertices, 0.0 mm, at most 0.11°.
+- **LOOK** at `pieces_front/back/side.jpg`: each piece its own colour, the seams low on the neck, above the wrists
+  and the ankles. Then `forge/<Title>/` goes to Forge's `Content/Characters/<Title>/` (step 5's character route:
+  *Build Characters*).
+
 ## Next (planned, not built)
 
 7. More clips: head look-around, wing fold/unfold, turn on the spot, run; roar once there is a jaw.

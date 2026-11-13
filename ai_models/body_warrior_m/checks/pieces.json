@@ -1,0 +1,200 @@
+{
+ "source": "source_mixamo.fbx",
+ "triangles_source": 49998,
+ "open_edges_source": 130,
+ "holes_closed": 12,
+ "open_edges_left": 81,
+ "seams": {
+  "neck": {
+   "bone": "Neck -> Head at 0.4",
+   "point_m": [
+    0.0,
+    0.039,
+    1.515
+   ],
+   "faces_cut": 3197,
+   "ring_vertices": 156,
+   "piece_faces": 6108
+  },
+  "wrist.L": {
+   "bone": "LeftForeArm -> LeftHand at 0.8",
+   "point_m": [
+    0.463,
+    -0.005,
+    0.996
+   ],
+   "faces_cut": 2046,
+   "ring_vertices": 84,
+   "piece_faces": 3550
+  },
+  "ankle.L": {
+   "bone": "LeftLeg -> LeftFoot at 0.8",
+   "point_m": [
+    0.168,
+    0.053,
+    0.184
+   ],
+   "faces_cut": 1933,
+   "ring_vertices": 111,
+   "piece_faces": 3353
+  },
+  "wrist.R": {
+   "bone": "RightForeArm -> RightHand at 0.8",
+   "point_m": [
+    -0.463,
+    -0.005,
+    0.996
+   ],
+   "faces_cut": 2083,
+   "ring_vertices": 91,
+   "piece_faces": 3567
+  },
+  "ankle.R": {
+   "bone": "RightLeg -> RightFoot at 0.8",
+   "point_m": [
+    -0.168,
+    0.051,
+    0.184
+   ],
+   "faces_cut": 1949,
+   "ring_vertices": 112,
+   "piece_faces": 3458
+  }
+ },
+ "loose": [
+  {
+   "faces": 12,
+   "centre_m": [
+    -0.089,
+    0.031,
+    1.641
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 4,
+   "centre_m": [
+    -0.016,
+    -0.11,
+    1.598
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 10,
+   "centre_m": [
+    -0.014,
+    -0.109,
+    1.598
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 6,
+   "centre_m": [
+    0.089,
+    0.034,
+    1.644
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 10,
+   "centre_m": [
+    -0.037,
+    -0.099,
+    1.663
+   ],
+   "to": "Head"
+  }
+ ],
+ "seams_on_pieces": {
+  "neck": {
+   "Head": 156,
+   "Body": 156,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "wrist.L": {
+   "Hands": 84,
+   "Body": 84,
+   "apart_mm": 0.0,
+   "turn_deg": 0.11
+  },
+  "ankle.L": {
+   "Feet": 111,
+   "Body": 111,
+   "apart_mm": 0.0,
+   "turn_deg": 0.059
+  },
+  "wrist.R": {
+   "Hands": 91,
+   "Body": 91,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "ankle.R": {
+   "Feet": 112,
+   "Body": 112,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "open_edge_vertices_on_no_seam": {
+   "Body": 5,
+   "Head": 78,
+   "Hands": 0,
+   "Feet": 0
+  }
+ },
+ "triangles": {
+  "Body": 31043,
+  "Head": 6150,
+  "Hands": 7117,
+  "Feet": 6811
+ },
+ "meshes_in_fbx": [
+  "Body",
+  "Feet",
+  "Hands",
+  "Head"
+ ],
+ "bones_in_fbx": 65,
+ "seams_in_fbx": {
+  "neck": {
+   "Head": 156,
+   "Body": 156,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "wrist.L": {
+   "Hands": 84,
+   "Body": 84,
+   "apart_mm": 0.0,
+   "turn_deg": 0.11
+  },
+  "ankle.L": {
+   "Feet": 111,
+   "Body": 111,
+   "apart_mm": 0.0,
+   "turn_deg": 0.059
+  },
+  "wrist.R": {
+   "Hands": 91,
+   "Body": 91,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "ankle.R": {
+   "Feet": 112,
+   "Body": 112,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "open_edge_vertices_on_no_seam": {
+   "Feet": 0,
+   "Head": 78,
+   "Body": 5,
+   "Hands": 0
+  }
+ }
+}
