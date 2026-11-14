@@ -26,17 +26,25 @@ skeleton; no clip), <Title>_Color.png and <Title>_Normal.png (TEXTURE px), for F
 and checks/pieces_front.jpg, pieces_back.jpg, pieces_side.jpg (each piece its own colour, from the FBX read back).
 """
 import bmesh, bpy, json, math, os, sys
+import numpy as np
 from collections import deque
 from mathutils import Vector
 from mathutils.kdtree import KDTree
 
-NAME = sys.argv[sys.argv.index("--") + 1]
+ARGS = sys.argv[sys.argv.index("--") + 1:]
+NAME = ARGS[0]
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from place import Creature, pictures_as_jpeg
 C = Creature(NAME)
 Title = C.title
 SOURCE = os.path.join(C.root, "source_mixamo.fbx")
-OUT = C.build("forge", Title)
+# model.json "head" (optional): the head_* model whose head (head.py's) takes the Head piece's place (neck.py), at
+# "head_scale" times its own size (1: a real head's). "--head-scale S" tries another size: its pictures and numbers
+# are tagged with it, and its export goes to build/forge_<tag>/, leaving the real one alone.
+HEAD = C.spec.get("head")
+HEAD_SCALE = float(ARGS[ARGS.index("--head-scale") + 1]) if "--head-scale" in ARGS else C.spec.get("head_scale", 1.0)
+TAG = f"_head{HEAD_SCALE:g}" if "--head-scale" in ARGS else ""
+OUT = C.build("forge" + TAG, Title)
 TEXTURE = 4096
 REACH = 0.15          # metres from a seam's point: how far its plane may cut
 ON_PLANE = 1e-4       # a vertex this near a seam's plane is on it (0.1 mm), so the cut leaves no slivers
@@ -196,6 +204,45 @@ for k, name in enumerate(PIECES):
 world_planes = [(body.matrix_world @ p, (body.matrix_world.to_3x3() @ n).normalized()) for p, n in planes]
 bpy.data.objects.remove(body, do_unlink=True)
 
+# The face editor's head in the Head piece's place, on the neck seam (neck.py); the body's maps and the head's then
+# share one texture, the body's on the left half and the head's on the right.
+skin = None
+if HEAD:
+    from glob import glob
+    from neck import seat
+    made = glob(os.path.join(os.path.dirname(C.root), HEAD, "build", "forge", "*", "*.fbx"))
+    if len(made) != 1:
+        raise SystemExit(f"PIECES the head {HEAD} has {len(made)} exports (run head.py)")
+    at = next(i for i, p in enumerate(pieces) if p.name == "Head")
+    own = pieces[at]
+    head, seated = seat(made[0], own, *world_planes[0], scale=HEAD_SCALE)
+    own_mesh = own.data
+    bpy.data.objects.remove(own, do_unlink=True)
+    bpy.data.meshes.remove(own_mesh)
+    head.name = head.data.name = "Head"
+    pieces[at] = head
+    skin = (seated.pop("body_skin_uvs"), seated.pop("head_skin_uvs"))
+    fade = seated.pop("fade_triangles")
+    report["head"] = dict(seated, source=os.path.relpath(made[0], os.path.dirname(C.root)).replace(os.sep, "/"),
+                          fade_triangles=len(fade))
+    # Into the atlas: the body's faces (and the head's collar, which draws the body's skin) to the left half, the
+    # head's own to the right.
+    for ob in pieces:
+        mesh = ob.data
+        layer = mesh.uv_layers.active.data
+        uvs = np.empty(len(layer) * 2, dtype=np.float32)
+        layer.foreach_get("uv", uvs)
+        right = np.zeros(len(mesh.polygons), dtype=bool)
+        if ob is head:
+            from_body = np.empty(len(mesh.polygons), dtype=np.int32)
+            mesh.attributes["skin_from_body"].data.foreach_get("value", from_body)
+            right = from_body == 0
+            mesh.attributes.remove(mesh.attributes["skin_from_body"])
+        totals = np.empty(len(mesh.polygons), dtype=np.int32)
+        mesh.polygons.foreach_get("loop_total", totals)
+        uvs[0::2] = uvs[0::2] * 0.5 + np.where(np.repeat(right, totals), 0.5, 0.0)
+        layer.foreach_set("uv", uvs)
+
 
 def seam_match(objects):
     """Each seam's two sides (its piece's open edge on the plane against the Body's): how many vertices each, how far
@@ -239,15 +286,94 @@ def seam_match(objects):
 report["seams_on_pieces"] = seam_match(pieces)
 report["triangles"] = {ob.name: len(ob.data.polygons) for ob in pieces}
 
-# The maps, as Forge's characters take them: the AI's colour (the reduced mesh kept its UVs) and reduce's normal bake.
-colour = bpy.data.images.load(os.path.join(C.root, "source_tripo.fbm", "Color.jpg"))
-normal = bpy.data.images.load(C.build(f"{Title}_Normal.png"))
-for image, suffix in ((colour, "Color"), (normal, "Normal")):
+# The maps, as Forge's characters take them: the AI's colour (the reduced mesh kept its UVs) and reduce's normal bake;
+# with a head, its maps beside them (head.py's), its skin matched to the body's.
+def pixels(path):
+    image = bpy.data.images.load(path)
     if image.size[0] != TEXTURE:
         image.scale(TEXTURE, TEXTURE)
+    array = np.empty(TEXTURE * TEXTURE * 4, dtype=np.float32)
+    image.pixels.foreach_get(array)
+    bpy.data.images.remove(image)
+    return array.reshape(TEXTURE, TEXTURE, 4)
+
+
+def save(array, suffix, space):
+    image = bpy.data.images.new(f"{Title}_{suffix}", array.shape[1], array.shape[0], alpha=False)
+    image.colorspace_settings.name = space
+    image.pixels.foreach_set(array.ravel())
     image.filepath_raw = os.path.join(OUT, f"{Title}_{suffix}.png")
     image.file_format = "PNG"
     image.save()
+    bpy.data.images.remove(image)
+
+
+def linear(c):
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+
+def encoded(c):
+    c = np.clip(c, 0.0, 1.0)
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)
+
+
+def paint(target, triangles, under_at):
+    """Over each triangle of the fade, in target (the head's map): what lies under it (under_at, from the body's UVs)
+    mixed under the head's own by how much of the head's shows there, so the head's skin comes out of the body's."""
+    size = np.array([target.shape[1] - 1, target.shape[0] - 1])
+    for head_uv, body_uv, shows in triangles:
+        p = np.array(head_uv) * size
+        lo = np.maximum(np.floor(p.min(0)).astype(int) - 1, 0)
+        hi = np.minimum(np.ceil(p.max(0)).astype(int) + 1, size)
+        xs, ys = np.meshgrid(np.arange(lo[0], hi[0] + 1), np.arange(lo[1], hi[1] + 1))
+        e1, e2 = p[1] - p[0], p[2] - p[0]
+        det = e1[0] * e2[1] - e1[1] * e2[0]
+        if abs(det) < 1e-9:
+            continue
+        dx, dy = xs - p[0][0], ys - p[0][1]
+        b1, b2 = (dx * e2[1] - dy * e2[0]) / det, (e1[0] * dy - e1[1] * dx) / det
+        b0 = 1 - b1 - b2
+        slack = 1.0 / max(np.linalg.norm(e1), np.linalg.norm(e2), 1.0)     # about a pixel past each edge
+        inside = (b0 >= -slack) & (b1 >= -slack) & (b2 >= -slack)
+        if not inside.any():
+            continue
+        w = np.stack([b0[inside], b1[inside], b2[inside]], 1).clip(0, None)
+        w /= w.sum(1, keepdims=True)
+        t = (w @ np.array(shows))[:, None]
+        yi, xi = ys[inside], xs[inside]
+        target[yi, xi, :3] = under_at(w @ np.array(body_uv)) * (1 - t) + target[yi, xi, :3] * t
+
+
+def mean_at(array, uvs):
+    """The mean colour (linear) of array at uvs."""
+    at = np.clip(np.array(uvs), 0.0, 1.0)
+    xs, ys = (at[:, 0] * (array.shape[1] - 1)).astype(int), (at[:, 1] * (array.shape[0] - 1)).astype(int)
+    return linear(array[ys, xs, :3]).mean(0)
+
+
+body_maps = (os.path.join(C.root, "source_tripo.fbm", "Color.jpg"), C.build(f"{Title}_Normal.png"))
+if HEAD:
+    folder = os.path.dirname(made[0])
+    head_title = os.path.basename(folder)
+    body_colour, head_colour = pixels(body_maps[0]), pixels(os.path.join(folder, f"{head_title}_BaseColor.jpg"))
+    gain = mean_at(body_colour, skin[0]) / mean_at(head_colour, skin[1])
+    head_colour[..., :3] = encoded(linear(head_colour[..., :3]) * gain)
+    report["head"]["skin_gain_rgb"] = [round(float(g), 3) for g in gain]
+
+    def body_at(uvs):
+        at = np.clip(uvs, 0.0, 1.0)
+        return body_colour[(at[:, 1] * (TEXTURE - 1)).astype(int), (at[:, 0] * (TEXTURE - 1)).astype(int), :3]
+
+    paint(head_colour, fade, body_at)
+    save(np.concatenate([body_colour, head_colour], axis=1), "Color", "sRGB")
+    del body_colour, head_colour
+    # The normals likewise come out of flat where the head's skin meets the body's (the two maps' frames differ).
+    head_normal = pixels(os.path.join(folder, f"{head_title}_Normal.png"))
+    paint(head_normal, fade, lambda uvs: np.array([0.5, 0.5, 1.0]))
+    save(np.concatenate([pixels(body_maps[1]), head_normal], axis=1), "Normal", "Non-Color")
+else:
+    save(pixels(body_maps[0]), "Color", "sRGB")
+    save(pixels(body_maps[1]), "Normal", "Non-Color")
 
 fbx = os.path.join(OUT, f"{Title}.fbx")
 bpy.ops.object.select_all(action="DESELECT")
@@ -263,7 +389,9 @@ read_back = [o for o in scene.objects if o.type == "MESH"]
 report["meshes_in_fbx"] = sorted(o.name for o in read_back)
 report["bones_in_fbx"] = sum(len(o.data.bones) for o in scene.objects if o.type == "ARMATURE")
 report["seams_in_fbx"] = seam_match(read_back)
-json.dump(report, open(C.checks("pieces.json"), "w"), indent=1)
+report["shape_keys_in_fbx"] = {o.name: [k.name for k in o.data.shape_keys.key_blocks[1:]] for o in read_back
+                               if o.data.shape_keys}
+json.dump(report, open(C.checks(f"pieces{TAG}.json"), "w"), indent=1)
 
 colours = {"Body": (0.62, 0.62, 0.6, 1), "Head": (0.85, 0.35, 0.3, 1), "Hands": (0.3, 0.55, 0.85, 1),
            "Feet": (0.35, 0.7, 0.35, 1)}
@@ -281,7 +409,32 @@ for view, d in {"front": (0, -1, 0), "back": (0, 1, 0), "side": (1, 0, 0)}.items
     d = Vector(d)
     cam.location = Vector((0, 0, height / 2)) + d * 5
     cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
-    scene.render.filepath = C.picture(f"pieces_{view}")
+    scene.render.filepath = C.picture(f"pieces_{view}{TAG}")
     bpy.ops.render.render(write_still=True)
+
+# With a head: the neck close, in its colours, where a seam or a step would show.
+if HEAD:
+    material = bpy.data.materials.new("skin")
+    material.use_nodes = True
+    texture = material.node_tree.nodes.new("ShaderNodeTexImage")
+    texture.image = bpy.data.images.load(os.path.join(OUT, f"{Title}_Color.png"))
+    material.node_tree.links.new(texture.outputs["Color"], material.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
+    material.node_tree.nodes.active = texture
+    for ob in read_back:
+        ob.data.materials.clear()
+        ob.data.materials.append(material)
+    scene.display.shading.color_type = "TEXTURE"
+    scene.render.resolution_x = scene.render.resolution_y = 800
+    neck = world_planes[0][0] + Vector((0, 0, 0.07))
+    for name, ortho, centre in (("whole", height * 1.1, Vector((0, 0, height / 2))), ("neck", 0.42, neck)):
+        cam.data.ortho_scale = ortho
+        for view, d in {"front": (0, -1, 0), "three_quarter": (0.7, -0.7, 0), "side": (1, 0, 0), "back": (0, 1, 0)}.items():
+            if name == "whole" and view != "front":
+                continue
+            d = Vector(d).normalized()
+            cam.location = centre + d * 5
+            cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+            scene.render.filepath = C.picture(f"{name}_{view}{TAG}")
+            bpy.ops.render.render(write_still=True)
 
 print("PIECES", json.dumps(report))

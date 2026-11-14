@@ -188,6 +188,16 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
 - **LOOK** at `pieces_front/back/side.jpg`: each piece its own colour, the seams low on the neck, above the wrists
   and the ankles. Then `forge/<Title>/` goes to Forge's `Content/Characters/<Title>/` (step 5's character route:
   *Build Characters*).
+- **The face editor's head** (model.json `"head": "head_warrior_m"`, `"head_scale"`; `neck.py`): the head head.py made
+  takes the Head piece's place. Seated by its chin (face.py finds it, as head.py does), cut 2.5 cm up the neck, its
+  neck laid onto the body's over 2.5 cm more, and a collar of rings on the body's neck down to the seam, the last ring
+  the body's own. The collar draws the body's skin (the left half of one atlas, the head's maps on the right) and
+  the head's texture is repainted on that strip of neck from the body's skin into its own, so neither the seam nor
+  the cut shows; its colour is matched to the body's skin first (`skin_gain_rgb`). Each collar face takes its UVs
+  from one island of the texture (`collar_faces_across_uv_seams` must be 0: across two, it draws the black between
+  them). The shape keys (the face's sliders) survive into the FBX (`shape_keys_in_fbx`).
+  `pieces.py -- <name> --head-scale S` tries another size beside the real one (`head_sizes.jpg`: WarriorM looked
+  small at 1.0 on this neck, so body_warrior_m takes 1.108, the body's own head's size).
 
 ## Next (planned, not built)
 

@@ -14,6 +14,8 @@ from mathutils import Vector
 
 NAME, TITLE = sys.argv[sys.argv.index("--") + 1:][:2]
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from face import profile
 ROOT = os.path.join(HERE, NAME)
 OUT = os.path.join(ROOT, "build", "forge", TITLE)
 HEAD_HEIGHT = 0.232  # chin to crown, an adult man's
@@ -30,27 +32,10 @@ head.select_set(True)
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 
 co = np.array([v.co[:] for v in head.data.vertices])
-width = co[:, 0].max() - co[:, 0].min()
-crown = co[:, 2].max()
-
-# The face's middle line seen from the side: the frontmost point (least y: Tripo's front is -Y) in each 1% of the
-# height (about 1 cm of a bust; finer slices of the 4% strip are often empty).
-middle = co[np.abs(co[:, 0] - (co[:, 0].max() + co[:, 0].min()) / 2) < width * 0.02]
-step = (crown - co[:, 2].min()) / 100
-bins = {}
-for x, y, z in middle:
-    k = int(z / step)
-    bins[k] = min(bins.get(k, 1e9), y)
-levels = sorted(bins)
-nose = min(levels, key=lambda k: bins[k] if k * step > co[:, 2].min() + 0.3 * (crown - co[:, 2].min()) else 1e9)
-# Down from the nose tip: the chin's underside is where the profile falls back toward the neck the most over 3%
-# of the height (the lips recess too, but less).
-reach = int(0.4 * (crown - co[:, 2].min()) / step)
-below = [k for k in levels if nose - reach < k < nose and bins.get(k - 3) is not None]
-chin_k = max(below, key=lambda k: bins[k - 3] - bins[k])
-chin = chin_k * step
+# The face's landmarks on its middle line, seen from the side (face.py; Tripo's front is -Y).
+crown, chin, nose_found, chin_found = profile(co)
 scale = HEAD_HEIGHT / (crown - chin)
-print(f"crown {crown:.4f} chin {chin:.4f} nose {nose * step:.4f} -> scale {scale:.4f}")
+print(f"crown {crown:.4f} chin {chin:.4f} nose {nose_found[2]:.4f} -> scale {scale:.4f}")
 
 head.scale = (scale,) * 3
 bpy.ops.object.transform_apply(scale=True)
@@ -63,8 +48,8 @@ head.name = head.data.name = TITLE
 # The face's sliders, each a shape key Forge's face editor drives by its part and name ("Nose" "Width": NoseWidth), at
 # 100 the most one way and, driven negative, the other. Each pushes the vertices round a landmark (the nose tip, the
 # chin's front, in the final frame: metres, front -Y, up Z) by a soft falloff, so nothing near the neck moves.
-nose_tip = np.array([0.0, bins[nose], nose * step]) * scale + shift
-chin_front = np.array([0.0, bins[chin_k + 1], (chin_k + 1) * step]) * scale + shift
+nose_tip = nose_found * scale + shift
+chin_front = chin_found * scale + shift
 co = np.array([v.co[:] for v in head.data.vertices])
 
 

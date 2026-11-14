@@ -63,6 +63,24 @@
  },
  "loose": [
   {
+   "faces": 10,
+   "centre_m": [
+    -0.037,
+    -0.099,
+    1.663
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 10,
+   "centre_m": [
+    -0.014,
+    -0.109,
+    1.598
+   ],
+   "to": "Head"
+  },
+  {
    "faces": 12,
    "centre_m": [
     -0.089,
@@ -81,15 +99,6 @@
    "to": "Head"
   },
   {
-   "faces": 10,
-   "centre_m": [
-    -0.014,
-    -0.109,
-    1.598
-   ],
-   "to": "Head"
-  },
-  {
    "faces": 6,
    "centre_m": [
     0.089,
@@ -97,22 +106,44 @@
     1.644
    ],
    "to": "Head"
-  },
-  {
-   "faces": 10,
-   "centre_m": [
-    -0.037,
-    -0.099,
-    1.663
-   ],
-   "to": "Head"
   }
  ],
+ "head": {
+  "cut_cm": 2.5,
+  "blend_cm": 2.5,
+  "scale": 1.108,
+  "body_chin_z": 1.5432,
+  "head_chin_z": 0.1042,
+  "crown_body_m": 1.8,
+  "crown_head_m": 1.7993,
+  "shift_in_plane_mm": [
+   1.0,
+   -1.9,
+   -0.6
+  ],
+  "chin_above_seam_cm": 7.0,
+  "head_open_edges_off_the_cut": 0,
+  "neck_vertices_blended": 1425,
+  "rays_missed": 0,
+  "collar_rings": 4,
+  "seam_ring_vertices": 156,
+  "cut_ring_vertices": 188,
+  "collar_faces": 812,
+  "collar_faces_across_uv_seams": 0,
+  "shape_moves_at_cut_mm": 0.354,
+  "source": "head_warrior_m/build/forge/WarriorM/WarriorM.fbx",
+  "fade_triangles": 2844,
+  "skin_gain_rgb": [
+   0.909,
+   1.03,
+   1.2
+  ]
+ },
  "seams_on_pieces": {
   "neck": {
    "Head": 156,
    "Body": 156,
-   "apart_mm": 0.0,
+   "apart_mm": 0.0004,
    "turn_deg": 0.0
   },
   "wrist.L": {
@@ -141,14 +172,14 @@
   },
   "open_edge_vertices_on_no_seam": {
    "Body": 5,
-   "Head": 78,
+   "Head": 0,
    "Hands": 0,
    "Feet": 0
   }
  },
  "triangles": {
   "Body": 31043,
-  "Head": 6150,
+  "Head": 25836,
   "Hands": 7117,
   "Feet": 6811
  },
@@ -163,7 +194,7 @@
   "neck": {
    "Head": 156,
    "Body": 156,
-   "apart_mm": 0.0,
+   "apart_mm": 0.0005,
    "turn_deg": 0.0
   },
   "wrist.L": {
@@ -192,9 +223,16 @@
   },
   "open_edge_vertices_on_no_seam": {
    "Feet": 0,
-   "Head": 78,
+   "Hands": 0,
    "Body": 5,
-   "Hands": 0
+   "Head": 0
   }
+ },
+ "shape_keys_in_fbx": {
+  "Head": [
+   "NoseWidth",
+   "JawWidth",
+   "JawChin"
+  ]
  }
 }
