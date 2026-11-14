@@ -1,0 +1,47 @@
+{
+ "right": {
+  "middle_m": [
+   -0.0345,
+   0.2268
+  ],
+  "width_mm": 21.4,
+  "height_mm": 7.3,
+  "pixels": 5115,
+  "touches_map_edge": false,
+  "surface_y": -0.0813,
+  "eyeball_fit": {
+   "centre_m": [
+    -0.0336,
+    -0.0706,
+    0.2271
+   ],
+   "radius_mm": 11.9
+  },
+  "faces_cut": 75,
+  "rim_vertices": 49,
+  "wall_faces": 50
+ },
+ "left": {
+  "middle_m": [
+   0.0333,
+   0.2268
+  ],
+  "width_mm": 20.4,
+  "height_mm": 7.1,
+  "pixels": 4835,
+  "touches_map_edge": false,
+  "surface_y": -0.0814,
+  "eyeball_fit": {
+   "centre_m": [
+    0.0317,
+    -0.0714,
+    0.2277
+   ],
+   "radius_mm": 11.3
+  },
+  "faces_cut": 74,
+  "rim_vertices": 44,
+  "wall_faces": 44
+ },
+ "open_edges_after": 94
+}
