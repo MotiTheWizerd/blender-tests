@@ -157,7 +157,7 @@
    "neck_on_pieces": {
     "Head": 156,
     "Body": 156,
-    "apart_mm": 0.0004,
+    "apart_mm": 0.0005,
     "turn_deg": 0.0,
     "head_open_edge_vertices_on_no_seam": 89
    },
@@ -199,6 +199,99 @@
    "faces_per_material_in_fbx": {
     "0 body's (collar)": 811,
     "1 its own": 24967,
+    "2 its eyes": 2688
+   }
+  },
+  "WarriorM2": {
+   "cut_cm": 2.5,
+   "blend_cm": 2.5,
+   "size": 1.0,
+   "scale": 1.1069,
+   "body_chin_to_crown_cm": 25.68,
+   "body_chin_z": 1.5432,
+   "head_chin_z": 0.0654,
+   "crown_body_m": 1.8,
+   "crown_head_m": 1.7696,
+   "shift_in_plane_mm": [
+    2.7,
+    11.2,
+    3.3
+   ],
+   "chin_above_seam_cm": 7.0,
+   "head_open_edges_off_the_cut": 0,
+   "eyeballs": {
+    "Right": {
+     "centre_m": [
+      -0.03303,
+      -0.05101,
+      1.66379
+     ],
+     "radius_mm": 12.95
+    },
+    "Left": {
+     "centre_m": [
+      0.03327,
+      -0.05112,
+      1.66313
+     ],
+     "radius_mm": 12.84
+    }
+   },
+   "neck_vertices_blended": 1672,
+   "rays_missed": 0,
+   "collar_rings": 4,
+   "seam_ring_vertices": 156,
+   "cut_ring_vertices": 191,
+   "collar_faces": 815,
+   "collar_faces_across_uv_seams": 0,
+   "shape_moves_at_cut_mm": 11.313,
+   "source": "head_face_1/build/forge/WarriorM2/WarriorM2.fbx",
+   "fade_triangles": 3367,
+   "neck_on_pieces": {
+    "Head": 156,
+    "Body": 156,
+    "apart_mm": 0.0004,
+    "turn_deg": 0.0,
+    "head_open_edge_vertices_on_no_seam": 76
+   },
+   "skin_gain_rgb": [
+    0.839,
+    1.138,
+    1.41
+   ],
+   "eye_bones_in_fbx": {
+    "Left": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.003
+    },
+    "Right": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.004
+    }
+   },
+   "neck_in_fbx": {
+    "Head": 156,
+    "Body": 156,
+    "apart_mm": 0.0005,
+    "turn_deg": 0.0,
+    "head_open_edge_vertices_on_no_seam": 76
+   },
+   "shape_keys_in_fbx": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+   ],
+   "materials_in_fbx": [
+    "BodyWarriorM.003",
+    "WarriorM2",
+    "WarriorM2Eyes"
+   ],
+   "faces_per_material_in_fbx": {
+    "0 body's (collar)": 815,
+    "1 its own": 25456,
     "2 its eyes": 2688
    }
   }
@@ -247,7 +340,8 @@
   "Feet": 6811,
   "heads": {
    "BodyWarriorM": 6150,
-   "WarriorM": 28466
+   "WarriorM": 28466,
+   "WarriorM2": 28959
   }
  },
  "skin_even": {

@@ -1,0 +1,99 @@
+{
+  "chin_to_crown": 0.232,
+  "scale": 0.3039,
+  "size_m": [
+    0.233,
+    0.225,
+    0.297
+  ],
+  "triangles": 95588,
+  "nose_tip": [
+    0.0,
+    -0.1127,
+    0.1666
+  ],
+  "chin_front": [
+    0.0,
+    -0.0349,
+    0.0684
+  ],
+  "shapes": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+  ],
+  "eyes": {
+    "right": {
+      "middle_m": [
+        -0.0334,
+        0.2016
+      ],
+      "width_mm": 18.3,
+      "height_mm": 5.6,
+      "pixels": 3825,
+      "touches_map_edge": false,
+      "surface_y": -0.0705,
+      "eyeball": {
+        "centre_m": [
+          -0.0323,
+          -0.0596,
+          0.2018
+        ],
+        "radius_mm": 11.7
+      },
+      "iris_rgb": [
+        0.3330000042915344,
+        0.3330000042915344,
+        0.3019999861717224
+      ],
+      "faces_cut": 68,
+      "rim_vertices": 38,
+      "wall_faces": 38,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "blink": {
+        "most_turn_deg": 24.9,
+        "vertices_moved": 328
+      }
+    },
+    "left": {
+      "middle_m": [
+        0.0282,
+        0.2014
+      ],
+      "width_mm": 18.3,
+      "height_mm": 5.6,
+      "pixels": 3764,
+      "touches_map_edge": false,
+      "surface_y": -0.0706,
+      "eyeball": {
+        "centre_m": [
+          0.0276,
+          -0.0597,
+          0.2012
+        ],
+        "radius_mm": 11.6
+      },
+      "iris_rgb": [
+        0.3370000123977661,
+        0.3409999907016754,
+        0.3100000023841858
+      ],
+      "faces_cut": 41,
+      "rim_vertices": 38,
+      "wall_faces": 38,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "blink": {
+        "most_turn_deg": 24.7,
+        "vertices_moved": 214
+      }
+    },
+    "iris_rgb": [
+      0.335,
+      0.337,
+      0.306
+    ]
+  }
+}

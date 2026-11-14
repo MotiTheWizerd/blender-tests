@@ -21,6 +21,8 @@ REACH = (0.024, 0.016)   # the map's half width and half height round an eye's m
 WARM = 0.16         # skin: (red - blue) over the brightest channel above this; the eye's white and iris below
 ANGLES = 180        # the outline's radii round the eye
 SMOOTH = 8          # the outline keeps this many waves round the eye (its corners, its lids' curves), no finer
+WHITE = 0.5         # the eye's white: brighter than this (luminance) and not warm
+WHITE_REACH = 0.009 # how far from the painted iris the white is sought (metres)
 
 
 def front_map(head, image, centre):
@@ -58,13 +60,19 @@ def opening(colour, seed):
     r, g, b = colour[..., 0], colour[..., 1], colour[..., 2]
     warmth = (r - b) / np.maximum(colour.max(-1), 1e-3)
     eye = np.nan_to_num(warmth, nan=1.0) < WARM
-    # Joined to the seed (4-neighbours), by a flood over the mask.
+    # Joined to the seed (4-neighbours), by a flood over the mask; and to the eye's white near it, which no paint
+    # mistakes (bright and not warm), for a seed can land in the pupil, whose dark rim reads warm and walls it in.
     reached = np.zeros_like(eye)
     if not eye[seed]:
         near = np.argwhere(eye)
         seed = tuple(near[np.argmin(((near - np.array(seed)) ** 2).sum(1))])
-    stack = [seed]
-    reached[seed] = True
+    rows, cols = eye.shape
+    lum = np.nan_to_num(colour, nan=0.0) @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    jj, ii = np.mgrid[0:rows, 0:cols]
+    white = eye & (lum > WHITE) & (np.hypot(jj - seed[0], ii - seed[1]) * STEP < WHITE_REACH)
+    stack = [seed] + [tuple(p) for p in np.argwhere(white)]
+    for p in stack:
+        reached[p] = True
     rows, cols = eye.shape
     while stack:
         y, x = stack.pop()
@@ -74,6 +82,30 @@ def opening(colour, seed):
                 reached[ny, nx] = True
                 stack.append((ny, nx))
     return reached, warmth
+
+
+ON_BALL = 0.0004    # paint this near the fitted eyeball's surface lies on it (the lids stand off it)
+SHADED = 0.4        # the eye in the paint's shadow is less warm than this (skin ~0.5; the eye in light ~0.05)
+
+
+def on_the_eyeball(mask, warmth, depth, gx, gz, centre, r):
+    """mask grown over what lies on the eyeball (centre, r: the sphere fitted to it) and is not as warm as skin,
+    joined to it: the eye where its paint is shaded, which a warmth alone takes for skin."""
+    inside = r ** 2 - (gx - centre[0]) ** 2 - (gz - centre[2]) ** 2
+    front = centre[1] - np.sqrt(np.maximum(inside, 0.0))
+    near = (inside > 0) & (np.abs(np.nan_to_num(depth, nan=1.0) - front) < ON_BALL) \
+        & (np.nan_to_num(warmth, nan=1.0) < SHADED)
+    grown = mask.copy()
+    stack = [tuple(p) for p in np.argwhere(mask)]
+    rows, cols = mask.shape
+    while stack:
+        y, x = stack.pop()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            ny, nx = y + dy, x + dx
+            if 0 <= ny < rows and 0 <= nx < cols and near[ny, nx] and not grown[ny, nx]:
+                grown[ny, nx] = True
+                stack.append((ny, nx))
+    return grown
 
 
 def outline(mask, xs, zs):
@@ -385,8 +417,8 @@ def blink(bm, lids):
     """The Blink shape key: each eye shut. Each lid turns about its eyeball's middle on the axis across the face
     (lids: per side the eyeball's centre and radius, and its rim's mark in the LID layer, its band's the next), so it slides
     over the eyeball as a lid does: the upper down, the lower a little up (LOWER_SHARE), meeting where they cross, the
-    upper OVERLAP past it so they close with no slit; at each place across the eye by as much as the opening is tall
-    there (none at its corners). The skin past a rim turns with it, less the farther round (LID_REACH) and the farther
+    upper OVERLAP past it so they close with no slit; each rim vertex (and its inside) goes to the meeting at its place
+    across, so a corner closes to a point. The skin past a rim turns with it, less the farther round (LID_REACH) and the farther
     off the eyeball (LID_DEPTH: the lid, not the brow), the band wholly;
     nothing passes into the cornea, wherever the eye looks (CLEAR, LOOK_REACH). Every other shape key leaves the lids
     as they are. Returns per side how far the lids turn at most (degrees) and how many vertices move."""
@@ -401,6 +433,7 @@ def blink(bm, lids):
         c = Vector(centre)
         rim = [v for v in bm.verts if v[lid] == mark]
         band = {v for v in bm.verts if v[lid] == mark + 1}
+        whole = band | set(rim)     # the rim and the lid's inside turn wholly, however far off the eyeball (a corner)
 
         def turn_of(co):
             """Its angle up from ahead about the axis across the face through the middle, and its distance from it."""
@@ -430,33 +463,36 @@ def blink(bm, lids):
             # Its lid by which side of where they meet it is; how far past that lid's rim, as an angle about the
             # middle, so a fold of the lid (the upper's overhang: skin under it near the rim, over it farther) turns
             # as one, never through itself.
-            which = 0 if angle >= down + LOWER_SHARE * (up - down) else 1
+            meet = down + LOWER_SHARE * (up - down)
+            which = 0 if angle >= meet else 1
             past = max(angle - up, 0.0) if which == 0 else max(down - angle, 0.0)
             t = min(past / LID_REACH[which], 1.0)
             # And only the lid: skin standing farther off the eyeball (the brow) stays.
             off = min(max(((v.co - c).length - r - LID_DEPTH[0]) / (LID_DEPTH[1] - LID_DEPTH[0]), 0.0), 1.0)
-            weight = 1.0 if v in band else (1 - t) ** 2 * (1 + 2 * t) * (1 - off) ** 2 * (1 + 2 * off)
+            weight = 1.0 if v in whole else (1 - t) ** 2 * (1 + 2 * t) * (1 - off) ** 2 * (1 + 2 * off)
             if weight <= 0.0:
                 continue
-            opening = max(up - down, 0.0)
-            by = -opening * (1 - LOWER_SHARE) * (1 + OVERLAP) if which == 0 else opening * LOWER_SHARE
+            # Where they meet, the upper OVERLAP past it: the rim and its inside go there from wherever they are (at a
+            # corner the rim stands up and down at one place across, and comes together to a point); the skin past a
+            # rim turns as its rim there does.
+            past_meet = OVERLAP * max(up - down, 0.0) if which == 0 else 0.0
+            by = meet - past_meet - (angle if v in whole else (up if which == 0 else down))
             angle += by * weight
             shut_at[v] = Vector((v.co.x, c.y - distance * math.cos(angle), c.z + distance * math.sin(angle)))
             weight_of[v] = weight
             most = max(most, abs(by) * weight)
         # The shut lid relaxed toward its neighbours as much as it moved, its rim and inside held: a lid sculpted
         # folded (the upper's overhang, its lashes painted under it) lies smooth shut, not turned down still folded.
-        held = band | set(rim)
-        free = [v for v in shut_at if v not in held]
+        free = [v for v in shut_at if v not in whole]
         for _ in range(RELAX):
             relaxed = {}
             for v in free:
                 near = [shut_at.get(e.other_vert(v), e.other_vert(v).co) for e in v.link_edges]
                 relaxed[v] = shut_at[v].lerp(sum(near, Vector()) / len(near), 0.5 * weight_of[v])
             shut_at.update(relaxed)
-        for v in free:
-            # Off the cornea, wherever it is as the eye looks about: its rise over the sphere at this far from
-            # where it can face.
+        for v in [v for v in shut_at if v not in band]:
+            # Off the cornea, wherever it is as the eye looks about (the rim too, meeting in front of it; the lid's
+            # inside lies within the eyeball, hidden): its rise over the sphere at this far from where it can face.
             away = shut_at[v] - c
             theta = max(away.angle(Vector((0.0, -1.0, 0.0)), 0.0) - LOOK_REACH, 0.0)
             cornea = r * (1 + (BULGE * (1 - (theta / LIMBUS) ** 2) ** 2 if theta < LIMBUS else 0.0))
@@ -569,6 +605,10 @@ def give_eyes(head, image, title, maps, checks, nose):
         gx, gz = np.meshgrid(xs, zs)
         surface = np.c_[gx[mask], depth[mask], gz[mask]]
         centre, r = sphere_fit(surface[~np.isnan(surface).any(1)])
+        # The eye the paint leaves in shadow (under the upper lid, a dark side of the iris): on the eyeball the paint
+        # lies over, and not as warm as skin; joined to what was found.
+        mask = on_the_eyeball(mask, warmth, depth, gx, gz, centre, r)
+        middle, radius = outline(mask, xs, zs)
         # The painted iris's colour: the eye's coloured middle round the seed, not the pupil, not the white.
         near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.0045
         lum = colour @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)

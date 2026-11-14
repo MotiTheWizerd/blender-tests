@@ -5,6 +5,7 @@
  "triangles": 50000,
  "skin_even": 0.7,
  "heads": [
-  "head_warrior_m"
+  "head_warrior_m",
+  "head_face_1"
  ]
 }
