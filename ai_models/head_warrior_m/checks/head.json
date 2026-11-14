@@ -20,7 +20,8 @@
   "shapes": [
     "NoseWidth",
     "JawWidth",
-    "JawChin"
+    "JawChin",
+    "Blink"
   ],
   "eyes": {
     "right": {
@@ -50,7 +51,11 @@
       "rim_vertices": 48,
       "wall_faces": 48,
       "corners_split": 1,
-      "scrap_faces": 1
+      "scrap_faces": 1,
+      "blink": {
+        "most_turn_deg": 29.2,
+        "vertices_moved": 311
+      }
     },
     "left": {
       "middle_m": [
@@ -79,7 +84,11 @@
       "rim_vertices": 41,
       "wall_faces": 41,
       "corners_split": 0,
-      "scrap_faces": 0
+      "scrap_faces": 0,
+      "blink": {
+        "most_turn_deg": 30.9,
+        "vertices_moved": 304
+      }
     },
     "iris_rgb": [
       0.384,

@@ -65,6 +65,15 @@
   {
    "faces": 10,
    "centre_m": [
+    -0.037,
+    -0.099,
+    1.663
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 10,
+   "centre_m": [
     -0.014,
     -0.109,
     1.598
@@ -81,15 +90,6 @@
    "to": "Head"
   },
   {
-   "faces": 4,
-   "centre_m": [
-    -0.016,
-    -0.11,
-    1.598
-   ],
-   "to": "Head"
-  },
-  {
    "faces": 6,
    "centre_m": [
     0.089,
@@ -99,11 +99,11 @@
    "to": "Head"
   },
   {
-   "faces": 10,
+   "faces": 4,
    "centre_m": [
-    -0.037,
-    -0.099,
-    1.663
+    -0.016,
+    -0.11,
+    1.598
    ],
    "to": "Head"
   }
@@ -188,7 +188,8 @@
    "shape_keys_in_fbx": [
     "NoseWidth",
     "JawWidth",
-    "JawChin"
+    "JawChin",
+    "Blink"
    ],
    "materials_in_fbx": [
     "BodyWarriorM.002",

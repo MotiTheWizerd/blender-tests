@@ -133,8 +133,9 @@ def cut(bm, middle, radius, surface_y, eyeball):
     """The opening cut through the skin: the faces inside the outline near the eye's surface gone, the hole's edge
     laid on the outline (the grid's steps smoothed away) and drawing the skin that lies there, and the lids' inside:
     a band from that edge straight toward the eyeball's middle (eyeball: its centre, its radius), TUCK under its
-    surface, so it lies behind the eyeball however it turns. Returns the band's faces, the edge's vertices and what was
-    mended: vertices made where the hole touched itself, and the faces of the scraps it left."""
+    surface, so it lies behind the eyeball however it turns. Returns the edge's vertices, the band's (less the edge's),
+    and what was made and mended: the band's faces, vertices made where the hole touched itself, and the faces of the
+    scraps it left."""
     import bmesh
     inside = [f for f in bm.faces
               if abs(f.calc_center_median().y - surface_y) < FRONT
@@ -295,10 +296,11 @@ def cut(bm, middle, radius, surface_y, eyeball):
         drawn = {l.vert: l[uv_layer].uv.copy() for l in skin.loops}
         for loop in f.loops:
             loop[uv_layer].uv = drawn[origin.get(loop.vert, loop.vert)]
-    bm.faces.layers.int.remove(skin_face)
+    band = {v for f in wall for v in f.verts} - rim_set
+    bm.faces.layers.int.remove(skin_face)      # the faces' references go with it; the vertices' stay
     before.free()
     whole.free()
-    return wall, rim, {"corners_split": split, "scrap_faces": len(scraps)}
+    return rim, band, {"wall_faces": len(wall), "corners_split": split, "scrap_faces": len(scraps)}
 
 
 RINGS, SEGMENTS = 28, 48     # the eyeball's rings from its front to its back, and its segments round its axis
@@ -365,6 +367,105 @@ def eyeball(bm, centre, radius, forward, side, material):
     if faces[0].normal.dot(f) < 0:
         bmesh.ops.reverse_faces(bm, faces=faces)
     return faces
+
+
+BLINK = "Blink"              # the shape key that shuts the eyes, Forge's blinker drives it
+LID = "lid"                  # a vertex layer: 2k+1 on eye k's rim, 2k+2 on its lid's inside (give_eyes to blink)
+LID_REACH = (math.radians(35), math.radians(15))   # how far past its rim (about the eyeball's middle) a lid's skin
+                             # follows it as it shuts, less and less, upper and lower
+LID_DEPTH = (0.004, 0.009)   # a lid is skin within the first of the eyeball's surface, none past the second (metres)
+LOWER_SHARE = 0.25           # of the way to shut the lower lid comes up; the upper comes down the rest
+OVERLAP = 0.08               # the upper lid comes down this share of the opening past where they meet, over the lower
+LOOK_REACH = math.radians(20)    # the cornea may stand this far from ahead as the eye looks about, under a shut lid
+CLEAR = 0.0003               # a shut lid stays this far off the cornea
+RELAX = 8                    # times a shut lid is relaxed toward its neighbours
+
+
+def blink(bm, lids):
+    """The Blink shape key: each eye shut. Each lid turns about its eyeball's middle on the axis across the face
+    (lids: per side the eyeball's centre and radius, and its rim's mark in the LID layer, its band's the next), so it slides
+    over the eyeball as a lid does: the upper down, the lower a little up (LOWER_SHARE), meeting where they cross, the
+    upper OVERLAP past it so they close with no slit; at each place across the eye by as much as the opening is tall
+    there (none at its corners). The skin past a rim turns with it, less the farther round (LID_REACH) and the farther
+    off the eyeball (LID_DEPTH: the lid, not the brow), the band wholly;
+    nothing passes into the cornea, wherever the eye looks (CLEAR, LOOK_REACH). Every other shape key leaves the lids
+    as they are. Returns per side how far the lids turn at most (degrees) and how many vertices move."""
+    key = bm.verts.layers.shape.get(BLINK) or bm.verts.layers.shape.new(BLINK)
+    lid = bm.verts.layers.int[LID]
+    eye_face = bm.faces.layers.int["eye"]
+    eyeball_verts = {v for f in bm.faces if f[eye_face] for v in f.verts}
+    for v in bm.verts:
+        v[key] = v.co.copy()
+    report = {}
+    for side, (centre, r, mark) in lids.items():
+        c = Vector(centre)
+        rim = [v for v in bm.verts if v[lid] == mark]
+        band = {v for v in bm.verts if v[lid] == mark + 1}
+
+        def turn_of(co):
+            """Its angle up from ahead about the axis across the face through the middle, and its distance from it."""
+            return math.atan2(co.z - c.z, -(co.y - c.y)), math.hypot(co.z - c.z, co.y - c.y)
+
+        # The rim's two lids, parted at its corners (the ends across).
+        first, last = min(rim, key=lambda v: v.co.x), max(rim, key=lambda v: v.co.x)
+
+        def above_corners(v):
+            t = (v.co.x - first.co.x) / (last.co.x - first.co.x)
+            return v.co.z >= first.co.z + t * (last.co.z - first.co.z)
+
+        upper = sorted({first, last} | {v for v in rim if above_corners(v)}, key=lambda v: v.co.x)
+        lower = sorted({first, last} | {v for v in rim if not above_corners(v)}, key=lambda v: v.co.x)
+
+        def rim_angle(chain, x):
+            return float(np.interp(x, [v.co.x for v in chain], [turn_of(v.co)[0] for v in chain]))
+
+        shut_at, weight_of, most = {}, {}, 0.0
+        for v in bm.verts:
+            if v in eyeball_verts or abs(v.co.x - c.x) > (last.co.x - first.co.x) / 2 + 0.01 \
+                    or (v.co - c).length > r + 0.02:
+                continue
+            x = min(max(v.co.x, first.co.x), last.co.x)
+            angle, distance = turn_of(v.co)
+            up, down = rim_angle(upper, x), rim_angle(lower, x)
+            # Its lid by which side of where they meet it is; how far past that lid's rim, as an angle about the
+            # middle, so a fold of the lid (the upper's overhang: skin under it near the rim, over it farther) turns
+            # as one, never through itself.
+            which = 0 if angle >= down + LOWER_SHARE * (up - down) else 1
+            past = max(angle - up, 0.0) if which == 0 else max(down - angle, 0.0)
+            t = min(past / LID_REACH[which], 1.0)
+            # And only the lid: skin standing farther off the eyeball (the brow) stays.
+            off = min(max(((v.co - c).length - r - LID_DEPTH[0]) / (LID_DEPTH[1] - LID_DEPTH[0]), 0.0), 1.0)
+            weight = 1.0 if v in band else (1 - t) ** 2 * (1 + 2 * t) * (1 - off) ** 2 * (1 + 2 * off)
+            if weight <= 0.0:
+                continue
+            opening = max(up - down, 0.0)
+            by = -opening * (1 - LOWER_SHARE) * (1 + OVERLAP) if which == 0 else opening * LOWER_SHARE
+            angle += by * weight
+            shut_at[v] = Vector((v.co.x, c.y - distance * math.cos(angle), c.z + distance * math.sin(angle)))
+            weight_of[v] = weight
+            most = max(most, abs(by) * weight)
+        # The shut lid relaxed toward its neighbours as much as it moved, its rim and inside held: a lid sculpted
+        # folded (the upper's overhang, its lashes painted under it) lies smooth shut, not turned down still folded.
+        held = band | set(rim)
+        free = [v for v in shut_at if v not in held]
+        for _ in range(RELAX):
+            relaxed = {}
+            for v in free:
+                near = [shut_at.get(e.other_vert(v), e.other_vert(v).co) for e in v.link_edges]
+                relaxed[v] = shut_at[v].lerp(sum(near, Vector()) / len(near), 0.5 * weight_of[v])
+            shut_at.update(relaxed)
+        for v in free:
+            # Off the cornea, wherever it is as the eye looks about: its rise over the sphere at this far from
+            # where it can face.
+            away = shut_at[v] - c
+            theta = max(away.angle(Vector((0.0, -1.0, 0.0)), 0.0) - LOOK_REACH, 0.0)
+            cornea = r * (1 + (BULGE * (1 - (theta / LIMBUS) ** 2) ** 2 if theta < LIMBUS else 0.0))
+            if away.length < cornea + CLEAR:
+                shut_at[v] = c + away.normalized() * (cornea + CLEAR)
+        for v, shut in shut_at.items():
+            v[key] = shut
+        report[side] = {"most_turn_deg": round(math.degrees(most), 1), "vertices_moved": len(shut_at)}
+    return report
 
 
 def eye_texture(iris, size=EYE_TEXTURE, seed=7):
@@ -495,21 +596,31 @@ def give_eyes(head, image, title, maps, checks, nose):
 
     bm = bmesh.new()
     bm.from_mesh(head.data)
-    for side in ("right", "left"):
+    # Each eye's rim and lid's inside marked (LID), for blink(): a layer made later would drop every reference to them.
+    lid = bm.verts.layers.int.new(LID)
+    for k, side in enumerate(("right", "left")):
         middle, radius = outlines[side]
         before = len(bm.faces)
         eye = report[side]["eyeball"]
-        wall, rim, mended = cut(bm, middle, radius, report[side]["surface_y"], (eye["centre_m"], eye["radius_mm"] / 1000))
-        report[side].update(faces_cut=before - len(bm.faces) + len(wall), rim_vertices=len(rim), wall_faces=len(wall),
-                            **mended)
+        rim, band, made = cut(bm, middle, radius, report[side]["surface_y"], (eye["centre_m"], eye["radius_mm"] / 1000))
+        report[side].update(faces_cut=before - len(bm.faces) + made["wall_faces"], rim_vertices=len(rim), **made)
+        for v in rim:
+            v[lid] = 2 * k + 1
+        for v in band:
+            v[lid] = 2 * k + 2
     slot = len(head.data.materials)
     for k, side in enumerate(("right", "left")):
         eye = report[side]["eyeball"]
         eyeball(bm, eye["centre_m"], eye["radius_mm"] / 1000, (0, -1, 0), k + 1, slot)
+    lids = {side: (report[side]["eyeball"]["centre_m"], report[side]["eyeball"]["radius_mm"] / 1000, 2 * k + 1)
+            for k, side in enumerate(("right", "left"))}
+    for side, shut in blink(bm, lids).items():
+        report[side]["blink"] = shut
     bm.to_mesh(head.data)
     bm.free()
-    if "eye" in head.data.attributes:
-        head.data.attributes.remove(head.data.attributes["eye"])
+    for layer in ("eye", LID):
+        if layer in head.data.attributes:
+            head.data.attributes.remove(head.data.attributes[layer])
     # Normals from the shape as it now is (the import's own were for the closed skin; the new faces had none).
     head.data.normals_split_custom_set_from_vertices([v.normal for v in head.data.vertices])
     head.data.update()
@@ -557,9 +668,20 @@ def eye_pictures(head, skin_image, report, checks):
     right, left = report["right"], report["left"]
     mid = Vector(((right["middle_m"][0] + left["middle_m"][0]) / 2, right["surface_y"], right["middle_m"][1]))
     close = Vector((right["middle_m"][0], right["surface_y"], right["middle_m"][1]))
-    for name, centre, direction, ortho, size in (("eyes_front", mid, (0, -1, 0), 0.11, (1200, 600)),
-                                                 ("eyes_close", close, (0.25, -1, 0.1), 0.04, (900, 600)),
-                                                 ("eyes_three_quarter", mid, (0.8, -1, 0.05), 0.13, (1200, 600))):
+    keys = head.data.shape_keys.key_blocks if head.data.shape_keys else {}
+    shut = keys.get(BLINK) if keys else None
+    for name, centre, direction, ortho, size, blinking in (
+            ("eyes_front", mid, (0, -1, 0), 0.11, (1200, 600), 0.0),
+            ("eyes_close", close, (0.25, -1, 0.1), 0.04, (900, 600), 0.0),
+            ("eyes_three_quarter", mid, (0.8, -1, 0.05), 0.13, (1200, 600), 0.0),
+            ("eyes_shut_front", mid, (0, -1, 0), 0.11, (1200, 600), 1.0),
+            ("eyes_shut_close", close, (0.25, -1, 0.1), 0.04, (900, 600), 1.0),
+            ("eyes_shut_side", close, (1, -0.25, 0.05), 0.05, (900, 600), 1.0),
+            ("eyes_half_close", close, (0.25, -1, 0.1), 0.04, (900, 600), 0.5)):
+        if shut is None and blinking:
+            continue
+        if shut is not None:
+            shut.value = blinking
         d = Vector(direction).normalized()
         cam.location = centre + d * 1.5
         cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
@@ -567,6 +689,8 @@ def eye_pictures(head, skin_image, report, checks):
         scene.render.resolution_x, scene.render.resolution_y = size
         scene.render.filepath = os.path.join(checks, name + ".jpg")
         bpy.ops.render.render(write_still=True)
+    if shut is not None:
+        shut.value = 0.0
     head.data.materials[0] = first
     bpy.data.objects.remove(cam, do_unlink=True)
 
