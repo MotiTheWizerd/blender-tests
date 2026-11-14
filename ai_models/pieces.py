@@ -41,6 +41,7 @@ from mathutils.kdtree import KDTree
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 NAME = ARGS[0]
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from eyes import sphere_fit
 from place import Creature, pictures_as_jpeg
 C = Creature(NAME)
 Title = C.title
@@ -421,15 +422,42 @@ def export(path, objects):
                              mesh_smooth_type="FACE", path_mode="STRIP")
 
 
+EYES = ("LeftEye", "RightEye")
+if any(b.name[len(prefix):] in EYES for b in rig.data.bones):
+    raise SystemExit("PIECES the rig has eye bones of its own (heads bring theirs)")
+
+
+def eye_bones(eyeballs):
+    """The skeleton with bones for a head's eyeballs (neck.py's report: each side's middle, the world's frame), children
+    of the Head bone, looking ahead (-y), in place of any added before; none: just taken away. Forge adds them to the
+    body as it puts the head on."""
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.view_layer.objects.active = rig
+    bpy.ops.object.mode_set(mode="EDIT")
+    bones = rig.data.edit_bones
+    for bone in [b for b in bones if b.name[len(prefix):] in EYES]:
+        bones.remove(bone)
+    to_rig = rig.matrix_world.inverted()
+    for side, eye in eyeballs.items():
+        centre = Vector(eye["centre_m"])
+        bone = bones.new(f"{prefix}{side}Eye")
+        bone.head, bone.tail = to_rig @ centre, to_rig @ (centre + Vector((0, -eye["radius_mm"] / 1000, 0)))
+        bone.parent = bones[f"{prefix}Head"]
+        bone.use_deform = True
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
 fbx = os.path.join(OUT, f"{Title}.fbx")
 export(fbx, list(body_pieces.values()))
-# Each head named "Head" in its file, the others out of the way while it is.
+# Each head named "Head" in its file, the others out of the way while it is, on the skeleton with its eye bones.
 for head_title, ob in heads.items():
     ob.name = f"Head {head_title}"
 for head_title, ob in heads.items():
     ob.name = "Head"
+    eye_bones(report.get("heads", {}).get(head_title, {}).get("eyeballs", {}))
     export(os.path.join(HEADS_OUT, f"{head_title}.fbx"), [ob])
     ob.name = f"Head {head_title}"
+eye_bones({})
 
 
 # What Forge will read: the FBX back, measured again, and pictured.
@@ -454,7 +482,23 @@ report["seams_in_fbx"] = seam_match(dict(body_back, Head=heads_back[Title]))
 for head_title in seated:
     head = heads_back[head_title]
     faces_per_slot = np.bincount([p.material_index for p in head.data.polygons], minlength=3)
+    # Its eye bones as read back: where each stands against the eyeball it carries (its vertices' sphere), and how many
+    # of the eyeball's vertices it weighs wholly.
+    skeleton = next(m.object for m in head.modifiers if m.type == "ARMATURE")
+    eyes_back = {}
+    for side in ("Left", "Right"):
+        bone = skeleton.data.bones.get(f"{prefix}{side}Eye")
+        group = head.vertex_groups.get(f"{prefix}{side}Eye")
+        if bone is None or group is None:
+            continue
+        carried = [v for v in head.data.vertices if any(g.group == group.index and g.weight > 0.999 for g in v.groups)]
+        co = np.array([(head.matrix_world @ v.co)[:] for v in carried])
+        centre, _ = sphere_fit(co[co[:, 1] > co[:, 1].mean()])
+        at = skeleton.matrix_world @ bone.head_local
+        eyes_back[side] = {"vertices": len(carried), "parent": bone.parent.name if bone.parent else None,
+                           "bone_off_eyeball_mm": round((at - Vector(centre)).length * 1000, 3)}
     report["heads"][head_title].update(
+        eye_bones_in_fbx=eyes_back,
         neck_in_fbx=neck_of(seam_match(dict(body_back, Head=head))),
         shape_keys_in_fbx=[k.name for k in head.data.shape_keys.key_blocks[1:]] if head.data.shape_keys else [],
         materials_in_fbx=[m.name for m in head.data.materials],

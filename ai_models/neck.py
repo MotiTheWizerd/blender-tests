@@ -25,6 +25,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 from mathutils.interpolate import poly_3d_calc
+from eyes import sphere_fit
 from face import profile
 
 CUT = 0.025       # how far above the seam the head is cut (metres, along the neck)
@@ -265,13 +266,21 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
     eye_verts = {v for f in bm.faces if f[eye_face] for v in f.verts}
     cut_ring = {v for e in bm.edges if e.is_boundary for v in e.verts if abs(plane.height(v.co) - CUT) < 1e-4}
-    eye_centres = [Vector(np.mean([v.co[:] for v in eye_verts if (v.co.x < 0) == right], axis=0))
-                   for right in (True, False) if any((v.co.x < 0) == right for v in eye_verts)]
+    # Each eyeball's middle, where it turns about: the sphere through its back half (the cornea rises off it in front).
+    # Its right is -x (the head looks along -y).
+    eyeballs = {}
+    for side, right in (("Right", True), ("Left", False)):
+        side_co = np.array([v.co[:] for v in eye_verts if (v.co.x < 0) == right])
+        if len(side_co):
+            centre, r = sphere_fit(side_co[side_co[:, 1] > side_co[:, 1].mean()])
+            eyeballs[side] = (Vector(centre), r)
+    eye_centres = [c for c, _ in eyeballs.values()]
     # The lids' inside ends open within the eyeball, where nothing sees it; any other open edge off the cut is a hole.
     report["head_open_edges_off_the_cut"] = sum(
         1 for e in bm.edges if e.is_boundary and not all(v in cut_ring for v in e.verts)
         and not all(any((v.co - c).length < 0.02 for c in eye_centres) for v in e.verts))
-    report["eyeballs"] = len(eye_centres)
+    report["eyeballs"] = {side: {"centre_m": [round(float(c), 5) for c in centre], "radius_mm": round(r * 1000, 2)}
+                          for side, (centre, r) in eyeballs.items()}
 
     # Its neck laid onto the body's, wholly at the cut and less the higher (each shape key moved with it).
     centres = {}
@@ -379,16 +388,18 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
                          [smoothstep((plane.height(c) - CUT) / BLEND) for c in corners]))
     report["fade_triangles"] = fade
 
-    # Weighed from the body's head; the seam ring exactly as the body's; the eyeballs wholly on the head's bone, so
-    # they ride the head whole (Mixamo's skeleton has no eye bones: eyes that look about will bring their own).
+    # Weighed from the body's head; the seam ring exactly as the body's; each eyeball wholly on an eye bone of its own
+    # (<prefix>LeftEye, <prefix>RightEye: Mixamo's skeleton has none, so the head brings them, pieces.py adds them as
+    # it exports it), so it turns about its middle as it looks about.
     for g in body_head.vertex_groups:
         face.vertex_groups.new(name=g.name)
     rig = next(m.object for m in body_head.modifiers if m.type == "ARMATURE")
     head_bone = next(b.name for b in rig.data.bones if b.name.split(":")[-1] == "Head")
-    head_group = (face.vertex_groups.get(head_bone) or face.vertex_groups.new(name=head_bone)).index
+    eye_group = {right: face.vertex_groups.new(name=f"{head_bone[:-len('Head')]}{side}Eye").index
+                 for side, right in (("Right", True), ("Left", False)) if side in eyeballs}
     for v in bm.verts:
         if v in eye_verts:
-            v[deform][head_group] = 1.0
+            v[deform][eye_group[v.co.x < 0]] = 1.0
             continue
         k = v[seam_index]
         weights = dict(ring[k - 1][body_deform].items()) if k else weights_at(body_bvh, body_bm, body_deform, v.co)

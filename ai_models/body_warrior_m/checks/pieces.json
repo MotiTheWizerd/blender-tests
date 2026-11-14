@@ -63,24 +63,6 @@
  },
  "loose": [
   {
-   "faces": 6,
-   "centre_m": [
-    0.089,
-    0.034,
-    1.644
-   ],
-   "to": "Head"
-  },
-  {
-   "faces": 10,
-   "centre_m": [
-    -0.037,
-    -0.099,
-    1.663
-   ],
-   "to": "Head"
-  },
-  {
    "faces": 10,
    "centre_m": [
     -0.014,
@@ -106,6 +88,24 @@
     1.598
    ],
    "to": "Head"
+  },
+  {
+   "faces": 6,
+   "centre_m": [
+    0.089,
+    0.034,
+    1.644
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 10,
+   "centre_m": [
+    -0.037,
+    -0.099,
+    1.663
+   ],
+   "to": "Head"
   }
  ],
  "heads": {
@@ -126,7 +126,24 @@
    ],
    "chin_above_seam_cm": 7.0,
    "head_open_edges_off_the_cut": 0,
-   "eyeballs": 2,
+   "eyeballs": {
+    "Right": {
+     "centre_m": [
+      -0.03617,
+      -0.06864,
+      1.67831
+     ],
+     "radius_mm": 13.17
+    },
+    "Left": {
+     "centre_m": [
+      0.03611,
+      -0.06953,
+      1.67887
+     ],
+     "radius_mm": 12.51
+    }
+   },
    "neck_vertices_blended": 1427,
    "rays_missed": 0,
    "collar_rings": 4,
@@ -149,6 +166,18 @@
     0.997,
     1.144
    ],
+   "eye_bones_in_fbx": {
+    "Left": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.005
+    },
+    "Right": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.005
+    }
+   },
    "neck_in_fbx": {
     "Head": 156,
     "Body": 156,
