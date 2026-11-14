@@ -159,7 +159,7 @@
     "Body": 156,
     "apart_mm": 0.0004,
     "turn_deg": 0.0,
-    "head_open_edge_vertices_on_no_seam": 92
+    "head_open_edge_vertices_on_no_seam": 89
    },
    "skin_gain_rgb": [
     0.839,
@@ -183,7 +183,7 @@
     "Body": 156,
     "apart_mm": 0.0005,
     "turn_deg": 0.0,
-    "head_open_edge_vertices_on_no_seam": 92
+    "head_open_edge_vertices_on_no_seam": 89
    },
    "shape_keys_in_fbx": [
     "NoseWidth",
@@ -197,7 +197,7 @@
    ],
    "faces_per_material_in_fbx": {
     "0 body's (collar)": 811,
-    "1 its own": 24972,
+    "1 its own": 24967,
     "2 its eyes": 2688
    }
   }
@@ -246,7 +246,7 @@
   "Feet": 6811,
   "heads": {
    "BodyWarriorM": 6150,
-   "WarriorM": 28471
+   "WarriorM": 28466
   }
  },
  "skin_even": {

@@ -104,47 +104,156 @@ def radius_at(middle, radius, x, z):
 
 TUCK = 0.0005       # how far inside the eyeball's sphere the lids' inside lies, so the eyeball always hides it
 FRONT = 0.012       # only faces this near the eye's painted surface are cut (not the back of the head behind it)
+OUTLINE = 720       # the outline as a line, a point every half degree round the eye
+RIM_SMOOTH = 3      # a rim vertex's depth is sought from the mean of its own and this many neighbours' each way
+SCRAP = 50          # skin of at most this many faces, left alone in an opening by the cut, is taken away
+
+
+def rim_loop(rim):
+    """The hole's edge (rim: its vertices) in order round it, one loop."""
+    rim = set(rim)
+    start = next(iter(rim))
+    loop, previous = [start], None
+    while True:
+        at = loop[-1]
+        ways = [e.other_vert(at) for e in at.link_edges if e.is_boundary and e.other_vert(at) in rim]
+        if len(ways) != 2:
+            raise SystemExit(f"EYES the eye's hole is not one plain loop ({len(ways)} edges of it at a vertex)")
+        ahead = ways[0] if ways[1] is previous else ways[1]
+        if ahead is start:
+            break
+        previous = at
+        loop.append(ahead)
+    if len(loop) != len(rim):
+        raise SystemExit(f"EYES the eye's hole is {len(rim)} vertices but its loop {len(loop)}")
+    return loop
 
 
 def cut(bm, middle, radius, surface_y, eyeball):
     """The opening cut through the skin: the faces inside the outline near the eye's surface gone, the hole's edge
     laid on the outline (the grid's steps smoothed away) and drawing the skin that lies there, and the lids' inside:
     a band from that edge straight toward the eyeball's middle (eyeball: its centre, its radius), TUCK under its
-    surface, so it lies behind the eyeball however it turns. Returns the band's faces and the edge's vertices."""
+    surface, so it lies behind the eyeball however it turns. Returns the band's faces, the edge's vertices and what was
+    mended: vertices made where the hole touched itself, and the faces of the scraps it left."""
     import bmesh
     inside = [f for f in bm.faces
               if abs(f.calc_center_median().y - surface_y) < FRONT
               and math.hypot(f.calc_center_median().x - middle[0], f.calc_center_median().z - middle[1])
               < radius_at(middle, radius, f.calc_center_median().x, f.calc_center_median().z)]
+    # The skin whole, across the opening: what the rim's depth is read from (the skin left after the cut would put
+    # every point over the hole back on the cut's edge).
+    whole = bm.copy()
+    whole_tree = BVHTree.FromBMesh(whole)
     bmesh.ops.delete(bm, geom=inside, context="FACES_ONLY")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # Where two faces cut only met at a corner, the hole touches itself there: that vertex made one for each fan of
+    # skin round it, so the hole's edge is one plain loop and each goes its own way onto the outline.
+    split, fans = 0, []
+    for v in [v for v in bm.verts if sum(e.is_boundary for e in v.link_edges) > 2]:
+        made = bmesh.utils.vert_separate(v, [e for e in v.link_edges if e.is_boundary])
+        split += len(made) - 1
+        fans += [f for m in made for f in m.link_faces]
+    # A scrap of skin the cut left inside the opening, held only by such a corner, now stands alone: it goes too.
+    scraps = set()
+    for start in fans:
+        if not start.is_valid or start in scraps:
+            continue
+        piece, todo = {start}, [start]
+        while todo and len(piece) <= SCRAP:
+            for e in todo.pop().edges:
+                for g in e.link_faces:
+                    if g not in piece:
+                        piece.add(g)
+                        todo.append(g)
+        if len(piece) <= SCRAP:
+            scraps |= piece
+    bmesh.ops.delete(bm, geom=list(scraps), context="FACES_ONLY")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
     # The skin left, as it is before the rim moves: where a moved vertex lies on it, and the texture under it there
     # (the eye's own faces gone from it, or the rim and the lid's inside would draw the eye's white and the paint's
     # padding round it).
+    skin_face = bm.faces.layers.int.new("skin_face")     # each face's place in `before`, as faces come and go
+    for i, f in enumerate(bm.faces):
+        f[skin_face] = i
     before = bm.copy()
     before.faces.ensure_lookup_table()
-    before_tree = BVHTree.FromBMesh(before)
     uv_layer = bm.loops.layers.uv.active
     before_uv = before.loops.layers.uv.active
+    # The texture's islands round the eye: a moved corner draws what lies under it on its own face's island, for a
+    # seam may run through the lid, and a corner given the other island's texture would stretch its face across the
+    # whole map between them (the lid's shards).
+    centre_3d = Vector((middle[0], surface_y, middle[1]))
+    near = {f for f in before.faces if (f.calc_center_median() - centre_3d).length < 0.03}
 
-    def uv_under(co):
-        location, _, index, _ = before_tree.find_nearest(co)
-        face = before.faces[index]
-        weights = poly_3d_calc([v.co for v in face.verts], location)
-        return sum((l[before_uv].uv * w for l, w in zip(face.loops, weights)), Vector((0.0, 0.0)))
+    def same_texture(f, g, edge):
+        for v in edge.verts:
+            uf = next(l[before_uv].uv for l in f.loops if l.vert is v)
+            ug = next(l[before_uv].uv for l in g.loops if l.vert is v)
+            if (uf - ug).length > 1e-6:
+                return False
+        return True
+
+    island_of, islands = {}, []
+    for start in near:
+        if start in island_of:
+            continue
+        island_of[start] = len(islands)
+        faces, todo = [start], [start]
+        while todo:
+            f = todo.pop()
+            for e in f.edges:
+                for g in e.link_faces:
+                    if g in near and g not in island_of and same_texture(f, g, e):
+                        island_of[g] = len(islands)
+                        faces.append(g)
+                        todo.append(g)
+        islands.append((faces, BVHTree.FromPolygons([v.co for v in before.verts],
+                                                    [[v.index for v in f.verts] for f in faces])))
+    whole_skin = (list(before.faces), BVHTree.FromBMesh(before))
+
+    def uv_under(co, face=None):
+        """The texture under co on the skin left: on face's island (a face of bm), else wherever is nearest."""
+        home = before.faces[face[skin_face]] if face is not None else None
+        faces, tree = islands[island_of[home]] if home in island_of else whole_skin
+        location, _, index, _ = tree.find_nearest(co)
+        found = faces[index]
+        weights = poly_3d_calc([v.co for v in found.verts], location)
+        return sum((l[before_uv].uv * w for l, w in zip(found.loops, weights)), Vector((0.0, 0.0)))
 
     rim = {v for e in bm.edges if e.is_boundary for v in e.verts
            if abs(v.co.y - surface_y) < FRONT and math.hypot(v.co.x - middle[0], v.co.z - middle[1]) < 0.03}
     shapes = list(bm.verts.layers.shape.values())
-    for v in rim:
-        a = math.atan2(v.co.z - middle[1], v.co.x - middle[0])
-        r = radius_at(middle, radius, v.co.x, v.co.z)
-        x, z = middle[0] + r * math.cos(a), middle[1] + r * math.sin(a)
-        # On the outline, and on the skin as it was nearest there (its depth too: the lids curve back, and a vertex
-        # keeping its old depth would zigzag against its neighbours; nearest, not along the front, where the upper lid
-        # overhangs and a ray would land on it).
-        at, _, _, _ = before_tree.find_nearest(Vector((x, v.co.y, z)))
-        move = at - v.co
+    # The cut's edge is a staircase on the skin's grid. Each of its vertices goes onto the outline in its turn round
+    # the hole, as far along the outline as it is along the staircase: in order, evenly, so the rim never folds back
+    # (each to the outline at its own angle, a stair's corners crossed over, and where the upper lid overhangs several
+    # stood one behind another at the same place: the lid's inside hung from them in flaps).
+    loop = rim_loop(rim)
+    xz = np.array([(v.co.x, v.co.z) for v in loop])
+    if np.sum(xz[:, 0] * np.roll(xz[:, 1], -1) - np.roll(xz[:, 0], -1) * xz[:, 1]) < 0:
+        loop, xz = loop[::-1], xz[::-1]         # round the way the outline goes (its angle growing)
+    stairs = np.r_[0.0, np.cumsum(np.hypot(*np.diff(np.r_[xz, xz[:1]], axis=0).T))]
+    along = stairs[:-1] / stairs[-1]
+    angles = -math.pi + 2 * math.pi * np.arange(OUTLINE) / OUTLINE
+    radii = np.array([radius_at(middle, radius, middle[0] + math.cos(a), middle[1] + math.sin(a)) for a in angles])
+    line = np.c_[middle[0] + radii * np.cos(angles), middle[1] + radii * np.sin(angles)]
+    arc = np.r_[0.0, np.cumsum(np.hypot(*np.diff(np.r_[line, line[:1]], axis=0).T))]
+    # Where along the outline each vertex's own angle puts it; the staircase's share laid on from there, turned so
+    # its vertices move the least.
+    own = np.interp(np.arctan2(xz[:, 1] - middle[1], xz[:, 0] - middle[0]), angles, arc[:-1], period=2 * math.pi) / arc[-1]
+    shift = np.angle(np.mean(np.exp(2j * math.pi * (own - along)))) / (2 * math.pi)
+    target = ((along + shift) % 1.0) * arc[-1]
+    on_line = np.c_[np.interp(target, arc, np.r_[line[:, 0], line[0, 0]]), np.interp(target, arc, np.r_[line[:, 1], line[0, 1]])]
+    # Its depth: the whole skin's nearest there, sought from its neighbours' depth (its own, on a stair, may stand a
+    # millimetre behind the next; nearest, not along the front, where the upper lid overhangs and a ray would land
+    # on it), and evened with its neighbours'; on the outline as seen from the front.
+    def along_loop(values, reach):
+        return np.mean([np.roll(values, k) for k in range(-reach, reach + 1)], axis=0)
+
+    sought = along_loop(np.array([v.co.y for v in loop]), RIM_SMOOTH)
+    depth = along_loop(np.array([whole_tree.find_nearest(Vector((x, y, z)))[0].y
+                                 for (x, z), y in zip(on_line, sought)]), 1)
+    for v, (x, z), y in zip(loop, on_line, depth):
+        move = Vector((x, y, z)) - v.co
         v.co += move
         for layer in shapes:
             v[layer] += move
@@ -152,11 +261,11 @@ def cut(bm, middle, radius, surface_y, eyeball):
     bmesh.ops.remove_doubles(bm, verts=list(rim), dist=0.0002)
     rim = [v for v in bm.verts if v.is_valid and v.is_boundary
            and abs(v.co.y - surface_y) < FRONT and math.hypot(v.co.x - middle[0], v.co.z - middle[1]) < 0.03]
-    # The rim draws the skin now under it (its corners' texture was where the grid's corner stood, on the eye's white).
+    # The rim draws the skin now under it (its corners' texture was where the grid's corner stood, on the eye's white),
+    # each face's corner from that face's island.
     for v in rim:
-        at = uv_under(v.co)
         for loop in v.link_loops:
-            loop[uv_layer].uv = at
+            loop[uv_layer].uv = uv_under(v.co, loop.face)
     edges = [e for e in bm.edges if e.is_boundary and all(v in rim for v in e.verts)]
     made = bmesh.ops.extrude_edge_only(bm, edges=edges)["geom"]
     wall_verts = [g for g in made if isinstance(g, bmesh.types.BMVert)]
@@ -170,8 +279,8 @@ def cut(bm, middle, radius, surface_y, eyeball):
         for layer in shapes:
             v[layer] += move
     wall = [g for g in made if isinstance(g, bmesh.types.BMFace)]
-    # The wall draws the lid's rim colour down into the eye (each of its corners the rim vertex it came from), not the
-    # stretched paint the extrusion left it.
+    # The wall draws the lid's rim colour down into the eye (each of its corners the rim vertex it came from, as the
+    # skin face it hangs from draws it there), not the stretched paint the extrusion left it.
     rim_set = set(rim)
     origin = {}
     for w in wall_verts:
@@ -181,11 +290,15 @@ def cut(bm, middle, radius, surface_y, eyeball):
                 origin[w] = other
     for f in wall:
         f.smooth = True
+        hung = next(e for e in f.edges if all(v in rim_set for v in e.verts))
+        skin = next(g for g in hung.link_faces if g is not f)
+        drawn = {l.vert: l[uv_layer].uv.copy() for l in skin.loops}
         for loop in f.loops:
-            source = origin.get(loop.vert, loop.vert)
-            loop[uv_layer].uv = uv_under(source.co) if source in rim_set else loop[uv_layer].uv
+            loop[uv_layer].uv = drawn[origin.get(loop.vert, loop.vert)]
+    bm.faces.layers.int.remove(skin_face)
     before.free()
-    return wall, rim
+    whole.free()
+    return wall, rim, {"corners_split": split, "scrap_faces": len(scraps)}
 
 
 RINGS, SEGMENTS = 28, 48     # the eyeball's rings from its front to its back, and its segments round its axis
@@ -386,8 +499,9 @@ def give_eyes(head, image, title, maps, checks, nose):
         middle, radius = outlines[side]
         before = len(bm.faces)
         eye = report[side]["eyeball"]
-        wall, rim = cut(bm, middle, radius, report[side]["surface_y"], (eye["centre_m"], eye["radius_mm"] / 1000))
-        report[side].update(faces_cut=before - len(bm.faces) + len(wall), rim_vertices=len(rim), wall_faces=len(wall))
+        wall, rim, mended = cut(bm, middle, radius, report[side]["surface_y"], (eye["centre_m"], eye["radius_mm"] / 1000))
+        report[side].update(faces_cut=before - len(bm.faces) + len(wall), rim_vertices=len(rim), wall_faces=len(wall),
+                            **mended)
     slot = len(head.data.materials)
     for k, side in enumerate(("right", "left")):
         eye = report[side]["eyeball"]

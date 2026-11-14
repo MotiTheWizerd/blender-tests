@@ -6,7 +6,7 @@
     0.255,
     0.336
   ],
-  "triangles": 99179,
+  "triangles": 99169,
   "nose_tip": [
     0.0001,
     -0.1277,
@@ -46,9 +46,11 @@
         0.4000000059604645,
         0.3880000114440918
       ],
-      "faces_cut": 78,
-      "rim_vertices": 50,
-      "wall_faces": 51
+      "faces_cut": 79,
+      "rim_vertices": 48,
+      "wall_faces": 48,
+      "corners_split": 1,
+      "scrap_faces": 1
     },
     "left": {
       "middle_m": [
@@ -74,8 +76,10 @@
         0.3959999978542328
       ],
       "faces_cut": 73,
-      "rim_vertices": 42,
-      "wall_faces": 42
+      "rim_vertices": 41,
+      "wall_faces": 41,
+      "corners_split": 0,
+      "scrap_faces": 0
     },
     "iris_rgb": [
       0.384,
