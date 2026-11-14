@@ -17,6 +17,11 @@
    ],
    "radius_mm": 11.9
   },
+  "iris_rgb": [
+   0.3840000033378601,
+   0.3959999978542328,
+   0.3880000114440918
+  ],
   "faces_cut": 75,
   "rim_vertices": 49,
   "wall_faces": 50
@@ -39,9 +44,19 @@
    ],
    "radius_mm": 11.3
   },
+  "iris_rgb": [
+   0.3840000033378601,
+   0.41200000047683716,
+   0.3959999978542328
+  ],
   "faces_cut": 74,
   "rim_vertices": 44,
   "wall_faces": 44
  },
- "open_edges_after": 94
+ "open_edges_after": 94,
+ "iris_rgb": [
+  0.384,
+  0.404,
+  0.392
+ ]
 }
