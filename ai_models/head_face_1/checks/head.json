@@ -1,21 +1,21 @@
 {
   "chin_to_crown": 0.232,
-  "scale": 0.3039,
+  "scale": 0.3486,
   "size_m": [
-    0.233,
-    0.225,
-    0.297
+    0.267,
+    0.259,
+    0.341
   ],
-  "triangles": 95588,
+  "triangles": 95590,
   "nose_tip": [
     0.0,
-    -0.1127,
-    0.1666
+    -0.1292,
+    0.1911
   ],
   "chin_front": [
     0.0,
-    -0.0349,
-    0.0684
+    -0.1096,
+    0.1126
   ],
   "shapes": [
     "NoseWidth",
@@ -26,21 +26,21 @@
   "eyes": {
     "right": {
       "middle_m": [
-        -0.0334,
-        0.2016
+        -0.0384,
+        0.2313
       ],
-      "width_mm": 18.3,
-      "height_mm": 5.6,
-      "pixels": 3825,
+      "width_mm": 21.0,
+      "height_mm": 6.8,
+      "pixels": 4981,
       "touches_map_edge": false,
-      "surface_y": -0.0705,
+      "surface_y": -0.0809,
       "eyeball": {
         "centre_m": [
-          -0.0323,
-          -0.0596,
-          0.2018
+          -0.0371,
+          -0.0683,
+          0.2315
         ],
-        "radius_mm": 11.7
+        "radius_mm": 13.4
       },
       "iris_rgb": [
         0.3330000042915344,
@@ -53,47 +53,48 @@
       "corners_split": 0,
       "scrap_faces": 0,
       "blink": {
-        "most_turn_deg": 24.9,
-        "vertices_moved": 328
+        "most_turn_deg": 24.8,
+        "vertices_moved": 303
       }
     },
     "left": {
       "middle_m": [
-        0.0282,
-        0.2014
+        0.0323,
+        0.2312
       ],
-      "width_mm": 18.3,
-      "height_mm": 5.6,
-      "pixels": 3764,
+      "width_mm": 21.0,
+      "height_mm": 6.6,
+      "pixels": 4869,
       "touches_map_edge": false,
-      "surface_y": -0.0706,
+      "surface_y": -0.0809,
       "eyeball": {
         "centre_m": [
-          0.0276,
-          -0.0597,
-          0.2012
+          0.0317,
+          -0.0685,
+          0.2309
         ],
-        "radius_mm": 11.6
+        "radius_mm": 13.3
       },
       "iris_rgb": [
-        0.3370000123977661,
-        0.3409999907016754,
-        0.3100000023841858
+        0.32899999618530273,
+        0.3330000042915344,
+        0.3059999942779541
       ],
-      "faces_cut": 41,
+      "faces_cut": 40,
       "rim_vertices": 38,
       "wall_faces": 38,
       "corners_split": 0,
       "scrap_faces": 0,
       "blink": {
-        "most_turn_deg": 24.7,
-        "vertices_moved": 214
+        "most_turn_deg": 24.4,
+        "vertices_moved": 198
       }
     },
     "iris_rgb": [
-      0.335,
-      0.337,
-      0.306
-    ]
+      0.331,
+      0.333,
+      0.304
+    ],
+    "spacing_over_height": 0.297
   }
 }

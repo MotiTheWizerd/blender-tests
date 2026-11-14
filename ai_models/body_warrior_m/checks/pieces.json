@@ -209,44 +209,44 @@
    "scale": 1.1069,
    "body_chin_to_crown_cm": 25.68,
    "body_chin_z": 1.5432,
-   "head_chin_z": 0.0654,
+   "head_chin_z": 0.1092,
    "crown_body_m": 1.8,
-   "crown_head_m": 1.7696,
+   "crown_head_m": 1.7999,
    "shift_in_plane_mm": [
-    2.7,
-    11.2,
-    3.3
+    3.1,
+    1.9,
+    0.6
    ],
    "chin_above_seam_cm": 7.0,
    "head_open_edges_off_the_cut": 0,
    "eyeballs": {
     "Right": {
      "centre_m": [
-      -0.03303,
-      -0.05101,
-      1.66379
+      -0.03791,
+      -0.06195,
+      1.67847
      ],
-     "radius_mm": 12.95
+     "radius_mm": 14.83
     },
     "Left": {
      "centre_m": [
-      0.03327,
-      -0.05112,
-      1.66313
+      0.03824,
+      -0.06218,
+      1.67781
      ],
-     "radius_mm": 12.84
+     "radius_mm": 14.72
     }
    },
-   "neck_vertices_blended": 1672,
+   "neck_vertices_blended": 1495,
    "rays_missed": 0,
    "collar_rings": 4,
    "seam_ring_vertices": 156,
-   "cut_ring_vertices": 191,
-   "collar_faces": 815,
+   "cut_ring_vertices": 193,
+   "collar_faces": 817,
    "collar_faces_across_uv_seams": 0,
-   "shape_moves_at_cut_mm": 11.313,
+   "shape_moves_at_cut_mm": 0.337,
    "source": "head_face_1/build/forge/WarriorM2/WarriorM2.fbx",
-   "fade_triangles": 3367,
+   "fade_triangles": 3013,
    "neck_on_pieces": {
     "Head": 156,
     "Body": 156,
@@ -263,12 +263,12 @@
     "Left": {
      "vertices": 1298,
      "parent": "mixamorig:Head",
-     "bone_off_eyeball_mm": 0.003
+     "bone_off_eyeball_mm": 0.006
     },
     "Right": {
      "vertices": 1298,
      "parent": "mixamorig:Head",
-     "bone_off_eyeball_mm": 0.004
+     "bone_off_eyeball_mm": 0.006
     }
    },
    "neck_in_fbx": {
@@ -290,8 +290,8 @@
     "WarriorM2Eyes"
    ],
    "faces_per_material_in_fbx": {
-    "0 body's (collar)": 815,
-    "1 its own": 25456,
+    "0 body's (collar)": 817,
+    "1 its own": 25258,
     "2 its eyes": 2688
    }
   }
@@ -341,7 +341,7 @@
   "heads": {
    "BodyWarriorM": 6150,
    "WarriorM": 28466,
-   "WarriorM2": 28959
+   "WarriorM2": 28763
   }
  },
  "skin_even": {

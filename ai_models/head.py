@@ -21,6 +21,7 @@ from face import profile
 ROOT = os.path.join(HERE, NAME)
 OUT = os.path.join(ROOT, "build", "forge", TITLE)
 HEAD_HEIGHT = 0.232  # chin to crown, an adult man's
+EYES_OVER_HEIGHT = (0.27, 0.32)  # the eyes' middles apart over chin to crown, a face's (WarriorM 0.281, WarriorM2 0.297)
 MAP_SIZE = 4096
 SKIN_SHINE = 0.6  # Tripo's roughness read as URP smoothness looks wet (oily lips and brow): skin shines this much of it
 
@@ -112,6 +113,14 @@ skin = image_of("Base Color")
 eyes = give_eyes(head, skin, TITLE, OUT, os.path.join(ROOT, "checks"), nose_tip)
 eye_pictures(head, skin, eyes, os.path.join(ROOT, "checks"))
 print("EYES", json.dumps(eyes))
+# The size cross-checked by the eyes: their spacing over the chin to the crown is a face's proportion, so a chin found
+# in the wrong place (head_face_1's was on the neck: a head 13% small, seated high) stops the build here.
+spacing = abs(eyes["right"]["eyeball"]["centre_m"][0] - eyes["left"]["eyeball"]["centre_m"][0])
+eyes["spacing_over_height"] = round(spacing / HEAD_HEIGHT, 3)
+if not EYES_OVER_HEIGHT[0] <= spacing / HEAD_HEIGHT <= EYES_OVER_HEIGHT[1]:
+    raise SystemExit(f"HEAD the eyes are {spacing * 1000:.1f} mm apart on a head {HEAD_HEIGHT * 100:.1f} cm chin to crown "
+                     f"({spacing / HEAD_HEIGHT:.3f}, a face's is {EYES_OVER_HEIGHT[0]} to {EYES_OVER_HEIGHT[1]}): its chin "
+                     f"or crown was found in the wrong place")
 
 base = pixels(skin, MAP_SIZE)
 base[..., 3] = 1.0

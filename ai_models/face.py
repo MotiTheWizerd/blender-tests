@@ -13,7 +13,10 @@ def profile(co):
     of the height (about 1 cm of a bust; finer slices of the 4% strip are often empty)."""
     width = co[:, 0].max() - co[:, 0].min()
     crown, floor = co[:, 2].max(), co[:, 2].min()
-    middle = co[np.abs(co[:, 0] - (co[:, 0].max() + co[:, 0].min()) / 2) < width * 0.02]
+    # The strip down the face's middle, its front half only: a slice with no point in front would otherwise take
+    # the back of the neck's for the face's, and that step back read as the chin (head_face_1: a head 13% too small).
+    middle = co[(np.abs(co[:, 0] - (co[:, 0].max() + co[:, 0].min()) / 2) < width * 0.02)
+                & (co[:, 1] < (co[:, 1].max() + co[:, 1].min()) / 2)]
     step = (crown - floor) / 100
     bins = {}
     for x, y, z in middle:
