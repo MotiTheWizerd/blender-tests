@@ -1,14 +1,17 @@
-"""The face editor's head seated on a replaceable body as its Head piece: pieces.py calls seat() when the body's
-model.json names a "head" (a head_* model head.py made: a bust at a real head's size, its sliders as shape keys).
+"""The face editor's head seated on a replaceable body as a Head piece: pieces.py calls seat() for each head the body's
+model.json names under "heads" (a head_* model head.py made: a bust at a real head's size, its sliders as shape keys).
 
 The head goes where the body's own head was: its chin at the body's chin's height (the chin is what Mixamo's rigger
-set the head's joint by), its neck centred on the body's, at its own size times `scale`. It is cut CUT above the
+set the head's joint by), its neck centred on the body's, its chin to its crown as long as the body's own head's
+times `size` (1: the same; a head made at a real head's size looks small on a thick-necked body). It is cut CUT above the
 body's neck seam, and its neck, from there BLEND further up, is laid onto the body's own neck surface, wholly at the
 cut and less the higher, so it narrows or widens into the body's neck instead of stepping. Below the cut a collar of
 skin follows the body's neck surface down to the seam, a ring every RING, the last ring the body's seam ring itself:
 the same vertices in the same places, with the body's weights and normals, so the seam is the body's own. The head
 and the collar are weighed from the body's own head (its nearest point, weighed between that triangle's corners), so
-the head turns on the same bones; the collar draws the body's own skin where it lies (it lies on the body's neck), and
+the head turns on the same bones; the collar draws the body's own skin where it lies (it lies on the body's neck): it
+wears the body's material (slot 0) and the head's own faces a material named as the head (slot 1; Forge tells them
+apart by that name, not the slot), so the head is a piece of its own that any of the body's heads can replace, and
 the head's texture on its neck is to be faded from that skin into its own (the fade triangles, painted by pieces.py);
 every shape key keeps its slider, the collar moving with none.
 
@@ -167,13 +170,14 @@ class Skin:
         return out
 
 
-def seat(head_fbx, body_head, point, normal, scale=1.0):
-    """The head of head_fbx seated on body_head's neck as the new Head object (body_head is left for the caller to
-    remove), and a report: where it went, what was cut and blended, the samples for matching its skin to the body's."""
+def seat(head_fbx, body_head, point, normal, material, size=1.0):
+    """The head of head_fbx seated on body_head's neck as a new object on its skeleton (body_head, the body's own Head
+    piece, is left as it is), its own faces wearing `material` (a name) and its collar the body's, and a report: where
+    it went, what was cut and blended, and the fade's triangles for pieces.py to paint."""
     if any(abs(a - b) > 1e-5 for row_a, row_b in zip(body_head.matrix_world, Matrix.Identity(4)) for a, b in zip(row_a, row_b)):
         raise SystemExit("NECK the body's mesh is not in the world's frame")
     plane = Plane(point, normal)
-    report = {"cut_cm": CUT * 100, "blend_cm": BLEND * 100, "scale": scale}
+    report = {"cut_cm": CUT * 100, "blend_cm": BLEND * 100, "size": size}
 
     # The body's head: its surface, its weights, its ring on the seam (with the normals the body gives it there).
     body_bm = bmesh.new()
@@ -204,6 +208,8 @@ def seat(head_fbx, body_head, point, normal, scale=1.0):
     face.matrix_world = Matrix.Identity(4)
     co = np.array([v.co[:] for v in me.vertices])
     f_crown, f_chin, _, f_chin_front = profile(co)
+    scale = size * (b_crown - b_chin) / (f_crown - f_chin)
+    report.update({"scale": round(float(scale), 4), "body_chin_to_crown_cm": round(float(b_crown - b_chin) * 100, 2)})
 
     # Seated: at its scale about its chin's front, the chin at the body's chin's height, the neck on the body's line.
     chin_point = Vector(f_chin_front)
@@ -385,8 +391,8 @@ def seat(head_fbx, body_head, point, normal, scale=1.0):
     me.normals_split_custom_set_from_vertices(normals)
     me.attributes.remove(me.attributes["seam_ring"])
 
-    # In the body head's place: its skeleton, its material.
-    face.name = me.name = "Head"
+    # Beside the body's own head: its skeleton; the collar the body's material, the rest its own.
+    face.name = me.name = material
     face.parent = body_head.parent
     face.matrix_parent_inverse = body_head.matrix_parent_inverse.copy()
     face.matrix_world = Matrix.Identity(4)
@@ -394,7 +400,13 @@ def seat(head_fbx, body_head, point, normal, scale=1.0):
         if m.type == "ARMATURE":
             face.modifiers.new("Armature", "ARMATURE").object = m.object
     me.materials.clear()
-    for m in body_head.data.materials:
-        me.materials.append(m)
+    me.materials.append(body_head.data.materials[0])
+    me.materials.append(bpy.data.materials.new(material))
+    # Each face's slot after the slots are made: clearing them put every face in slot 0.
+    skin_from_body = np.empty(len(me.polygons), dtype=np.int32)
+    me.attributes["skin_from_body"].data.foreach_get("value", skin_from_body)
+    me.polygons.foreach_set("material_index", np.where(skin_from_body == 1, 0, 1).astype(np.int32))
+    me.attributes.remove(me.attributes["skin_from_body"])
+    me.update()
     body_bm.free()
     return face, report

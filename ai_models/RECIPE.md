@@ -188,18 +188,30 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
 - **LOOK** at `pieces_front/back/side.jpg`: each piece its own colour, the seams low on the neck, above the wrists
   and the ankles. Then `forge/<Title>/` goes to Forge's `Content/Characters/<Title>/` (step 5's character route:
   *Build Characters*).
-- **The face editor's head** (model.json `"head": "head_warrior_m"`, `"head_scale"`; `neck.py`): the head head.py made
-  takes the Head piece's place. Seated by its chin (face.py finds it, as head.py does), cut 2.5 cm up the neck, its
-  neck laid onto the body's over 2.5 cm more, and a collar of rings on the body's neck down to the seam, the last ring
-  the body's own. The collar draws the body's skin (the left half of one atlas, the head's maps on the right) and
-  the head's texture is repainted on that strip of neck from the body's skin into its own, so neither the seam nor
-  the cut shows; its colour is matched to the body's, whole skin to whole skin (`skin_gain_rgb`; a strip of neck
-  matched only the neck, and in the game his face read pinker than his chest), after the body's own large blotches
-  are evened (model.json `skin_even`, 0.7 here: the AI paints grime and shading into a body's skin; pores stay). Each collar face takes its UVs
-  from one island of the texture (`collar_faces_across_uv_seams` must be 0: across two, it draws the black between
-  them). The shape keys (the face's sliders) survive into the FBX (`shape_keys_in_fbx`).
-  `pieces.py -- <name> --head-scale S` tries another size beside the real one (`head_sizes.jpg`: WarriorM looked
-  small at 1.0 on this neck, so body_warrior_m takes 1.108, the body's own head's size).
+- **The head is a piece any head replaces**: `<Title>.fbx` holds Body, Hands and Feet; each head is its own FBX on the
+  same skeleton, `Heads/<Head>.fbx` (its mesh named "Head"): the body's own head as cut (`Heads/<Title>.fbx`, drawing
+  the body's maps), and each face editor head model.json lists (`"heads": ["head_warrior_m"]`; `neck.py`), so Forge
+  puts any of them on the body by its bones' names and the face editor switches them.
+- **A face editor head** (head.py's) is seated by its chin (face.py finds it, as head.py does) at the body's own head's
+  size (its chin to its crown as the body's own head's: 25.7 cm on body_warrior_m, x1.107 of a real head's, which looked
+  small on this thick neck; model.json `"head_size"` scales from there), cut 2.5 cm up the neck, its neck laid onto
+  the body's over 2.5 cm more, and a collar of rings on the body's neck down to the seam, the last ring the body's own.
+  The collar wears the body's material (its texture is the body's where it lies) and the head's own faces a material
+  named as the head, with its own maps (`Heads/<Head>_Color.png`, `_Normal.png`); Forge tells them apart by that name
+  (`faces_per_material_in_fbx`: the collar's few hundred faces on the body's). **Blender gotcha**: clearing a mesh's
+  materials puts every face in slot 0, so the faces' slots are set after the slots are made. The head's texture is
+  repainted on that strip of neck from the body's skin into its own, so neither the seam nor the cut shows; its
+  colour is matched to the body's, whole skin to whole skin (`skin_gain_rgb`; a strip of neck matched only the neck,
+  and in the game his face read pinker than his chest), after the body's own large blotches are evened (model.json
+  `skin_even`, 0.7 here: the AI paints grime and shading into a body's skin; pores stay). Each collar face takes its
+  UVs from one island of the texture (`collar_faces_across_uv_seams` must be 0: across two, it draws the black
+  between them). The shape keys (the face's sliders) survive into the FBX (`shape_keys_in_fbx`). Per head, the seam
+  is measured again (`neck_on_pieces`, `neck_in_fbx`: 156 vertices, 0.0005 mm, 0°) and pictured on the body
+  (`whole_front_<Head>.jpg`, `neck_<view>_<Head>.jpg`). `pieces.py -- <name> --head-size S` tries another size beside
+  the real one.
+- **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front) → Tripo → `head_<name>/source_tripo.fbx`
+  → `head.py -- head_<name> <Title>` → add it to the body's `"heads"` → `pieces.py` → copy `build/forge/<Title>/` to
+  Forge's `Content/Characters/<Title>/` → *Build Characters*.
 
 ## Next (planned, not built)
 

@@ -21,9 +21,16 @@ between its edge's ends) and the same normal (each piece's custom normals are th
 line shows where they meet. checks/pieces.json says so in numbers, measured on the pieces and again on the exported
 FBX read back: for each seam's two sides, how many vertices, how far apart (mm) and how far their normals turn (deg).
 
-Writes build/forge/<Title>/: <Title>.fbx (the pieces as meshes "Body", "Head", "Hands", "Feet" bound to the
-skeleton; no clip), <Title>_Color.png and <Title>_Normal.png (TEXTURE px), for Forge's Content/Characters/<Title>;
-and checks/pieces_front.jpg, pieces_back.jpg, pieces_side.jpg (each piece its own colour, from the FBX read back).
+The head is a piece any of the body's heads replaces: the body's own (its Head piece as cut) and each face editor head
+model.json names, seated on the neck seam (neck.py). Each is exported on its own, on the same skeleton, for Forge to
+put on the body by its bones' names.
+
+Writes build/forge/<Title>/: <Title>.fbx (the meshes "Body", "Hands", "Feet" bound to the skeleton; no clip),
+<Title>_Color.png and <Title>_Normal.png (TEXTURE px); Heads/<Head>.fbx for each head (the skeleton and one mesh,
+"Head": the body's own is Heads/<Title>.fbx and draws the body's maps; a face editor head's collar draws them too, its
+material slot 0, and the rest its own maps, slot 1: Heads/<Head>_Color.png and _Normal.png), for Forge's
+Content/Characters/<Title>; and checks/pieces_front.jpg, pieces_back.jpg, pieces_side.jpg (each piece its own colour,
+from the FBX read back), and for each head whole_front_<Head>.jpg and neck_<view>_<Head>.jpg (in its colours).
 """
 import bmesh, bpy, json, math, os, sys
 import numpy as np
@@ -38,15 +45,16 @@ from place import Creature, pictures_as_jpeg
 C = Creature(NAME)
 Title = C.title
 SOURCE = os.path.join(C.root, "source_mixamo.fbx")
-# model.json "head" (optional): the head_* model whose head (head.py's) takes the Head piece's place (neck.py), at
-# "head_scale" times its own size (1: a real head's). "--head-scale S" tries another size: its pictures and numbers
-# are tagged with it, and its export goes to build/forge_<tag>/, leaving the real one alone.
-HEAD = C.spec.get("head")
-HEAD_SCALE = float(ARGS[ARGS.index("--head-scale") + 1]) if "--head-scale" in ARGS else C.spec.get("head_scale", 1.0)
+# model.json "heads" (optional): the head_* models (head.py's) seated on the neck seam (neck.py), each a Head piece
+# beside the body's own, at "head_size" times the body's own head (chin to crown; 1: the same). "--head-size S" tries
+# another size: its pictures and numbers are tagged with it, and its export goes to build/forge_<tag>/, leaving the
+# real one alone.
+HEADS = C.spec.get("heads", [])
+HEAD_SIZE = float(ARGS[ARGS.index("--head-size") + 1]) if "--head-size" in ARGS else C.spec.get("head_size", 1.0)
 # model.json "skin_even" (optional, 0 to 1): how much of the large dark and light patches the AI painted into the
 # body's skin (baked shading, grime) is evened out; its pores and creases stay. 0: as made.
 SKIN_EVEN = C.spec.get("skin_even", 0.0)
-TAG = f"_head{HEAD_SCALE:g}" if "--head-scale" in ARGS else ""
+TAG = f"_size{HEAD_SIZE:g}" if "--head-size" in ARGS else ""
 OUT = C.build("forge" + TAG, Title)
 TEXTURE = 4096
 REACH = 0.15          # metres from a seam's point: how far its plane may cut
@@ -65,7 +73,8 @@ for side in ("Left", "Right"):
     SEAMS.append((f"ankle.{side[0]}", f"{side}Leg", f"{side}Foot", 0.8,
                   lambda b, s=side: b in (f"{s}Leg", f"{s}Foot", f"{s}ToeBase", f"{s}Toe_End"), "Feet", f"{side}Toe_End"))
 
-os.makedirs(OUT, exist_ok=True)
+HEADS_OUT = os.path.join(OUT, "Heads")
+os.makedirs(HEADS_OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.fbx(filepath=SOURCE)
 scene = bpy.context.scene
@@ -207,50 +216,33 @@ for k, name in enumerate(PIECES):
 world_planes = [(body.matrix_world @ p, (body.matrix_world.to_3x3() @ n).normalized()) for p, n in planes]
 bpy.data.objects.remove(body, do_unlink=True)
 
-# The face editor's head in the Head piece's place, on the neck seam (neck.py); the body's maps and the head's then
-# share one texture, the body's on the left half and the head's on the right.
-skin = None
-if HEAD:
+# The heads, by title: the body's own Head piece, and each face editor head seated on the neck seam beside it (neck.py),
+# its own faces drawing its own maps (painted below: `seated`, its export's folder and the fade's triangles).
+own_head = next(p for p in pieces if p.name == "Head")
+heads, seated = {Title: own_head}, {}
+for head_name in HEADS:
     from glob import glob
     from neck import seat
-    made = glob(os.path.join(os.path.dirname(C.root), HEAD, "build", "forge", "*", "*.fbx"))
+    made = glob(os.path.join(os.path.dirname(C.root), head_name, "build", "forge", "*", "*.fbx"))
     if len(made) != 1:
-        raise SystemExit(f"PIECES the head {HEAD} has {len(made)} exports (run head.py)")
-    at = next(i for i, p in enumerate(pieces) if p.name == "Head")
-    own = pieces[at]
-    head, seated = seat(made[0], own, *world_planes[0], scale=HEAD_SCALE)
-    own_mesh = own.data
-    bpy.data.objects.remove(own, do_unlink=True)
-    bpy.data.meshes.remove(own_mesh)
-    head.name = head.data.name = "Head"
-    pieces[at] = head
-    fade = seated.pop("fade_triangles")
-    report["head"] = dict(seated, source=os.path.relpath(made[0], os.path.dirname(C.root)).replace(os.sep, "/"),
-                          fade_triangles=len(fade))
-    # Into the atlas: the body's faces (and the head's collar, which draws the body's skin) to the left half, the
-    # head's own to the right.
-    for ob in pieces:
-        mesh = ob.data
-        layer = mesh.uv_layers.active.data
-        uvs = np.empty(len(layer) * 2, dtype=np.float32)
-        layer.foreach_get("uv", uvs)
-        right = np.zeros(len(mesh.polygons), dtype=bool)
-        if ob is head:
-            from_body = np.empty(len(mesh.polygons), dtype=np.int32)
-            mesh.attributes["skin_from_body"].data.foreach_get("value", from_body)
-            right = from_body == 0
-            mesh.attributes.remove(mesh.attributes["skin_from_body"])
-        totals = np.empty(len(mesh.polygons), dtype=np.int32)
-        mesh.polygons.foreach_get("loop_total", totals)
-        uvs[0::2] = uvs[0::2] * 0.5 + np.where(np.repeat(right, totals), 0.5, 0.0)
-        layer.foreach_set("uv", uvs)
+        raise SystemExit(f"PIECES the head {head_name} has {len(made)} exports (run head.py)")
+    head_title = os.path.basename(os.path.dirname(made[0]))
+    if head_title in heads:
+        raise SystemExit(f"PIECES two heads are called {head_title}")
+    heads[head_title], placed = seat(made[0], own_head, *world_planes[0], material=head_title, size=HEAD_SIZE)
+    seated[head_title] = (os.path.dirname(made[0]), placed.pop("fade_triangles"))
+    report.setdefault("heads", {})[head_title] = dict(
+        placed, source=os.path.relpath(made[0], os.path.dirname(C.root)).replace(os.sep, "/"),
+        fade_triangles=len(seated[head_title][1]))
+body_pieces = {p.name: p for p in pieces if p is not own_head}
 
 
-def seam_match(objects):
-    """Each seam's two sides (its piece's open edge on the plane against the Body's): how many vertices each, how far
-    apart at most (mm), how far their normals turn at most (degrees); and each piece's open edges on no seam."""
+def seam_match(named):
+    """Each seam's two sides (its piece's open edge on the plane against the Body's), for the pieces by name (Body,
+    Head, Hands, Feet): how many vertices each, how far apart at most (mm), how far their normals turn at most
+    (degrees); and each piece's open edges on no seam."""
     rims = {}
-    for ob in objects:
+    for name, ob in named.items():
         mesh = ob.data
         b = bmesh.new(); b.from_mesh(mesh)
         rim = {v.index for e in b.edges if e.is_boundary for v in e.verts}
@@ -260,7 +252,7 @@ def seam_match(objects):
             if loop.vertex_index in normals:
                 normals[loop.vertex_index] += corner.vector
         world = ob.matrix_world
-        rims[ob.name] = [(world @ mesh.vertices[i].co, (world.to_3x3() @ n).normalized()) for i, n in normals.items()]
+        rims[name] = [(world @ mesh.vertices[i].co, (world.to_3x3() @ n).normalized()) for i, n in normals.items()]
 
     def on(seam, rim):
         point, normal = world_planes[seam]
@@ -285,11 +277,19 @@ def seam_match(objects):
     return result
 
 
-report["seams_on_pieces"] = seam_match(pieces)
-report["triangles"] = {ob.name: len(ob.data.polygons) for ob in pieces}
+def neck_of(match):
+    """The neck seam's numbers out of a seam_match, and the head's open edges on no seam (0: its only edge is the seam)."""
+    return dict(match["neck"], head_open_edge_vertices_on_no_seam=match["open_edge_vertices_on_no_seam"]["Head"])
+
+
+report["seams_on_pieces"] = seam_match(dict(body_pieces, Head=own_head))
+for head_title in seated:
+    report["heads"][head_title]["neck_on_pieces"] = neck_of(seam_match(dict(body_pieces, Head=heads[head_title])))
+report["triangles"] = dict({name: len(ob.data.polygons) for name, ob in body_pieces.items()},
+                           heads={title: len(ob.data.polygons) for title, ob in heads.items()})
 
 # The maps, as Forge's characters take them: the AI's colour (the reduced mesh kept its UVs) and reduce's normal bake;
-# with a head, its maps beside them (head.py's), its skin matched to the body's.
+# each face editor head's own (head.py's), its skin matched to the body's.
 def pixels(path):
     image = bpy.data.images.load(path)
     if image.size[0] != TEXTURE:
@@ -300,11 +300,11 @@ def pixels(path):
     return array.reshape(TEXTURE, TEXTURE, 4)
 
 
-def save(array, suffix, space):
-    image = bpy.data.images.new(f"{Title}_{suffix}", array.shape[1], array.shape[0], alpha=False)
+def save(array, path, space):
+    image = bpy.data.images.new(os.path.basename(path), array.shape[1], array.shape[0], alpha=False)
     image.colorspace_settings.name = space
     image.pixels.foreach_set(array.ravel())
-    image.filepath_raw = os.path.join(OUT, f"{Title}_{suffix}.png")
+    image.filepath_raw = path
     image.file_format = "PNG"
     image.save()
     bpy.data.images.remove(image)
@@ -377,57 +377,100 @@ def even(array, strength, step=4, reach=12):
     return float(np.percentile(factor[mask], 5)), float(np.percentile(factor[mask], 95))
 
 
-body_maps = (os.path.join(C.root, "source_tripo.fbm", "Color.jpg"), C.build(f"{Title}_Normal.png"))
-if HEAD:
-    folder = os.path.dirname(made[0])
-    head_title = os.path.basename(folder)
-    body_colour, head_colour = pixels(body_maps[0]), pixels(os.path.join(folder, f"{head_title}_BaseColor.jpg"))
-    if SKIN_EVEN:
-        report["skin_even"] = {"strength": SKIN_EVEN, "factor_p5_p95": [round(f, 3) for f in even(body_colour, SKIN_EVEN)]}
+body_colour = pixels(os.path.join(C.root, "source_tripo.fbm", "Color.jpg"))
+if SKIN_EVEN:
+    report["skin_even"] = {"strength": SKIN_EVEN, "factor_p5_p95": [round(f, 3) for f in even(body_colour, SKIN_EVEN)]}
+save(body_colour, os.path.join(OUT, f"{Title}_Color.png"), "sRGB")
+save(pixels(C.build(f"{Title}_Normal.png")), os.path.join(OUT, f"{Title}_Normal.png"), "Non-Color")
+body_skin = np.median(linear(body_colour[..., :3][skin_of(body_colour)]), 0)
+
+
+def body_at(uvs):
+    at = np.clip(uvs, 0.0, 1.0)
+    return body_colour[(at[:, 1] * (TEXTURE - 1)).astype(int), (at[:, 0] * (TEXTURE - 1)).astype(int), :3]
+
+
+for head_title, (folder, fade) in seated.items():
     # The head's skin to the body's colour: their whole skins' middles (linear), not a strip of either.
-    gain = (np.median(linear(body_colour[..., :3][skin_of(body_colour)]), 0)
-            / np.median(linear(head_colour[..., :3][skin_of(head_colour)]), 0))
+    head_colour = pixels(os.path.join(folder, f"{head_title}_BaseColor.jpg"))
+    gain = body_skin / np.median(linear(head_colour[..., :3][skin_of(head_colour)]), 0)
     head_colour[..., :3] = encoded(linear(head_colour[..., :3]) * gain)
-    report["head"]["skin_gain_rgb"] = [round(float(g), 3) for g in gain]
-
-    def body_at(uvs):
-        at = np.clip(uvs, 0.0, 1.0)
-        return body_colour[(at[:, 1] * (TEXTURE - 1)).astype(int), (at[:, 0] * (TEXTURE - 1)).astype(int), :3]
-
+    report["heads"][head_title]["skin_gain_rgb"] = [round(float(g), 3) for g in gain]
     paint(head_colour, fade, body_at)
-    save(np.concatenate([body_colour, head_colour], axis=1), "Color", "sRGB")
-    del body_colour, head_colour
+    save(head_colour, os.path.join(HEADS_OUT, f"{head_title}_Color.png"), "sRGB")
+    del head_colour
     # The normals likewise come out of flat where the head's skin meets the body's (the two maps' frames differ).
     head_normal = pixels(os.path.join(folder, f"{head_title}_Normal.png"))
     paint(head_normal, fade, lambda uvs: np.array([0.5, 0.5, 1.0]))
-    save(np.concatenate([pixels(body_maps[1]), head_normal], axis=1), "Normal", "Non-Color")
-else:
-    save(pixels(body_maps[0]), "Color", "sRGB")
-    save(pixels(body_maps[1]), "Normal", "Non-Color")
+    save(head_normal, os.path.join(HEADS_OUT, f"{head_title}_Normal.png"), "Non-Color")
+del body_colour
+
+
+def export(path, objects):
+    """The skeleton and these meshes on it, as Forge takes a character."""
+    bpy.ops.object.select_all(action="DESELECT")
+    for ob in [rig] + objects:
+        ob.select_set(True)
+    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={"ARMATURE", "MESH"}, apply_unit_scale=True,
+                             apply_scale_options="FBX_SCALE_ALL", add_leaf_bones=False, bake_anim=False,
+                             mesh_smooth_type="FACE", path_mode="STRIP")
+
 
 fbx = os.path.join(OUT, f"{Title}.fbx")
-bpy.ops.object.select_all(action="DESELECT")
-bpy.ops.export_scene.fbx(filepath=fbx, use_selection=False, object_types={"ARMATURE", "MESH"}, apply_unit_scale=True,
-                         apply_scale_options="FBX_SCALE_ALL", add_leaf_bones=False, bake_anim=False,
-                         mesh_smooth_type="FACE", path_mode="STRIP")
+export(fbx, list(body_pieces.values()))
+# Each head named "Head" in its file, the others out of the way while it is.
+for head_title, ob in heads.items():
+    ob.name = f"Head {head_title}"
+for head_title, ob in heads.items():
+    ob.name = "Head"
+    export(os.path.join(HEADS_OUT, f"{head_title}.fbx"), [ob])
+    ob.name = f"Head {head_title}"
+
 
 # What Forge will read: the FBX back, measured again, and pictured.
+def imported(path):
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.fbx(filepath=path)
+    return [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
+
+
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.fbx(filepath=fbx)
+body_back = {o.name: o for o in imported(fbx)}
+report["bones_in_fbx"] = sum(len(o.data.bones) for o in bpy.data.objects if o.type == "ARMATURE")
+heads_back = {}
+for head_title in heads:
+    meshes = imported(os.path.join(HEADS_OUT, f"{head_title}.fbx"))
+    if len(meshes) != 1:
+        raise SystemExit(f"PIECES the head {head_title} read back as {len(meshes)} meshes")
+    heads_back[head_title] = meshes[0]
 scene = bpy.context.scene
-read_back = [o for o in scene.objects if o.type == "MESH"]
-report["meshes_in_fbx"] = sorted(o.name for o in read_back)
-report["bones_in_fbx"] = sum(len(o.data.bones) for o in scene.objects if o.type == "ARMATURE")
-report["seams_in_fbx"] = seam_match(read_back)
-report["shape_keys_in_fbx"] = {o.name: [k.name for k in o.data.shape_keys.key_blocks[1:]] for o in read_back
-                               if o.data.shape_keys}
+report["meshes_in_fbx"] = sorted(body_back)
+report["seams_in_fbx"] = seam_match(dict(body_back, Head=heads_back[Title]))
+for head_title in seated:
+    head = heads_back[head_title]
+    faces_per_slot = np.bincount([p.material_index for p in head.data.polygons], minlength=2)
+    report["heads"][head_title].update(
+        neck_in_fbx=neck_of(seam_match(dict(body_back, Head=head))),
+        shape_keys_in_fbx=[k.name for k in head.data.shape_keys.key_blocks[1:]] if head.data.shape_keys else [],
+        faces_per_material_in_fbx={"0 body's (collar)": int(faces_per_slot[0]), "1 its own": int(faces_per_slot[1])})
 json.dump(report, open(C.checks(f"pieces{TAG}.json"), "w"), indent=1)
 
 colours = {"Body": (0.62, 0.62, 0.6, 1), "Head": (0.85, 0.35, 0.3, 1), "Hands": (0.3, 0.55, 0.85, 1),
            "Feet": (0.35, 0.7, 0.35, 1)}
-for ob in read_back:
-    ob.color = colours[ob.name]
-height = max((o.matrix_world @ Vector(c)).z for o in read_back for c in o.bound_box)
+for name, ob in body_back.items():
+    ob.color = colours[name]
+for ob in heads_back.values():
+    ob.color = colours["Head"]
+
+
+def wearing(head_title):
+    """Only this head shows (the body always)."""
+    for title, ob in heads_back.items():
+        ob.hide_render = title != head_title
+
+
+wearing(Title)
+height = max((o.matrix_world @ Vector(c)).z for o in [*body_back.values(), heads_back[Title]] for c in o.bound_box)
 pictures_as_jpeg(scene)
 scene.render.engine = "BLENDER_WORKBENCH"
 scene.display.shading.light = "STUDIO"; scene.display.shading.color_type = "OBJECT"
@@ -442,20 +485,30 @@ for view, d in {"front": (0, -1, 0), "back": (0, 1, 0), "side": (1, 0, 0)}.items
     scene.render.filepath = C.picture(f"pieces_{view}{TAG}")
     bpy.ops.render.render(write_still=True)
 
-# With a head: the neck close, in its colours, where a seam or a step would show.
-if HEAD:
-    material = bpy.data.materials.new("skin")
+
+def textured(path):
+    material = bpy.data.materials.new(os.path.basename(path))
     material.use_nodes = True
     texture = material.node_tree.nodes.new("ShaderNodeTexImage")
-    texture.image = bpy.data.images.load(os.path.join(OUT, f"{Title}_Color.png"))
+    texture.image = bpy.data.images.load(path)
     material.node_tree.links.new(texture.outputs["Color"], material.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
     material.node_tree.nodes.active = texture
-    for ob in read_back:
-        ob.data.materials.clear()
-        ob.data.materials.append(material)
-    scene.display.shading.color_type = "TEXTURE"
-    scene.render.resolution_x = scene.render.resolution_y = 800
-    neck = world_planes[0][0] + Vector((0, 0, 0.07))
+    return material
+
+
+# Each head on the body in their colours, whole and the neck close, where a seam, a step or two skins would show. The
+# slots are replaced in place: clearing a mesh's materials puts every face in slot 0.
+skin = textured(os.path.join(OUT, f"{Title}_Color.png"))
+for ob in body_back.values():
+    ob.data.materials[0] = skin
+scene.display.shading.color_type = "TEXTURE"
+scene.render.resolution_x = scene.render.resolution_y = 800
+neck = world_planes[0][0] + Vector((0, 0, 0.07))
+for head_title, head in heads_back.items():
+    head.data.materials[0] = skin
+    if head_title in seated:
+        head.data.materials[1] = textured(os.path.join(HEADS_OUT, f"{head_title}_Color.png"))
+    wearing(head_title)
     for name, ortho, centre in (("whole", height * 1.1, Vector((0, 0, height / 2))), ("neck", 0.42, neck)):
         cam.data.ortho_scale = ortho
         for view, d in {"front": (0, -1, 0), "three_quarter": (0.7, -0.7, 0), "side": (1, 0, 0), "back": (0, 1, 0)}.items():
@@ -464,7 +517,7 @@ if HEAD:
             d = Vector(d).normalized()
             cam.location = centre + d * 5
             cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
-            scene.render.filepath = C.picture(f"{name}_{view}{TAG}")
+            scene.render.filepath = C.picture(f"{name}_{view}_{head_title}{TAG}")
             bpy.ops.render.render(write_still=True)
 
 print("PIECES", json.dumps(report))
