@@ -1,0 +1,58 @@
+{
+ "title": "WarriorM",
+ "vertices": 47058,
+ "nose_tip": [
+  0.0,
+  -0.1277,
+  0.1883
+ ],
+ "crown": 0.3362,
+ "open_edges": 0,
+ "shells": [
+  47058
+ ],
+ "eyes": {
+  "right": {
+   "vertices_white": 25,
+   "vertices_iris": 7,
+   "centre_m": [
+    -0.0339,
+    -0.0801,
+    0.227
+   ],
+   "opening_width_mm": 19.3,
+   "opening_height_mm": 7.1,
+   "eye_surface_front_y": -0.0832,
+   "eye_surface_back_y": -0.077,
+   "brow_front_y": -0.10268670320510864,
+   "cheek_front_y": -0.08427562564611435,
+   "iris_centre_m": [
+    -0.0342,
+    -0.0821,
+    0.2251
+   ],
+   "sits_behind_brow_mm": 19.5
+  },
+  "left": {
+   "vertices_white": 29,
+   "vertices_iris": 9,
+   "centre_m": [
+    0.0329,
+    -0.0784,
+    0.2261
+   ],
+   "opening_width_mm": 20.5,
+   "opening_height_mm": 5.7,
+   "eye_surface_front_y": -0.0823,
+   "eye_surface_back_y": -0.0745,
+   "brow_front_y": -0.10115873068571091,
+   "cheek_front_y": -0.08354904502630234,
+   "iris_centre_m": [
+    0.0319,
+    -0.082,
+    0.2246
+   ],
+   "sits_behind_brow_mm": 18.8
+  }
+ }
+}
