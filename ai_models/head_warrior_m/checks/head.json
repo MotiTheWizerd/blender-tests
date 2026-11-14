@@ -6,7 +6,7 @@
     0.255,
     0.336
   ],
-  "triangles": 94112,
+  "triangles": 99179,
   "nose_tip": [
     0.0001,
     -0.1277,
@@ -21,5 +21,66 @@
     "NoseWidth",
     "JawWidth",
     "JawChin"
-  ]
+  ],
+  "eyes": {
+    "right": {
+      "middle_m": [
+        -0.0343,
+        0.2268
+      ],
+      "width_mm": 21.4,
+      "height_mm": 7.3,
+      "pixels": 5118,
+      "touches_map_edge": false,
+      "surface_y": -0.0813,
+      "eyeball": {
+        "centre_m": [
+          -0.0336,
+          -0.0706,
+          0.2271
+        ],
+        "radius_mm": 11.9
+      },
+      "iris_rgb": [
+        0.3840000033378601,
+        0.4000000059604645,
+        0.3880000114440918
+      ],
+      "faces_cut": 78,
+      "rim_vertices": 50,
+      "wall_faces": 51
+    },
+    "left": {
+      "middle_m": [
+        0.0334,
+        0.2268
+      ],
+      "width_mm": 20.4,
+      "height_mm": 7.2,
+      "pixels": 4880,
+      "touches_map_edge": false,
+      "surface_y": -0.0814,
+      "eyeball": {
+        "centre_m": [
+          0.0317,
+          -0.0714,
+          0.2276
+        ],
+        "radius_mm": 11.3
+      },
+      "iris_rgb": [
+        0.3840000033378601,
+        0.41200000047683716,
+        0.3959999978542328
+      ],
+      "faces_cut": 73,
+      "rim_vertices": 42,
+      "wall_faces": 42
+    },
+    "iris_rgb": [
+      0.384,
+      0.406,
+      0.392
+    ]
+  }
 }

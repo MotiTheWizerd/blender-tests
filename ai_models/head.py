@@ -5,8 +5,10 @@
 Reads <name>/source_tripo.fbx (and its .fbm textures), finds the chin and the crown on the face's middle line, scales
 the bust so they are HEAD_HEIGHT apart (an adult's chin to crown), and writes build/forge/<Title>/: <Title>.fbx
 (metres, front to Unity's +Z, as export.py), <Title>_BaseColor.jpg, <Title>_Normal.png and
-<Title>_MetallicSmoothness.png (no metal: skin; smoothness = (1 - roughness) * SKIN_SHINE), the maps at MAP_SIZE. checks/head.json
-says what was measured.
+<Title>_MetallicSmoothness.png (no metal: skin; smoothness = (1 - roughness) * SKIN_SHINE), the maps at MAP_SIZE; and its
+eyes of their own (eyes.py: the painted eyes opened, eyeballs put in, their material <Title>Eyes, the mesh's second,
+with <Title>Eyes_Color.png and <Title>Eyes_MetallicSmoothness.png). checks/head.json says what was measured;
+checks/eyes_*.jpg and eyes_map_<side>.png show the eyes.
 """
 import bpy, json, os, sys
 import numpy as np
@@ -104,7 +106,14 @@ def save(array, path, fmt, alpha):
     image.save()
 
 
-base = pixels(image_of("Base Color"), MAP_SIZE)
+# Eyes of their own (eyes.py): the painted ones opened, eyeballs put in, in a material of their own (<Title>Eyes).
+from eyes import give_eyes, eye_pictures
+skin = image_of("Base Color")
+eyes = give_eyes(head, skin, TITLE, OUT, os.path.join(ROOT, "checks"), nose_tip)
+eye_pictures(head, skin, eyes, os.path.join(ROOT, "checks"))
+print("EYES", json.dumps(eyes))
+
+base = pixels(skin, MAP_SIZE)
 base[..., 3] = 1.0
 save(base, os.path.join(OUT, f"{TITLE}_BaseColor.jpg"), "JPEG", False)
 save(pixels(image_of("Normal"), MAP_SIZE), os.path.join(OUT, f"{TITLE}_Normal.png"), "PNG", False)
@@ -126,6 +135,6 @@ report = {"chin_to_crown": HEAD_HEIGHT, "scale": round(float(scale), 4),
           "size_m": [round(float(d), 3) for d in co.max(0) - co.min(0)],
           "triangles": sum(len(p.vertices) - 2 for p in head.data.polygons),
           "nose_tip": [round(float(c), 4) for c in nose_tip], "chin_front": [round(float(c), 4) for c in chin_front],
-          "shapes": [k.name for k in head.data.shape_keys.key_blocks[1:]]}
+          "shapes": [k.name for k in head.data.shape_keys.key_blocks[1:]], "eyes": eyes}
 json.dump(report, open(os.path.join(ROOT, "checks", "head.json"), "w"), indent=2)
 print("REPORT", report)

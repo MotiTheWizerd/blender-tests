@@ -242,10 +242,17 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
     seam_index = bm.verts.layers.int.new("seam_ring")
     deform = bm.verts.layers.deform.verify()
     from_body = bm.faces.layers.int.new("skin_from_body")   # a face drawing the body's skin (the left of the atlas)
+    # The head's eyeballs (head.py's eyes.py: their faces in the material named <head>Eyes), each a shell of its own.
+    eyes_slot = next((i for i, m in enumerate(me.materials) if m is not None and "Eyes" in m.name), None)
+    eyes_material = me.materials[eyes_slot] if eyes_slot is not None else None
+    eye_face = bm.faces.layers.int.new("eye_face")
+    for f in bm.faces:
+        f[eye_face] = 1 if f.material_index == eyes_slot else 0
     cut_at = plane.point + plane.n * CUT
     bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-5, plane_co=cut_at,
                            plane_no=plane.n)
     bmesh.ops.delete(bm, geom=[f for f in bm.faces if plane.height(f.calc_center_median()) < CUT], context="FACES_ONLY")
+    # Only the head kept: what the crown reaches, and its eyeballs (shells of their own).
     crown_vert = max(bm.verts, key=lambda v: v.co.z)
     keep, todo = set(crown_vert.link_faces), list(crown_vert.link_faces)
     while todo:
@@ -254,11 +261,17 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
                 if g not in keep:
                     keep.add(g)
                     todo.append(g)
-    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f not in keep], context="FACES_ONLY")
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f not in keep and not f[eye_face]], context="FACES_ONLY")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    eye_verts = {v for f in bm.faces if f[eye_face] for v in f.verts}
     cut_ring = {v for e in bm.edges if e.is_boundary for v in e.verts if abs(plane.height(v.co) - CUT) < 1e-4}
-    report["head_open_edges_off_the_cut"] = sum(1 for e in bm.edges if e.is_boundary
-                                                and not all(v in cut_ring for v in e.verts))
+    eye_centres = [Vector(np.mean([v.co[:] for v in eye_verts if (v.co.x < 0) == right], axis=0))
+                   for right in (True, False) if any((v.co.x < 0) == right for v in eye_verts)]
+    # The lids' inside ends open within the eyeball, where nothing sees it; any other open edge off the cut is a hole.
+    report["head_open_edges_off_the_cut"] = sum(
+        1 for e in bm.edges if e.is_boundary and not all(v in cut_ring for v in e.verts)
+        and not all(any((v.co - c).length < 0.02 for c in eye_centres) for v in e.verts))
+    report["eyeballs"] = len(eye_centres)
 
     # Its neck laid onto the body's, wholly at the cut and less the higher (each shape key moved with it).
     centres = {}
@@ -366,10 +379,17 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
                          [smoothstep((plane.height(c) - CUT) / BLEND) for c in corners]))
     report["fade_triangles"] = fade
 
-    # Weighed from the body's head; the seam ring exactly as the body's.
+    # Weighed from the body's head; the seam ring exactly as the body's; the eyeballs wholly on the head's bone, so
+    # they ride the head whole (Mixamo's skeleton has no eye bones: eyes that look about will bring their own).
     for g in body_head.vertex_groups:
         face.vertex_groups.new(name=g.name)
+    rig = next(m.object for m in body_head.modifiers if m.type == "ARMATURE")
+    head_bone = next(b.name for b in rig.data.bones if b.name.split(":")[-1] == "Head")
+    head_group = (face.vertex_groups.get(head_bone) or face.vertex_groups.new(name=head_bone)).index
     for v in bm.verts:
+        if v in eye_verts:
+            v[deform][head_group] = 1.0
+            continue
         k = v[seam_index]
         weights = dict(ring[k - 1][body_deform].items()) if k else weights_at(body_bvh, body_bm, body_deform, v.co)
         for g, w in weights.items():
@@ -391,7 +411,8 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
     me.normals_split_custom_set_from_vertices(normals)
     me.attributes.remove(me.attributes["seam_ring"])
 
-    # Beside the body's own head: its skeleton; the collar the body's material, the rest its own.
+    # Beside the body's own head: its skeleton; the collar the body's material, the eyeballs <material>Eyes, the rest
+    # its own.
     face.name = me.name = material
     face.parent = body_head.parent
     face.matrix_parent_inverse = body_head.matrix_parent_inverse.copy()
@@ -402,11 +423,18 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
     me.materials.clear()
     me.materials.append(body_head.data.materials[0])
     me.materials.append(bpy.data.materials.new(material))
+    if eye_centres:
+        # The head's own (a new one would be named <material>Eyes.001 beside it, and Forge finds the eyes' maps by name).
+        eyes_material.name = f"{material}Eyes"
+        me.materials.append(eyes_material)
     # Each face's slot after the slots are made: clearing them put every face in slot 0.
     skin_from_body = np.empty(len(me.polygons), dtype=np.int32)
     me.attributes["skin_from_body"].data.foreach_get("value", skin_from_body)
-    me.polygons.foreach_set("material_index", np.where(skin_from_body == 1, 0, 1).astype(np.int32))
+    is_eye = np.empty(len(me.polygons), dtype=np.int32)
+    me.attributes["eye_face"].data.foreach_get("value", is_eye)
+    me.polygons.foreach_set("material_index", np.where(is_eye == 1, 2, np.where(skin_from_body == 1, 0, 1)).astype(np.int32))
     me.attributes.remove(me.attributes["skin_from_body"])
+    me.attributes.remove(me.attributes["eye_face"])
     me.update()
     body_bm.free()
     return face, report

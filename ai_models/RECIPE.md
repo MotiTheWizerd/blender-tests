@@ -209,6 +209,14 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   is measured again (`neck_on_pieces`, `neck_in_fbx`: 156 vertices, 0.0005 mm, 0°) and pictured on the body
   (`whole_front_<Head>.jpg`, `neck_<view>_<Head>.jpg`). `pieces.py -- <name> --head-size S` tries another size beside
   the real one.
+- **Eyes of their own** (`eyes.py`, run by `head.py` for every head): the painted eyes found from the paint (a front map
+  ray-cast at 0.15 mm, what is not warm skin, flooded from the iris), cut open, the rim laid on the smoothed outline
+  on the skin left after the cut (nearest, not along a ray: the upper lid overhangs), the lids' inside a band into
+  the eyeball; the eyeball a sphere fitted to the painted eye (WarriorM: 11.9 and 11.3 mm radius, real 12), cornea
+  bulge 6%, iris painted by code in the painted iris's colour, 3 mm pupil. Its material `<Title>Eyes` (the head's last
+  slot, its own `_Color.png` and a wet `_MetallicSmoothness.png`); `neck.py` keeps the eyeballs (shells of their own)
+  and puts them wholly on the Head bone (no eye bones in Mixamo's rig). **LOOK** at `head_<name>/checks/eyes_*.jpg`
+  and `eyes_map_<side>.png` (the outline on the paint). `probe_eyes.py` measures a head's painted eyes before any cut.
 - **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front) → Tripo → `head_<name>/source_tripo.fbx`
   → `head.py -- head_<name> <Title>` → add it to the body's `"heads"` → `pieces.py` → copy `build/forge/<Title>/` to
   Forge's `Content/Characters/<Title>/` → *Build Characters*.

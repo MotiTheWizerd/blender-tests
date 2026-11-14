@@ -32,7 +32,7 @@ material slot 0, and the rest its own maps, slot 1: Heads/<Head>_Color.png and _
 Content/Characters/<Title>; and checks/pieces_front.jpg, pieces_back.jpg, pieces_side.jpg (each piece its own colour,
 from the FBX read back), and for each head whole_front_<Head>.jpg and neck_<view>_<Head>.jpg (in its colours).
 """
-import bmesh, bpy, json, math, os, sys
+import bmesh, bpy, json, math, os, shutil, sys
 import numpy as np
 from collections import deque
 from mathutils import Vector
@@ -403,6 +403,11 @@ for head_title, (folder, fade) in seated.items():
     head_normal = pixels(os.path.join(folder, f"{head_title}_Normal.png"))
     paint(head_normal, fade, lambda uvs: np.array([0.5, 0.5, 1.0]))
     save(head_normal, os.path.join(HEADS_OUT, f"{head_title}_Normal.png"), "Non-Color")
+    # Its eyes' maps (head.py's eyes.py), as they are.
+    for suffix in ("Color", "MetallicSmoothness"):
+        eyes_map = os.path.join(folder, f"{head_title}Eyes_{suffix}.png")
+        if os.path.exists(eyes_map):
+            shutil.copyfile(eyes_map, os.path.join(HEADS_OUT, f"{head_title}Eyes_{suffix}.png"))
 del body_colour
 
 
@@ -448,11 +453,13 @@ report["meshes_in_fbx"] = sorted(body_back)
 report["seams_in_fbx"] = seam_match(dict(body_back, Head=heads_back[Title]))
 for head_title in seated:
     head = heads_back[head_title]
-    faces_per_slot = np.bincount([p.material_index for p in head.data.polygons], minlength=2)
+    faces_per_slot = np.bincount([p.material_index for p in head.data.polygons], minlength=3)
     report["heads"][head_title].update(
         neck_in_fbx=neck_of(seam_match(dict(body_back, Head=head))),
         shape_keys_in_fbx=[k.name for k in head.data.shape_keys.key_blocks[1:]] if head.data.shape_keys else [],
-        faces_per_material_in_fbx={"0 body's (collar)": int(faces_per_slot[0]), "1 its own": int(faces_per_slot[1])})
+        materials_in_fbx=[m.name for m in head.data.materials],
+        faces_per_material_in_fbx={"0 body's (collar)": int(faces_per_slot[0]), "1 its own": int(faces_per_slot[1]),
+                                   "2 its eyes": int(faces_per_slot[2])})
 json.dump(report, open(C.checks(f"pieces{TAG}.json"), "w"), indent=1)
 
 colours = {"Body": (0.62, 0.62, 0.6, 1), "Head": (0.85, 0.35, 0.3, 1), "Hands": (0.3, 0.55, 0.85, 1),
@@ -508,6 +515,8 @@ for head_title, head in heads_back.items():
     head.data.materials[0] = skin
     if head_title in seated:
         head.data.materials[1] = textured(os.path.join(HEADS_OUT, f"{head_title}_Color.png"))
+        if len(head.data.materials) > 2:
+            head.data.materials[2] = textured(os.path.join(HEADS_OUT, f"{head_title}Eyes_Color.png"))
     wearing(head_title)
     for name, ortho, centre in (("whole", height * 1.1, Vector((0, 0, height / 2))), ("neck", 0.42, neck)):
         cam.data.ortho_scale = ortho

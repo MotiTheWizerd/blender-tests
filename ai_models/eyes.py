@@ -1,20 +1,18 @@
-"""Eyes of their own for a head head.py made: where its painted eyes open, cut open, for eyeballs to sit behind.
-
-    blender -b --factory-startup -P eyes.py -- head_warrior_m
+"""Eyes of their own for a head: where its painted eyes open, cut open, and eyeballs put in (head.py calls give_eyes()
+for every head it makes, and eye_pictures() for its checks).
 
 A Tripo head is one closed skin with its eyes painted on, its lids sculpted over an even grid that runs straight across
 them (probe_eyes.py). Each eye is seen from the front as a map: the face is ray-cast along its front (-y) on a fine
 grid round the eye, and each hit takes the colour its texture has there (no light: the paint itself). The eye is what
 is not skin there, reached from the iris: the white and the iris are cool or grey where skin is warm. Its outline,
-a radius for every angle round its middle smoothed of the pixels' steps, is the opening.
-
-Writes checks/eyes.json (each eye's middle, opening, how much of it was found) and checks/eyes_map_<side>.png (the
-front map, the opening's outline drawn on it).
+a radius for every angle round its middle smoothed of the pixels' steps, is the opening. The opening is cut, its edge
+laid on the outline, and the lids' inside carried into the eyeball's sphere; the eyeball is a sphere fitted to the
+painted eye (the AI sculpts the eyeball under its paint: WarriorM's are 11.9 and 11.3 mm in radius, a real eye's 12),
+its cornea rising over an iris painted by code in the painted iris's colour.
 """
-import bpy, json, math, os, sys
+import bpy, math, os, sys
 import numpy as np
-from glob import glob
-from mathutils import Matrix, Vector
+from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 from mathutils.interpolate import poly_3d_calc
 
@@ -104,7 +102,6 @@ def radius_at(middle, radius, x, z):
     return float(np.interp(a, centres, radius, period=2 * math.pi))
 
 
-WALL = 0.003        # how far back the lids' inside goes from the opening (metres)
 TUCK = 0.0005       # how far inside the eyeball's sphere the lids' inside lies, so the eyeball always hides it
 FRONT = 0.012       # only faces this near the eye's painted surface are cut (not the back of the head behind it)
 
@@ -112,8 +109,8 @@ FRONT = 0.012       # only faces this near the eye's painted surface are cut (no
 def cut(bm, middle, radius, surface_y, eyeball):
     """The opening cut through the skin: the faces inside the outline near the eye's surface gone, the hole's edge
     laid on the outline (the grid's steps smoothed away) and drawing the skin that lies there, and the lids' inside:
-    that edge carried WALL back into the eyeball's sphere (eyeball: its centre, its radius), TUCK under its surface,
-    so it lies behind the eyeball however it turns. Returns the wall's faces and the edge's vertices."""
+    a band from that edge straight toward the eyeball's middle (eyeball: its centre, its radius), TUCK under its
+    surface, so it lies behind the eyeball however it turns. Returns the band's faces and the edge's vertices."""
     import bmesh
     inside = [f for f in bm.faces
               if abs(f.calc_center_median().y - surface_y) < FRONT
@@ -295,139 +292,168 @@ def sphere_fit(points):
     return centre, float(np.sqrt(solution[3] + (centre ** 2).sum()))
 
 
-if __name__ == "__main__":
-    NAME = sys.argv[sys.argv.index("--") + 1]
-    HERE = os.path.dirname(os.path.abspath(__file__))
-    ROOT = os.path.join(HERE, NAME)
-    made = glob(os.path.join(ROOT, "build", "forge", "*", "*.fbx"))
-    if len(made) != 1:
-        raise SystemExit(f"EYES {NAME} has {len(made)} exports (run head.py)")
-    TITLE = os.path.basename(os.path.dirname(made[0]))
-    probe = json.load(open(os.path.join(ROOT, "checks", "eyes_probe.json")))
+IRIS_BAND = (0.005, 0.07)     # where painted eyes can be: this far above the nose tip (metres)
+SHINE = 0.9                   # the eye's smoothness: wet, every bit of it
 
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.fbx(filepath=made[0])
-    head = next(o for o in bpy.data.objects if o.type == "MESH")
-    head.data.transform(head.matrix_world, shape_keys=True)
-    head.matrix_world = Matrix.Identity(4)
-    head.data.update()
-    image = bpy.data.images.load(os.path.join(os.path.dirname(made[0]), f"{TITLE}_BaseColor.jpg"))
 
-    report = {}
-    for side in ("right", "left"):
-        found = probe["eyes"][side]
-        iris = found["iris_centre_m"] or found["centre_m"]
+def painted_irises(head, image, nose):
+    """Each painted eye's iris (x, y, z), from the texture under the mesh's vertices: in the band above the nose tip
+    (nose: its (x, y, z)), at the face's front, the vertices whose paint is the iris (coloured, not warm), else the
+    white too (bright and grey). The subject's right first (at -x), then left."""
+    me = head.data
+    co = np.array([v.co[:] for v in me.vertices])
+    w, h = image.size
+    pixels = np.array(image.pixels[:], dtype=np.float32).reshape(h, w, image.channels)[..., :3]
+    uv = np.empty(len(me.loops) * 2, dtype=np.float32)
+    me.uv_layers.active.data.foreach_get("uv", uv)
+    uv = uv.reshape(-1, 2)
+    loop_vert = np.empty(len(me.loops), dtype=np.int64)
+    me.loops.foreach_get("vertex_index", loop_vert)
+    colour = np.zeros((len(co), 3))
+    np.add.at(colour, loop_vert, pixels[(np.clip(uv[:, 1], 0, 1) * (h - 1)).astype(int),
+                                        (np.clip(uv[:, 0], 0, 1) * (w - 1)).astype(int)])
+    colour /= np.maximum(np.bincount(loop_vert, minlength=len(co)), 1)[:, None]
+    r, g, b = colour.T
+    lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    band = (co[:, 2] > nose[2] + IRIS_BAND[0]) & (co[:, 2] < nose[2] + IRIS_BAND[1]) & (co[:, 1] < nose[1] + 0.06)
+    white = band & (lum > 0.55) & (colour.max(1) - colour.min(1) < 0.12)
+    iris = band & ~white & ((b > r + 0.02) | (g > r + 0.02)) & (lum < 0.6)
+    found = []
+    for side in (co[:, 0] < 0, co[:, 0] > 0):
+        pick = co[iris & side] if (iris & side).sum() >= 3 else co[(iris | white) & side]
+        if len(pick) < 3:
+            raise SystemExit("EYES no painted eye on one side of the face")
+        found.append(pick.mean(0))
+    return found
+
+
+def save_map(array, path, space):
+    """array (rows bottom-up, RGB or RGBA, 0..1) as a PNG at path; the image it made."""
+    image = bpy.data.images.new(os.path.basename(path), array.shape[1], array.shape[0], alpha=array.shape[2] == 4)
+    image.colorspace_settings.name = space
+    rgba = array if array.shape[2] == 4 else np.concatenate([array, np.ones(array.shape[:2] + (1,), np.float32)], -1)
+    image.pixels = rgba.astype(np.float32).ravel()
+    image.filepath_raw = path
+    image.file_format = "PNG"
+    image.save()
+    return image
+
+
+def give_eyes(head, image, title, maps, checks, nose):
+    """The head's painted eyes opened and eyeballs of their own put in (head: the mesh object, in its final frame:
+    metres, front -y, up z; image: its colour map; nose: its nose tip). The eyeballs wear a material named
+    <title>Eyes, the head's last slot, whose maps go to maps: <title>Eyes_Color.png (the iris the painted one's colour)
+    and <title>Eyes_MetallicSmoothness.png (no metal, wet). Each shape key holds the eyeballs still. checks gets each
+    eye's front map with its outline drawn (eyes_map_<side>.png). Returns what was found and made."""
+    import bmesh
+    report, outlines = {}, {}
+    for side, iris in zip(("right", "left"), painted_irises(head, image, nose)):
         xs, zs, colour, depth = front_map(head, image, iris)
         seed = (int(np.argmin(np.abs(zs - iris[2]))), int(np.argmin(np.abs(xs - iris[0]))))
         mask, warmth = opening(colour, seed)
         middle, radius = outline(mask, xs, zs)
-        report[side] = {"middle_m": [round(float(middle[0]), 4), round(float(middle[1]), 4)],
-                        "width_mm": round(float(radius[0] + radius[ANGLES // 2]) * 1000, 1),
-                        "height_mm": round(float(radius[ANGLES // 4] + radius[3 * ANGLES // 4]) * 1000, 1),
-                        "pixels": int(mask.sum()), "touches_map_edge": bool(mask[0].any() or mask[-1].any()
-                                                                            or mask[:, 0].any() or mask[:, -1].any())}
-        # The map as seen (its rows bottom-up: z grows up), the found eye tinted and the outline drawn.
-        picture = np.nan_to_num(colour, nan=0.0).copy()
-        picture[mask] = picture[mask] * 0.6 + np.array([0.0, 0.35, 0.0])
-        for k in range(ANGLES * 4):
-            a = -math.pi + 2 * math.pi * k / (ANGLES * 4)
-            rr = np.interp(a, -math.pi + 2 * math.pi * (np.arange(ANGLES) + 0.5) / ANGLES, radius, period=2 * math.pi)
-            x, z = middle[0] + rr * math.cos(a), middle[1] + rr * math.sin(a)
-            i, j = int(round((x - xs[0]) / STEP)), int(round((z - zs[0]) / STEP))
-            if 0 <= j < picture.shape[0] and 0 <= i < picture.shape[1]:
-                picture[j, i] = (1.0, 0.1, 0.8)
-        out = bpy.data.images.new(f"eyes_map_{side}", picture.shape[1], picture.shape[0], alpha=False)
-        out.pixels = np.concatenate([picture, np.ones(picture.shape[:2] + (1,), np.float32)], -1).ravel()
-        out.filepath_raw = os.path.join(ROOT, "checks", f"eyes_map_{side}.png")
-        out.file_format = "PNG"
-        out.save()
-        print("EYES", side, report[side], "warmth p5/p50/p95 in eye", np.percentile(warmth[mask], [5, 50, 95]).round(3),
-              "skin", np.nanpercentile(np.where(mask, np.nan, warmth), [5, 50]).round(3))
         gx, gz = np.meshgrid(xs, zs)
         surface = np.c_[gx[mask], depth[mask], gz[mask]]
         centre, r = sphere_fit(surface[~np.isnan(surface).any(1)])
-        report[side].update(surface_y=round(float(np.nanmedian(depth[mask])), 4),
-                            eyeball_fit={"centre_m": centre.round(4).tolist(), "radius_mm": round(r * 1000, 1)})
         # The painted iris's colour: the eye's coloured middle round the seed, not the pupil, not the white.
         near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.0045
         lum = colour @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
         painted = mask & near_seed & (lum > 0.12) & (lum < 0.62) & (np.nan_to_num(warmth, nan=1) < 0.1)
-        report[side]["iris_rgb"] = np.median(colour[painted], 0).round(3).tolist() if painted.any() else None
-        report[side]["_outline"] = (middle, radius)
+        report[side] = {"middle_m": [round(float(middle[0]), 4), round(float(middle[1]), 4)],
+                        "width_mm": round(float(radius[0] + radius[ANGLES // 2]) * 1000, 1),
+                        "height_mm": round(float(radius[ANGLES // 4] + radius[3 * ANGLES // 4]) * 1000, 1),
+                        "pixels": int(mask.sum()),
+                        "touches_map_edge": bool(mask[0].any() or mask[-1].any() or mask[:, 0].any() or mask[:, -1].any()),
+                        "surface_y": round(float(np.nanmedian(depth[mask])), 4),
+                        "eyeball": {"centre_m": centre.round(4).tolist(), "radius_mm": round(r * 1000, 1)},
+                        "iris_rgb": np.median(colour[painted], 0).round(3).tolist() if painted.any() else None}
+        outlines[side] = (middle, radius)
+        # The map as seen (rows bottom-up: z grows up), the found eye tinted green and the outline drawn.
+        picture = np.nan_to_num(colour, nan=0.0).copy()
+        picture[mask] = picture[mask] * 0.6 + np.array([0.0, 0.35, 0.0])
+        for k in range(ANGLES * 4):
+            a = -math.pi + 2 * math.pi * k / (ANGLES * 4)
+            rr = radius_at(middle, radius, middle[0] + math.cos(a), middle[1] + math.sin(a))
+            i = int(round((middle[0] + rr * math.cos(a) - xs[0]) / STEP))
+            j = int(round((middle[1] + rr * math.sin(a) - zs[0]) / STEP))
+            if 0 <= j < picture.shape[0] and 0 <= i < picture.shape[1]:
+                picture[j, i] = (1.0, 0.1, 0.8)
+        bpy.data.images.remove(save_map(picture, os.path.join(checks, f"eyes_map_{side}.png"), "sRGB"))
 
-    # Cut both openings.
-    import bmesh
     bm = bmesh.new()
     bm.from_mesh(head.data)
     for side in ("right", "left"):
-        middle, radius = report[side].pop("_outline")
+        middle, radius = outlines[side]
         before = len(bm.faces)
-        fit = report[side]["eyeball_fit"]
-        wall, rim = cut(bm, middle, radius, report[side]["surface_y"], (fit["centre_m"], fit["radius_mm"] / 1000))
+        eye = report[side]["eyeball"]
+        wall, rim = cut(bm, middle, radius, report[side]["surface_y"], (eye["centre_m"], eye["radius_mm"] / 1000))
         report[side].update(faces_cut=before - len(bm.faces) + len(wall), rim_vertices=len(rim), wall_faces=len(wall))
-    report["open_edges_after"] = sum(1 for e in bm.edges if e.is_boundary)
-    # The eyeballs, in a material of their own (slot 1), their colour from the painted irises.
+    slot = len(head.data.materials)
+    for k, side in enumerate(("right", "left")):
+        eye = report[side]["eyeball"]
+        eyeball(bm, eye["centre_m"], eye["radius_mm"] / 1000, (0, -1, 0), k + 1, slot)
+    bm.to_mesh(head.data)
+    bm.free()
+    if "eye" in head.data.attributes:
+        head.data.attributes.remove(head.data.attributes["eye"])
+    # Normals from the shape as it now is (the import's own were for the closed skin; the new faces had none).
+    head.data.normals_split_custom_set_from_vertices([v.normal for v in head.data.vertices])
+    head.data.update()
+
     irises = [report[s]["iris_rgb"] for s in ("right", "left") if report[s]["iris_rgb"]]
     iris = np.mean(irises, 0) if irises else np.array([0.35, 0.28, 0.2])
     report["iris_rgb"] = np.round(iris, 3).tolist()
-    for k, side in enumerate(("right", "left")):
-        fit = report[side]["eyeball_fit"]
-        eyeball(bm, fit["centre_m"], fit["radius_mm"] / 1000, (0, -1, 0), k + 1, 1)
-    bm.to_mesh(head.data)
-    # Normals from the shape as it now is (the import's own were for the closed skin; the new faces had none), as
-    # neck.py sets them when it seats the head.
-    head.data.normals_split_custom_set_from_vertices([v.normal for v in head.data.vertices])
-    bm.free()
-    head.data.update()
-    json.dump(report, open(os.path.join(ROOT, "checks", "eyes.json"), "w"), indent=1)
-    print("EYES", json.dumps(report))
+    colour_map = save_map(eye_texture(iris), os.path.join(maps, f"{title}Eyes_Color.png"), "sRGB")
+    shine = np.zeros((64, 64, 4), np.float32)
+    shine[..., 3] = SHINE
+    bpy.data.images.remove(save_map(shine, os.path.join(maps, f"{title}Eyes_MetallicSmoothness.png"), "Non-Color"))
+    # The eyes' material, after every other slot: adding one keeps each face's slot (clearing them would not).
+    material = bpy.data.materials.new(f"{title}Eyes")
+    material.use_nodes = True
+    node = material.node_tree.nodes.new("ShaderNodeTexImage")
+    node.image = colour_map
+    material.node_tree.links.new(node.outputs["Color"], material.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
+    material.node_tree.nodes.active = node
+    head.data.materials.append(material)
+    return report
 
-    # Pictures: the openings in the face's colours, then with stand-in eyeballs (grey spheres where the fit puts them).
-    sys.path.insert(0, HERE)
+
+def eye_pictures(head, skin_image, report, checks):
+    """The eyes in their colours (Workbench, studio light): eyes_front.jpg, eyes_close.jpg (the right eye),
+    eyes_three_quarter.jpg. The head's materials are left as they were."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from place import pictures_as_jpeg
     scene = bpy.context.scene
+    first = head.data.materials[0]
     pictures_as_jpeg(scene)
     scene.render.engine = "BLENDER_WORKBENCH"
     scene.display.shading.light = "STUDIO"
     scene.display.shading.color_type = "TEXTURE"
-    scene.render.resolution_x, scene.render.resolution_y = 1200, 600
-    scene.world = bpy.data.worlds.new("w")
-    skin = bpy.data.materials.new("skin")
+    scene.world = scene.world or bpy.data.worlds.new("w")
+    skin = bpy.data.materials.new("skin (picture)")
     skin.use_nodes = True
     node = skin.node_tree.nodes.new("ShaderNodeTexImage")
-    node.image = image
+    node.image = skin_image
     skin.node_tree.nodes.active = node
-    head.data.materials[0] = skin    # in place: clearing them would put every face in slot 0
-    cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
+    head.data.materials[0] = skin        # in place: clearing them would put every face in slot 0
+    cam = bpy.data.objects.new("eyes camera", bpy.data.cameras.new("eyes camera"))
     scene.collection.objects.link(cam)
     scene.camera = cam
     cam.data.type = "ORTHO"
-    mid = Vector(((report["right"]["middle_m"][0] + report["left"]["middle_m"][0]) / 2, report["right"]["surface_y"],
-                  report["right"]["middle_m"][1]))
-
-    def shoot(name, centre, direction, ortho, size=(1200, 600)):
+    right, left = report["right"], report["left"]
+    mid = Vector(((right["middle_m"][0] + left["middle_m"][0]) / 2, right["surface_y"], right["middle_m"][1]))
+    close = Vector((right["middle_m"][0], right["surface_y"], right["middle_m"][1]))
+    for name, centre, direction, ortho, size in (("eyes_front", mid, (0, -1, 0), 0.11, (1200, 600)),
+                                                 ("eyes_close", close, (0.25, -1, 0.1), 0.04, (900, 600)),
+                                                 ("eyes_three_quarter", mid, (0.8, -1, 0.05), 0.13, (1200, 600))):
         d = Vector(direction).normalized()
         cam.location = centre + d * 1.5
         cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
         cam.data.ortho_scale = ortho
         scene.render.resolution_x, scene.render.resolution_y = size
-        scene.render.filepath = os.path.join(ROOT, "checks", name + ".jpg")
+        scene.render.filepath = os.path.join(checks, name + ".jpg")
         bpy.ops.render.render(write_still=True)
+    head.data.materials[0] = first
+    bpy.data.objects.remove(cam, do_unlink=True)
 
-    texture = eye_texture(iris)
-    eye_image = bpy.data.images.new("eyes", EYE_TEXTURE, EYE_TEXTURE, alpha=False)
-    eye_image.pixels = np.concatenate([texture, np.ones(texture.shape[:2] + (1,), np.float32)], -1).ravel()
-    eye_image.filepath_raw = os.path.join(ROOT, "checks", "eyes_texture.png")
-    eye_image.file_format = "PNG"
-    eye_image.save()
-    eyes_material = bpy.data.materials.new("eyes")
-    eyes_material.use_nodes = True
-    eye_node = eyes_material.node_tree.nodes.new("ShaderNodeTexImage")
-    eye_node.image = eye_image
-    eyes_material.node_tree.nodes.active = eye_node
-    head.data.materials.append(eyes_material)
-    # Slot 1 is the eyes' (the faces were made in it); the skin's faces are all slot 0.
-    right = Vector((report["right"]["middle_m"][0], report["right"]["surface_y"], report["right"]["middle_m"][1]))
-    shoot("eyes_front", mid, (0, -1, 0), 0.11)
-    shoot("eyes_close", right, (0.25, -1, 0.1), 0.04, (900, 600))
-    shoot("eyes_three_quarter", mid, (0.8, -1, 0.05), 0.13)
+
