@@ -63,24 +63,6 @@
  },
  "loose": [
   {
-   "faces": 10,
-   "centre_m": [
-    -0.037,
-    -0.099,
-    1.663
-   ],
-   "to": "Head"
-  },
-  {
-   "faces": 10,
-   "centre_m": [
-    -0.014,
-    -0.109,
-    1.598
-   ],
-   "to": "Head"
-  },
-  {
    "faces": 12,
    "centre_m": [
     -0.089,
@@ -99,11 +81,29 @@
    "to": "Head"
   },
   {
+   "faces": 10,
+   "centre_m": [
+    -0.014,
+    -0.109,
+    1.598
+   ],
+   "to": "Head"
+  },
+  {
    "faces": 6,
    "centre_m": [
     0.089,
     0.034,
     1.644
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 10,
+   "centre_m": [
+    -0.037,
+    -0.099,
+    1.663
    ],
    "to": "Head"
   }
@@ -134,9 +134,9 @@
   "source": "head_warrior_m/build/forge/WarriorM/WarriorM.fbx",
   "fade_triangles": 2844,
   "skin_gain_rgb": [
-   0.909,
-   1.03,
-   1.2
+   0.839,
+   0.997,
+   1.144
   ]
  },
  "seams_on_pieces": {
@@ -183,6 +183,13 @@
   "Hands": 7117,
   "Feet": 6811
  },
+ "skin_even": {
+  "strength": 0.7,
+  "factor_p5_p95": [
+   0.901,
+   1.161
+  ]
+ },
  "meshes_in_fbx": [
   "Body",
   "Feet",
@@ -223,9 +230,9 @@
   },
   "open_edge_vertices_on_no_seam": {
    "Feet": 0,
-   "Hands": 0,
+   "Head": 0,
    "Body": 5,
-   "Head": 0
+   "Hands": 0
   }
  },
  "shape_keys_in_fbx": {

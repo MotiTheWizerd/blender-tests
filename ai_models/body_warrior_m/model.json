@@ -4,5 +4,6 @@
  "height": 1.8,
  "triangles": 50000,
  "head": "head_warrior_m",
- "head_scale": 1.108
+ "head_scale": 1.108,
+ "skin_even": 0.7
 }

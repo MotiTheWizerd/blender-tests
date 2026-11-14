@@ -8,8 +8,9 @@ cut and less the higher, so it narrows or widens into the body's neck instead of
 skin follows the body's neck surface down to the seam, a ring every RING, the last ring the body's seam ring itself:
 the same vertices in the same places, with the body's weights and normals, so the seam is the body's own. The head
 and the collar are weighed from the body's own head (its nearest point, weighed between that triangle's corners), so
-the head turns on the same bones; the collar takes the head's texture from the nearest point of the head as made; every
-shape key keeps its slider, the collar moving with none.
+the head turns on the same bones; the collar draws the body's own skin where it lies (it lies on the body's neck), and
+the head's texture on its neck is to be faded from that skin into its own (the fade triangles, painted by pieces.py);
+every shape key keeps its slider, the collar moving with none.
 
 Works in the body mesh's frame, which is the world's (Mixamo's import puts the mesh at the origin unturned): metres,
 front -Y, up Z.
@@ -222,11 +223,8 @@ def seat(head_fbx, body_head, point, normal, scale=1.0):
     if top > chin_h - 0.015:
         raise SystemExit(f"NECK the blend reaches the chin: {top * 100:.1f} cm of {chin_h * 100:.1f}")
 
-    # The head as made (seated), for its skin samples; and the body's head as a texture surface: the collar, lying on
-    # it, draws the body's own skin there, so the seam's two sides are one texture.
-    made = bmesh.new()
-    made.from_mesh(me)
-    made_uv = made.loops.layers.uv.active
+    # The body's head as a texture surface: the collar, lying on it, draws the body's own skin there, so the seam's
+    # two sides are one texture.
     body_skin = Skin(body_bm, lambda c: -0.01 < plane.height(c) < top + 0.03)
 
     # Cut, and only the head kept (a bust's shoulders, should they reach above the cut, go too).
@@ -398,14 +396,5 @@ def seat(head_fbx, body_head, point, normal, scale=1.0):
     me.materials.clear()
     for m in body_head.data.materials:
         me.materials.append(m)
-
-    # Skin samples near the seam, to match the head's skin to the body's: the body's neck below the cut, the head's
-    # neck above it (where it is still its own).
-    report["body_skin_uvs"] = [tuple(l[body_bm.loops.layers.uv.active].uv) for f in body_bm.faces
-                               if 0 < plane.height(f.calc_center_median()) < CUT for l in f.loops]
-    report["head_skin_uvs"] = [tuple(l[made_uv].uv) for f in made.faces
-                               if top < plane.height(f.calc_center_median()) < top + 0.02
-                               and plane.flat(f.calc_center_median() - centre_at(top)).length < NECK for l in f.loops]
     body_bm.free()
-    made.free()
     return face, report

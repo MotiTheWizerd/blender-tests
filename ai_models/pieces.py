@@ -43,6 +43,9 @@ SOURCE = os.path.join(C.root, "source_mixamo.fbx")
 # are tagged with it, and its export goes to build/forge_<tag>/, leaving the real one alone.
 HEAD = C.spec.get("head")
 HEAD_SCALE = float(ARGS[ARGS.index("--head-scale") + 1]) if "--head-scale" in ARGS else C.spec.get("head_scale", 1.0)
+# model.json "skin_even" (optional, 0 to 1): how much of the large dark and light patches the AI painted into the
+# body's skin (baked shading, grime) is evened out; its pores and creases stay. 0: as made.
+SKIN_EVEN = C.spec.get("skin_even", 0.0)
 TAG = f"_head{HEAD_SCALE:g}" if "--head-scale" in ARGS else ""
 OUT = C.build("forge" + TAG, Title)
 TEXTURE = 4096
@@ -221,7 +224,6 @@ if HEAD:
     bpy.data.meshes.remove(own_mesh)
     head.name = head.data.name = "Head"
     pieces[at] = head
-    skin = (seated.pop("body_skin_uvs"), seated.pop("head_skin_uvs"))
     fade = seated.pop("fade_triangles")
     report["head"] = dict(seated, source=os.path.relpath(made[0], os.path.dirname(C.root)).replace(os.sep, "/"),
                           fade_triangles=len(fade))
@@ -344,11 +346,35 @@ def paint(target, triangles, under_at):
         target[yi, xi, :3] = under_at(w @ np.array(body_uv)) * (1 - t) + target[yi, xi, :3] * t
 
 
-def mean_at(array, uvs):
-    """The mean colour (linear) of array at uvs."""
-    at = np.clip(np.array(uvs), 0.0, 1.0)
-    xs, ys = (at[:, 0] * (array.shape[1] - 1)).astype(int), (at[:, 1] * (array.shape[0] - 1)).astype(int)
-    return linear(array[ys, xs, :3]).mean(0)
+def skin_of(array):
+    """Where a colour map is skin: warm (red over blue), not the black between its islands, the grey of cloth, the
+    whites and blues of eyes, or the glare some maps pad their islands with."""
+    r, g, b = array[..., 0], array[..., 1], array[..., 2]
+    return (r > 0.15) & (r - b > 0.06) & (r >= g) & (0.2126 * r + 0.7152 * g + 0.0722 * b < 0.92)
+
+
+def box(x, r):
+    """Each place's sum over the square 2r + 1 round it (zero past the edges)."""
+    n = 2 * r + 1
+    c = np.pad(x, ((r + 1, r), (r + 1, r))).cumsum(0).cumsum(1)
+    return c[n:, n:] - c[:-n, n:] - c[n:, :-n] + c[:-n, :-n]
+
+
+def even(array, strength, step=4, reach=12):
+    """The skin of a colour map with its large dark and light patches evened out by strength (0 none, 1 flat): each
+    skin pixel's brightness against its neighbourhood's (reach pixels of a map step times smaller round it: about 1%
+    of the map, skin only), moved toward the skin's middle brightness. Pores and creases, finer than that, stay."""
+    mask = skin_of(array)
+    lum = linear(array[..., :3]) @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    h, w = mask.shape
+    coarse = lambda x: x.reshape(h // step, step, w // step, step).mean((1, 3))
+    around = box(coarse(lum * mask), reach) / np.maximum(box(coarse(mask.astype(np.float32)), reach), 1e-6)
+    around = np.repeat(np.repeat(around, step, 0), step, 1)
+    factor = np.clip((np.median(lum[mask]) / np.maximum(around, 1e-4)) ** strength, 0.6, 1.6)
+    colour = linear(array[..., :3])
+    colour[mask] *= factor[mask][:, None]
+    array[..., :3] = encoded(colour)
+    return float(np.percentile(factor[mask], 5)), float(np.percentile(factor[mask], 95))
 
 
 body_maps = (os.path.join(C.root, "source_tripo.fbm", "Color.jpg"), C.build(f"{Title}_Normal.png"))
@@ -356,7 +382,11 @@ if HEAD:
     folder = os.path.dirname(made[0])
     head_title = os.path.basename(folder)
     body_colour, head_colour = pixels(body_maps[0]), pixels(os.path.join(folder, f"{head_title}_BaseColor.jpg"))
-    gain = mean_at(body_colour, skin[0]) / mean_at(head_colour, skin[1])
+    if SKIN_EVEN:
+        report["skin_even"] = {"strength": SKIN_EVEN, "factor_p5_p95": [round(f, 3) for f in even(body_colour, SKIN_EVEN)]}
+    # The head's skin to the body's colour: their whole skins' middles (linear), not a strip of either.
+    gain = (np.median(linear(body_colour[..., :3][skin_of(body_colour)]), 0)
+            / np.median(linear(head_colour[..., :3][skin_of(head_colour)]), 0))
     head_colour[..., :3] = encoded(linear(head_colour[..., :3]) * gain)
     report["head"]["skin_gain_rgb"] = [round(float(g), 3) for g in gain]
 
