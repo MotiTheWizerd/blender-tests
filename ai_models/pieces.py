@@ -10,6 +10,10 @@ Reads <name>/source_mixamo.fbx (Mixamo's download, with skin; private, as the Tr
   Hands   past the wrist seams       replaced by gauntlets, gloves
   Feet    below the ankle seams      replaced by boots
 
+Inside Body, LINES mark where a fight can cut a limb off (the middle of each upper arm and each thigh): Body is split
+along them and each vertex says its part (SEGMENTS) in the UV layer "Segment" (u), so Forge can hide a limb and drop
+a copy of it; lines, not pieces, so armour over one stays one piece. A line is cut as a seam is and measured as one.
+
 A seam is a plane square to a bone, through a point part way along it (SEAMS), found from the rig, so every body
 Mixamo rigs is cut at the same places. The plane cuts only the limb it crosses near that point (faces within REACH
 whose vertices the limb's bones weigh most), so a wrist's plane never slices the thigh beside the hand; the piece is
@@ -30,7 +34,7 @@ Writes build/forge/<Title>/: <Title>.fbx (the meshes "Body", "Hands", "Feet" bou
 "Head": the body's own is Heads/<Title>.fbx and draws the body's maps; a face editor head's collar draws them too, its
 material slot 0, and the rest its own maps, slot 1: Heads/<Head>_Color.png and _Normal.png), for Forge's
 Content/Characters/<Title>; and checks/pieces_front.jpg, pieces_back.jpg, pieces_side.jpg (each piece its own colour,
-from the FBX read back), and for each head whole_front_<Head>.jpg and neck_<view>_<Head>.jpg (in its colours).
+from the FBX read back), segments_front.jpg and segments_back.jpg (each of Body's parts its own colour), and for each head whole_front_<Head>.jpg and neck_<view>_<Head>.jpg (in its colours).
 """
 import bmesh, bpy, json, math, os, shutil, sys
 import numpy as np
@@ -73,6 +77,18 @@ for side in ("Left", "Right"):
                   lambda b, s=side: b == f"{s}ForeArm" or b.startswith(f"{s}Hand"), "Hands", f"{side}HandMiddle4"))
     SEAMS.append((f"ankle.{side[0]}", f"{side}Leg", f"{side}Foot", 0.8,
                   lambda b, s=side: b in (f"{s}Leg", f"{s}Foot", f"{s}ToeBase", f"{s}Toe_End"), "Feet", f"{side}Toe_End"))
+# A line where a fight can cut a limb off: inside the Body piece, not a piece of its own, so armour that covers it is
+# still one piece, cut on the same line. The Body's vertices are split along it (both sides the same place, weights
+# and normal, as a seam's) and each says which part of the body it is (SEGMENTS, in the UV layer "Segment", u), so
+# Forge can hide a limb and drop a copy of it; the hand or foot past it goes with it. Fields as a seam's, the part past
+# it in place of the piece.
+SEGMENTS = ("Torso", "ArmL", "ArmR", "LegL", "LegR")
+LINES = []
+for side in ("Left", "Right"):
+    LINES.append((f"arm.{side[0]}", f"{side}Arm", f"{side}ForeArm", 0.5,
+                  lambda b, s=side: b in (f"{s}Arm", f"{s}ForeArm"), f"Arm{side[0]}", f"{side}HandMiddle4"))
+    LINES.append((f"thigh.{side[0]}", f"{side}UpLeg", f"{side}Leg", 0.5,
+                  lambda b, s=side: b in (f"{s}UpLeg", f"{s}Leg"), f"Leg{side[0]}", f"{side}Toe_End"))
 
 HEADS_OUT = os.path.join(OUT, "Heads")
 os.makedirs(HEADS_OUT, exist_ok=True)
@@ -114,9 +130,9 @@ def heaviest(v):
 
 report = {"source": os.path.basename(SOURCE), "triangles_source": len(bm.faces) - len(closed),
           "open_edges_source": open_before, "holes_closed": len(closed),
-          "open_edges_left": sum(1 for e in bm.edges if e.is_boundary), "seams": {}}
+          "open_edges_left": sum(1 for e in bm.edges if e.is_boundary), "seams": {}, "lines": {}}
 planes = []
-for i, (seam, a, b, along, of_limb, piece, end) in enumerate(SEAMS):
+for i, (seam, a, b, along, of_limb, piece, end) in enumerate(SEAMS + LINES):
     point = joint(a).lerp(joint(b), along)
     normal = (joint(b) - joint(a)).normalized()     # pointing past the seam, into the piece
     planes.append((point, normal))
@@ -129,8 +145,9 @@ for i, (seam, a, b, along, of_limb, piece, end) in enumerate(SEAMS):
     ring = [g for g in cut if isinstance(g, bmesh.types.BMVert)]
     for v in ring:
         v[cut_at] = i + 1
-    report["seams"][seam] = {"bone": f"{a} -> {b} at {along}", "point_m": [round(c, 3) for c in point],
-                             "faces_cut": len(near), "ring_vertices": len(ring)}
+    report["seams" if i < len(SEAMS) else "lines"][seam] = {
+        "bone": f"{a} -> {b} at {along}", "point_m": [round(c, 3) for c in point], "faces_cut": len(near),
+        "ring_vertices": len(ring)}
 # A cut face is a triangle and a quad: triangles all, as the rest are.
 bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
 
@@ -167,6 +184,21 @@ for i, (seam, a, b, along, of_limb, piece, end) in enumerate(SEAMS):
             raise SystemExit(f"PIECES {piece} ({seam}) runs into {PIECES[f[piece_of]]}")
         f[piece_of] = PIECES.index(piece)
     report["seams"][seam]["piece_faces"] = len(reached)
+
+# Each limb's part is what its end reaches without crossing its line (over the wrist or ankle seam: the hand or foot
+# goes with it); the rest is the torso.
+segment_of = bm.faces.layers.int.new("segment")
+for j, (line, a, b, along, of_limb, segment, end) in enumerate(LINES):
+    i = len(SEAMS) + j
+    seed = bm.verts[tree.find(joint(end))[1]]
+    reached = spread(seed.link_faces, lambda v, i=i: v[cut_at] != i + 1)
+    if reached & hips_faces or len(reached) > len(bm.faces) // 4:
+        raise SystemExit(f"PIECES the {line} cut leaves a gap: {segment} reached {len(reached)} of {len(bm.faces)} faces")
+    for f in reached:
+        if f[segment_of]:
+            raise SystemExit(f"PIECES {segment} ({line}) runs into {SEGMENTS[f[segment_of]]}")
+        f[segment_of] = SEGMENTS.index(segment)
+    report["lines"][line]["segment_faces"] = len(reached)
 
 # What is left loose of the body (a bit of the AI's mesh joined to nothing) goes with the piece past whose seam it
 # lies (the nearest, within REACH twice), else stays with the body.
@@ -207,10 +239,20 @@ for k, name in enumerate(PIECES):
     layer = pbm.faces.layers.int["piece"]
     bmesh.ops.delete(pbm, geom=[f for f in pbm.faces if f[layer] != k], context="FACES_ONLY")
     bmesh.ops.delete(pbm, geom=[v for v in pbm.verts if not v.link_faces], context="VERTS")
+    if name == "Body":
+        # Apart along the lines (each new vertex a copy: the same place, weights and whole vertex, so the same
+        # normal), each corner saying its part.
+        segment = pbm.faces.layers.int["segment"]
+        bmesh.ops.split_edges(pbm, edges=[e for e in pbm.edges if len(e.link_faces) == 2
+                                          and e.link_faces[0][segment] != e.link_faces[1][segment]])
+        uv = pbm.loops.layers.uv.new("Segment")
+        for f in pbm.faces:
+            for loop in f.loops:
+                loop[uv].uv = (f[segment], 0.0)
     pbm.to_mesh(ob.data); pbm.free()
     whole = ob.data.attributes["whole"].data
     ob.data.normals_split_custom_set_from_vertices([whole_normals[whole[j].value] for j in range(len(ob.data.vertices))])
-    for attribute in ("whole", "piece", "seam"):
+    for attribute in ("whole", "piece", "seam", "segment"):
         if attribute in ob.data.attributes:
             ob.data.attributes.remove(ob.data.attributes[attribute])
     pieces.append(ob)
@@ -242,7 +284,7 @@ def seam_match(named):
     """Each seam's two sides (its piece's open edge on the plane against the Body's), for the pieces by name (Body,
     Head, Hands, Feet): how many vertices each, how far apart at most (mm), how far their normals turn at most
     (degrees); and each piece's open edges on no seam."""
-    rims = {}
+    rims, parts = {}, {}
     for name, ob in named.items():
         mesh = ob.data
         b = bmesh.new(); b.from_mesh(mesh)
@@ -254,14 +296,16 @@ def seam_match(named):
                 normals[loop.vertex_index] += corner.vector
         world = ob.matrix_world
         rims[name] = [(world @ mesh.vertices[i].co, (world.to_3x3() @ n).normalized()) for i, n in normals.items()]
+        if "Segment" in mesh.uv_layers:
+            part = {loop.vertex_index: round(d.uv[0]) for loop, d in zip(mesh.loops, mesh.uv_layers["Segment"].data)}
+            for k, segment in enumerate(SEGMENTS):
+                parts[segment] = [r for i, r in zip(normals, rims[name]) if part[i] == k]
 
     def on(seam, rim):
         point, normal = world_planes[seam]
         return [(co, n) for co, n in rim if abs((co - point).dot(normal)) < 10 * ON_PLANE and (co - point).length < REACH]
 
-    result = {}
-    for i, (seam, *_, piece, end) in enumerate(SEAMS):
-        inside, outside = on(i, rims[piece]), on(i, rims["Body"])
+    def against(inside, outside):
         tree = KDTree(max(len(outside), 1))
         for j, (co, _) in enumerate(outside):
             tree.insert(co, j)
@@ -271,10 +315,19 @@ def seam_match(named):
             _, j, distance = tree.find(co)
             far = max(far, distance)
             turn = max(turn, math.degrees(n.angle(outside[j][1], 0.0)))
-        result[seam] = {piece: len(inside), "Body": len(outside), "apart_mm": round(far * 1000, 4),
-                        "turn_deg": round(turn, 3)}
+        return {"apart_mm": round(far * 1000, 4), "turn_deg": round(turn, 3)}
+
+    result = {}
+    for i, (seam, *_, piece, end) in enumerate(SEAMS):
+        inside, outside = on(i, rims[piece]), on(i, rims["Body"])
+        result[seam] = {piece: len(inside), "Body": len(outside), **against(inside, outside)}
+    for j, (line, *_, segment, end) in enumerate(LINES):
+        i = len(SEAMS) + j
+        inside, outside = on(i, parts.get(segment, [])), on(i, parts.get("Torso", []))
+        result[line] = {segment: len(inside), "Torso": len(outside), **against(inside, outside)}
     result["open_edge_vertices_on_no_seam"] = {
-        name: sum(1 for co, n in rim if not any(on(i, [(co, n)]) for i in range(len(SEAMS)))) for name, rim in rims.items()}
+        name: sum(1 for co, n in rim if not any(on(i, [(co, n)]) for i in range(len(SEAMS) + len(LINES))))
+        for name, rim in rims.items()}
     return result
 
 
@@ -534,6 +587,23 @@ for view, d in {"front": (0, -1, 0), "back": (0, 1, 0), "side": (1, 0, 0)}.items
     cam.location = Vector((0, 0, height / 2)) + d * 5
     cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
     scene.render.filepath = C.picture(f"pieces_{view}{TAG}")
+    bpy.ops.render.render(write_still=True)
+
+# The Body's parts as Forge reads them (its "Segment" layer, read back), each its own colour; the other pieces white.
+tints = [(0.62, 0.62, 0.6, 1), (0.85, 0.55, 0.2, 1), (0.85, 0.3, 0.6, 1), (0.3, 0.7, 0.75, 1), (0.55, 0.4, 0.85, 1)]
+for ob in [*body_back.values(), *heads_back.values()]:
+    mesh = ob.data
+    paint_of = mesh.color_attributes.new("Part", "FLOAT_COLOR", "CORNER")
+    segment = mesh.uv_layers.get("Segment")
+    for k in range(len(mesh.loops)):
+        paint_of.data[k].color = tints[round(segment.data[k].uv[0])] if segment else (0.95, 0.95, 0.95, 1)
+    mesh.color_attributes.active_color = paint_of
+scene.display.shading.color_type = "VERTEX"
+for view, d in {"front": (0, -1, 0), "back": (0, 1, 0)}.items():
+    d = Vector(d)
+    cam.location = Vector((0, 0, height / 2)) + d * 5
+    cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+    scene.render.filepath = C.picture(f"segments_{view}{TAG}")
     bpy.ops.render.render(write_still=True)
 
 

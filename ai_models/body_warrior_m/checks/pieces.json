@@ -61,7 +61,62 @@
    "piece_faces": 3458
   }
  },
+ "lines": {
+  "arm.L": {
+   "bone": "LeftArm -> LeftForeArm at 0.5",
+   "point_m": [
+    0.277,
+    0.048,
+    1.284
+   ],
+   "faces_cut": 2153,
+   "ring_vertices": 90,
+   "segment_faces": 5913
+  },
+  "thigh.L": {
+   "bone": "LeftUpLeg -> LeftLeg at 0.5",
+   "point_m": [
+    0.122,
+    0.026,
+    0.731
+   ],
+   "faces_cut": 2052,
+   "ring_vertices": 119,
+   "segment_faces": 7729
+  },
+  "arm.R": {
+   "bone": "RightArm -> RightForeArm at 0.5",
+   "point_m": [
+    -0.277,
+    0.048,
+    1.284
+   ],
+   "faces_cut": 2183,
+   "ring_vertices": 103,
+   "segment_faces": 6053
+  },
+  "thigh.R": {
+   "bone": "RightUpLeg -> RightLeg at 0.5",
+   "point_m": [
+    -0.122,
+    0.027,
+    0.731
+   ],
+   "faces_cut": 1925,
+   "ring_vertices": 115,
+   "segment_faces": 7815
+  }
+ },
  "loose": [
+  {
+   "faces": 31881,
+   "centre_m": [
+    -0.0,
+    0.027,
+    0.96
+   ],
+   "to": "Body"
+  },
   {
    "faces": 10,
    "centre_m": [
@@ -90,20 +145,20 @@
    "to": "Head"
   },
   {
-   "faces": 6,
-   "centre_m": [
-    0.089,
-    0.034,
-    1.644
-   ],
-   "to": "Head"
-  },
-  {
    "faces": 4,
    "centre_m": [
     -0.016,
     -0.11,
     1.598
+   ],
+   "to": "Head"
+  },
+  {
+   "faces": 6,
+   "centre_m": [
+    0.089,
+    0.034,
+    1.644
    ],
    "to": "Head"
   }
@@ -327,6 +382,30 @@
    "apart_mm": 0.0,
    "turn_deg": 0.0
   },
+  "arm.L": {
+   "ArmL": 81,
+   "Torso": 81,
+   "apart_mm": 0.0,
+   "turn_deg": 0.069
+  },
+  "thigh.L": {
+   "LegL": 119,
+   "Torso": 119,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "arm.R": {
+   "ArmR": 91,
+   "Torso": 91,
+   "apart_mm": 0.0,
+   "turn_deg": 0.097
+  },
+  "thigh.R": {
+   "LegR": 115,
+   "Torso": 115,
+   "apart_mm": 0.0,
+   "turn_deg": 0.044
+  },
   "open_edge_vertices_on_no_seam": {
    "Body": 5,
    "Hands": 0,
@@ -335,7 +414,7 @@
   }
  },
  "triangles": {
-  "Body": 31043,
+  "Body": 31881,
   "Hands": 7117,
   "Feet": 6811,
   "heads": {
@@ -387,6 +466,30 @@
    "Body": 112,
    "apart_mm": 0.0,
    "turn_deg": 0.02
+  },
+  "arm.L": {
+   "ArmL": 81,
+   "Torso": 81,
+   "apart_mm": 0.0,
+   "turn_deg": 0.069
+  },
+  "thigh.L": {
+   "LegL": 119,
+   "Torso": 119,
+   "apart_mm": 0.0,
+   "turn_deg": 0.04
+  },
+  "arm.R": {
+   "ArmR": 91,
+   "Torso": 91,
+   "apart_mm": 0.0,
+   "turn_deg": 0.097
+  },
+  "thigh.R": {
+   "LegR": 115,
+   "Torso": 115,
+   "apart_mm": 0.0,
+   "turn_deg": 0.044
   },
   "open_edge_vertices_on_no_seam": {
    "Body": 5,
