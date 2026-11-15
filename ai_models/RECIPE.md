@@ -176,6 +176,15 @@ The player's base body, cut as Skyrim's into the pieces equipment replaces: **Bo
 (the face editor's head takes its place), **Hands**, **Feet**, each a mesh on the one Mixamo skeleton. The route:
 `reduce.py` (50k, as every character) → `mixamo.py` → Mixamo by hand (Upload Character, the markers, download FBX
 with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Tripo source) → `pieces.py`.
+- **Or Tripo rigs it** (model.json `"rig": "tripo"`; body_warrior_f): Tripo's rigged FBX export already stands on
+  Mixamo's skeleton (65 `mixamorig:` bones, weighed). Its `.fbx` and `.fbm` as `source_tripo.*`, a GLB of it with its
+  maps for `reduce.py` (import the FBX by an **absolute** path, or its maps don't load), then `reduce.py` →
+  `tripo_rig.py` (stands it `height` tall, weighs the reduced mesh from the full one, writes `build/<name>_rigged.fbx`;
+  **LOOK** at `tripo_rig_pose_*.jpg`, the skin bent) → `pieces.py`. No trip to mixamo.com. Forge's import trues its
+  A-pose to the avatar's T-pose itself.
+- **The limbs' lines** (LINES: the middle of each upper arm and thigh) split Body into parts (SEGMENTS, the UV layer
+  "Segment") where a fight can cut a limb off; measured as the seams (`seams_on_pieces`), pictured in
+  `segments_front/back.jpg`. Armour over Body is cut on them too.
 - **The seams come from the rig**: a plane square to a bone part way along it (the neck 0.4 up the Neck, the wrists
   0.8 down the forearm, the ankles 0.8 down the shin), so every body is cut at the same places and armour made for
   one fits its seams. The plane cuts only the limb it crosses; the piece is what the limb's end reaches without

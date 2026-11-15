@@ -49,7 +49,8 @@ from eyes import sphere_fit
 from place import Creature, pictures_as_jpeg
 C = Creature(NAME)
 Title = C.title
-SOURCE = os.path.join(C.root, "source_mixamo.fbx")
+# Mixamo's download, or for a model Tripo rigged (model.json "rig": "tripo") tripo_rig.py's, on the same skeleton.
+SOURCE = C.build(f"{NAME}_rigged.fbx") if C.spec.get("rig") == "tripo" else os.path.join(C.root, "source_mixamo.fbx")
 # model.json "heads" (optional): the head_* models (head.py's) seated on the neck seam (neck.py), each a Head piece
 # beside the body's own, at "head_size" times the body's own head (chin to crown; 1: the same). "--head-size S" tries
 # another size: its pictures and numbers are tagged with it, and its export goes to build/forge_<tag>/, leaving the

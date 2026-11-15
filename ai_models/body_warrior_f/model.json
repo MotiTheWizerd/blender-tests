@@ -1,0 +1,7 @@
+{
+ "kind": "character",
+ "about": "The female base body for the player's replaceable body (Moti, 2026-11-16), BodyWarriorM's counterpart: a Nordic warrior woman from Tripo (FBX export, quads, 8K colour, rigged by Tripo on Mixamo's bone names): bald, nude, barefoot, A-pose, facing -Y. Her head is a piece the face editor's heads replace at the neck. 1.70 m tall, as Forge's other women. Rigged by Tripo, not Mixamo (tripo_rig.py): the skeleton and its weights come with the model.",
+ "height": 1.7,
+ "triangles": 50000,
+ "rig": "tripo"
+}

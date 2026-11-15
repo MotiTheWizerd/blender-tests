@@ -1,0 +1,70 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_ee96ec86",
+   "vertices": 58818,
+   "welded_vertices": 44957,
+   "faces": 89922,
+   "triangles": 89922,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_mat_ee96ec86"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    44957
+   ],
+   "open_edges": 0,
+   "non_manifold_edges": 0
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_mat_ee96ec86",
+   "maps": {
+    "Base Color": "Color",
+    "Color": "Normal"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "a916704b-ea12-4348-a3b8-3594698c334a_metallic-a916704b-ea12-4348-a3b8-3594698c334a_roughness",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  },
+  {
+   "name": "Color",
+   "size": [
+    8192,
+    8192
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "Normal",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.656,
+  0.187,
+  0.979
+ ],
+ "min": [
+  -0.328,
+  -0.094,
+  -0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

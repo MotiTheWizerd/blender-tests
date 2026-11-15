@@ -1,0 +1,259 @@
+{
+ "source": "body_warrior_f_rigged.fbx",
+ "triangles_source": 49998,
+ "open_edges_source": 0,
+ "holes_closed": 0,
+ "open_edges_left": 0,
+ "seams": {
+  "neck": {
+   "bone": "Neck -> Head at 0.4",
+   "point_m": [
+    0.003,
+    0.037,
+    1.451
+   ],
+   "faces_cut": 3978,
+   "ring_vertices": 108,
+   "piece_faces": 5204
+  },
+  "wrist.L": {
+   "bone": "LeftForeArm -> LeftHand at 0.8",
+   "point_m": [
+    0.421,
+    0.006,
+    0.959
+   ],
+   "faces_cut": 1835,
+   "ring_vertices": 86,
+   "piece_faces": 3502
+  },
+  "ankle.L": {
+   "bone": "LeftLeg -> LeftFoot at 0.8",
+   "point_m": [
+    0.159,
+    0.052,
+    0.172
+   ],
+   "faces_cut": 2147,
+   "ring_vertices": 117,
+   "piece_faces": 4143
+  },
+  "wrist.R": {
+   "bone": "RightForeArm -> RightHand at 0.8",
+   "point_m": [
+    -0.417,
+    0.006,
+    0.959
+   ],
+   "faces_cut": 1852,
+   "ring_vertices": 79,
+   "piece_faces": 3647
+  },
+  "ankle.R": {
+   "bone": "RightLeg -> RightFoot at 0.8",
+   "point_m": [
+    -0.152,
+    0.052,
+    0.172
+   ],
+   "faces_cut": 2161,
+   "ring_vertices": 112,
+   "piece_faces": 4172
+  }
+ },
+ "lines": {
+  "arm.L": {
+   "bone": "LeftArm -> LeftForeArm at 0.5",
+   "point_m": [
+    0.249,
+    0.053,
+    1.215
+   ],
+   "faces_cut": 2242,
+   "ring_vertices": 83,
+   "segment_faces": 5593
+  },
+  "thigh.L": {
+   "bone": "LeftUpLeg -> LeftLeg at 0.5",
+   "point_m": [
+    0.129,
+    0.023,
+    0.674
+   ],
+   "faces_cut": 1960,
+   "ring_vertices": 131,
+   "segment_faces": 8357
+  },
+  "arm.R": {
+   "bone": "RightArm -> RightForeArm at 0.5",
+   "point_m": [
+    -0.242,
+    0.053,
+    1.215
+   ],
+   "faces_cut": 2288,
+   "ring_vertices": 91,
+   "segment_faces": 5728
+  },
+  "thigh.R": {
+   "bone": "RightUpLeg -> RightLeg at 0.5",
+   "point_m": [
+    -0.123,
+    0.023,
+    0.674
+   ],
+   "faces_cut": 1984,
+   "ring_vertices": 129,
+   "segment_faces": 8329
+  }
+ },
+ "loose": [
+  {
+   "faces": 31196,
+   "centre_m": [
+    0.0,
+    0.029,
+    0.914
+   ],
+   "to": "Body"
+  }
+ ],
+ "seams_on_pieces": {
+  "neck": {
+   "Head": 108,
+   "Body": 108,
+   "apart_mm": 0.0,
+   "turn_deg": 0.028
+  },
+  "wrist.L": {
+   "Hands": 86,
+   "Body": 86,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "ankle.L": {
+   "Feet": 117,
+   "Body": 117,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "wrist.R": {
+   "Hands": 79,
+   "Body": 79,
+   "apart_mm": 0.0,
+   "turn_deg": 0.034
+  },
+  "ankle.R": {
+   "Feet": 112,
+   "Body": 112,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "arm.L": {
+   "ArmL": 83,
+   "Torso": 83,
+   "apart_mm": 0.0,
+   "turn_deg": 0.048
+  },
+  "thigh.L": {
+   "LegL": 131,
+   "Torso": 131,
+   "apart_mm": 0.0,
+   "turn_deg": 0.034
+  },
+  "arm.R": {
+   "ArmR": 86,
+   "Torso": 86,
+   "apart_mm": 0.0,
+   "turn_deg": 0.04
+  },
+  "thigh.R": {
+   "LegR": 129,
+   "Torso": 129,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "open_edge_vertices_on_no_seam": {
+   "Body": 0,
+   "Hands": 0,
+   "Feet": 0,
+   "Head": 0
+  }
+ },
+ "triangles": {
+  "Body": 31196,
+  "Hands": 7149,
+  "Feet": 8315,
+  "heads": {
+   "BodyWarriorF": 5204
+  }
+ },
+ "bones_in_fbx": 65,
+ "meshes_in_fbx": [
+  "Body",
+  "Feet",
+  "Hands"
+ ],
+ "seams_in_fbx": {
+  "neck": {
+   "Head": 108,
+   "Body": 108,
+   "apart_mm": 0.0,
+   "turn_deg": 0.028
+  },
+  "wrist.L": {
+   "Hands": 86,
+   "Body": 86,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "ankle.L": {
+   "Feet": 117,
+   "Body": 117,
+   "apart_mm": 0.0,
+   "turn_deg": 0.0
+  },
+  "wrist.R": {
+   "Hands": 79,
+   "Body": 79,
+   "apart_mm": 0.0,
+   "turn_deg": 0.034
+  },
+  "ankle.R": {
+   "Feet": 112,
+   "Body": 112,
+   "apart_mm": 0.0,
+   "turn_deg": 0.02
+  },
+  "arm.L": {
+   "ArmL": 83,
+   "Torso": 83,
+   "apart_mm": 0.0,
+   "turn_deg": 0.048
+  },
+  "thigh.L": {
+   "LegL": 131,
+   "Torso": 131,
+   "apart_mm": 0.0,
+   "turn_deg": 0.034
+  },
+  "arm.R": {
+   "ArmR": 86,
+   "Torso": 86,
+   "apart_mm": 0.0,
+   "turn_deg": 0.04
+  },
+  "thigh.R": {
+   "LegR": 129,
+   "Torso": 129,
+   "apart_mm": 0.0,
+   "turn_deg": 0.034
+  },
+  "open_edge_vertices_on_no_seam": {
+   "Body": 0,
+   "Feet": 0,
+   "Hands": 0,
+   "Head": 0
+  }
+ }
+}
