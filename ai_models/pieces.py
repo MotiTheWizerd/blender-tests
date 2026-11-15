@@ -70,7 +70,9 @@ PIECES = ("Body", "Head", "Hands", "Feet")    # Body first: what no seam takes
 
 # A seam: its name, the bone it crosses (from, to, how far along), whether a bone (its name less the rig's prefix) is
 # of the limb it cuts, the piece past it, and the bone at the limb's end the piece is reached from.
-SEAMS = [("neck", "Neck", "Head", 0.4,
+# model.json "neck_along" (optional): how far up the Neck bone the neck seam lies, 0.4 unless a rig puts its Head bone
+# nearer the chin (Tripo's on body_warrior_f: at 0.4 the seam lay under her jaw, too near for a head's neck to blend).
+SEAMS = [("neck", "Neck", "Head", C.spec.get("neck_along", 0.4),
           lambda b: b in ("Neck", "Head", "HeadTop_End", "LeftEye", "RightEye", "Spine2", "LeftShoulder", "RightShoulder"),
           "Head", "HeadTop_End")]
 for side in ("Left", "Right"):

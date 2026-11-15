@@ -6,6 +6,8 @@ head by and neck.py seats it on a body by.
 """
 import numpy as np
 
+CHIN_FALL = 0.025   # metres: how far down the chin's fall back to the neck is sought over
+
 
 def profile(co):
     """The crown's height, the chin's underside's height, the nose tip and the chin's front (x, y, z) of a head (a bust,
@@ -25,10 +27,19 @@ def profile(co):
     levels = sorted(bins)
     nose = min(levels, key=lambda k: bins[k] if k * step > floor + 0.3 * (crown - floor) else 1e9)
     # Down from the nose tip: the chin's underside is where the profile falls back toward the neck the most over 3%
-    # of the height (the lips recess too, but less).
+    # of the height, sought where it falls back the most over CHIN_FALL: under the chin it falls back to the neck by
+    # centimetres, at the lips by one (BodyWarriorF's own head: her lips step back more sharply than her long jaw
+    # slopes, and taken for her chin, they made her heads 30% small and seated them 13 cm up her neck).
     reach = int(0.4 * (crown - floor) / step)
     below = [k for k in levels if nose - reach < k < nose and bins.get(k - 3) is not None]
-    chin_k = max(below, key=lambda k: bins[k - 3] - bins[k])
+    window = max(3, int(round(CHIN_FALL / step)))
+
+    def falls(k):
+        lower = [j for j in levels if j <= k - window]
+        return bins[lower[-1]] - bins[k] if lower else -1e9
+
+    under = max(below, key=falls)
+    chin_k = max((k for k in below if under - window <= k <= under), key=lambda k: bins[k - 3] - bins[k])
     nose_tip = np.array([0.0, bins[nose], nose * step])
     # Its front just above the underside: the first slice up that has a point (a lighter mesh's line has gaps).
     front_k = next(k for k in levels if k > chin_k)

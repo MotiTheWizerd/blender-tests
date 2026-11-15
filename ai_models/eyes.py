@@ -25,17 +25,17 @@ WHITE = 0.5         # the eye's white: brighter than this (luminance) and not wa
 WHITE_REACH = 0.009 # how far from the painted iris the white is sought (metres)
 
 
-def front_map(head, image, centre):
-    """The colour under each point of a grid round centre (x, z), seen from the front, and the hits' depth (y);
-    nan where the ray misses."""
+def front_map(head, image, centre, reach=REACH, step=STEP):
+    """The colour under each point of a grid round centre (x, z) (reach: its half width and half height; step: its
+    spacing), seen from the front, and the hits' depth (y); nan where the ray misses."""
     me = head.data
     me.calc_loop_triangles()
     tree = BVHTree.FromObject(head, bpy.context.evaluated_depsgraph_get())
     uv = me.uv_layers.active.data
     w, h = image.size
     pixels = np.array(image.pixels[:], dtype=np.float32).reshape(h, w, image.channels)[..., :3]
-    xs = np.arange(centre[0] - REACH[0], centre[0] + REACH[0], STEP)
-    zs = np.arange(centre[2] - REACH[1], centre[2] + REACH[1], STEP)
+    xs = np.arange(centre[0] - reach[0], centre[0] + reach[0], step)
+    zs = np.arange(centre[2] - reach[1], centre[2] + reach[1], step)
     colour = np.full((len(zs), len(xs), 3), np.nan, dtype=np.float32)
     depth = np.full((len(zs), len(xs)), np.nan, dtype=np.float32)
     polygons = me.polygons
@@ -54,12 +54,31 @@ def front_map(head, image, centre):
     return xs, zs, colour, depth
 
 
+EYE_SPREAD = 0.1    # the eye's paint is at most this much warmer than its iris's middle
+SKIN_MARGIN = 0.1   # and at least this much less warm than the skin's middle
+IRIS_REACH = 0.0025 # the iris's middle: the paint this near the seed (metres)
+
+
+def warm_line(colour, warmth, seed):
+    """How warm the eye's paint may be, read from this face's paint: WARM (WarriorM's eyes read ~0.05, his skin ~0.45),
+    or just above the iris's own warmth where a face paints its eyes warmer (WarriorF's grey irises and pinkish whites
+    read ~0.2), but never as near the skin's as SKIN_MARGIN."""
+    rows, cols = warmth.shape
+    jj, ii = np.mgrid[0:rows, 0:cols]
+    lum = np.nan_to_num(colour, nan=0.0) @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    iris = (np.hypot(jj - seed[0], ii - seed[1]) * STEP < IRIS_REACH) & (lum > 0.12) & ~np.isnan(warmth)
+    skin = np.nanmedian(warmth)
+    eye = np.median(warmth[iris]) if iris.any() else 0.0
+    return float(min(max(WARM, eye + EYE_SPREAD), skin - SKIN_MARGIN))
+
+
 def opening(colour, seed):
-    """The eye in the map: the not-warm pixels joined to seed (the iris, (row, column)), its holes (the pupil, the
-    catch-light) filled."""
+    """The eye in the map: the pixels no warmer than warm_line joined to seed (the iris, (row, column)), its holes
+    (the pupil, the catch-light) filled; the warmth of each pixel, and the line."""
     r, g, b = colour[..., 0], colour[..., 1], colour[..., 2]
     warmth = (r - b) / np.maximum(colour.max(-1), 1e-3)
-    eye = np.nan_to_num(warmth, nan=1.0) < WARM
+    line = warm_line(colour, warmth, seed)
+    eye = np.nan_to_num(warmth, nan=1.0) < line
     # Joined to the seed (4-neighbours), by a flood over the mask; and to the eye's white near it, which no paint
     # mistakes (bright and not warm), for a seed can land in the pupil, whose dark rim reads warm and walls it in.
     reached = np.zeros_like(eye)
@@ -81,7 +100,7 @@ def opening(colour, seed):
             if 0 <= ny < rows and 0 <= nx < cols and eye[ny, nx] and not reached[ny, nx]:
                 reached[ny, nx] = True
                 stack.append((ny, nx))
-    return reached, warmth
+    return reached, warmth, line
 
 
 ON_BALL = 0.0004    # paint this near the fitted eyeball's surface lies on it (the lids stand off it)
@@ -157,8 +176,31 @@ def rim_loop(rim):
         previous = at
         loop.append(ahead)
     if len(loop) != len(rim):
-        raise SystemExit(f"EYES the eye's hole is {len(rim)} vertices but its loop {len(loop)}")
+        off = [(tuple(round(c, 4) for c in v.co), sum(e.is_boundary for e in v.link_edges),
+                [tuple(round(c, 4) for c in e.other_vert(v).co) for e in v.link_edges if e.is_boundary])
+               for v in rim - set(loop)]
+        raise SystemExit(f"EYES the eye's hole is {len(rim)} vertices but its loop {len(loop)}; off the loop: {off}")
     return loop
+
+
+def boundary_loops(bm, middle, surface_y):
+    """The holes near an eye (middle: its (x, z); surface_y: its painted surface's depth): each the set of its open
+    edges, joined at their vertices."""
+    near = {e for e in bm.edges if e.is_boundary and all(
+        abs(v.co.y - surface_y) < FRONT and math.hypot(v.co.x - middle[0], v.co.z - middle[1]) < 0.03 for v in e.verts)}
+    holes = []
+    while near:
+        hole, todo = set(), [near.pop()]
+        while todo:
+            e = todo.pop()
+            hole.add(e)
+            for v in e.verts:
+                for g in v.link_edges:
+                    if g in near:
+                        near.discard(g)
+                        todo.append(g)
+        holes.append(hole)
+    return holes
 
 
 def cut(bm, middle, radius, surface_y, eyeball):
@@ -202,6 +244,22 @@ def cut(bm, middle, radius, surface_y, eyeball):
             scraps |= piece
     bmesh.ops.delete(bm, geom=list(scraps), context="FACES_ONLY")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # The opening is the one hole: any other the cut left near it (a face inside the outline among the skin kept, as
+    # where the AI's slits along a lid were closed: WarriorF) is closed again, drawing its neighbours' texture.
+    mended = 0
+    holes = boundary_loops(bm, middle, surface_y)
+    if len(holes) > 1:
+        uv = bm.loops.layers.uv.active
+        for hole in sorted(holes, key=len)[:-1]:
+            # A face straight from the hole's edge in order (holes_fill leaves one a fraction of a millimetre across).
+            made = [bm.faces.new(rim_loop({v for e in hole for v in e.verts}))]
+            for f in made:
+                f.smooth = True
+                for loop in f.loops:
+                    other = next((l for l in loop.vert.link_loops if l.face not in made), None)
+                    if other is not None:
+                        loop[uv].uv = other[uv].uv
+            mended += len(made)
     # The skin left, as it is before the rim moves: where a moved vertex lies on it, and the texture under it there
     # (the eye's own faces gone from it, or the rim and the lid's inside would draw the eye's white and the paint's
     # padding round it).
@@ -332,7 +390,8 @@ def cut(bm, middle, radius, surface_y, eyeball):
     bm.faces.layers.int.remove(skin_face)      # the faces' references go with it; the vertices' stay
     before.free()
     whole.free()
-    return rim, band, {"wall_faces": len(wall), "corners_split": split, "scrap_faces": len(scraps)}
+    return rim, band, {"wall_faces": len(wall), "corners_split": split, "scrap_faces": len(scraps),
+                       "holes_mended_faces": mended}
 
 
 RINGS, SEGMENTS = 28, 48     # the eyeball's rings from its front to its back, and its segments round its axis
@@ -569,12 +628,34 @@ def painted_irises(head, image, nose):
     white = band & (lum > 0.55) & (colour.max(1) - colour.min(1) < 0.12)
     iris = band & ~white & ((b > r + 0.02) | (g > r + 0.02)) & (lum < 0.6)
     found = []
-    for side in (co[:, 0] < 0, co[:, 0] > 0):
+    for sign, side in ((-1, co[:, 0] < 0), (1, co[:, 0] > 0)):
         pick = co[iris & side] if (iris & side).sum() >= 3 else co[(iris | white) & side]
-        if len(pick) < 3:
-            raise SystemExit("EYES no painted eye on one side of the face")
-        found.append(pick.mean(0))
+        found.append(pick.mean(0) if len(pick) >= 3 else painted_eye_seen(head, image, nose, sign))
     return found
+
+
+SEEK_STEP = 0.0005      # the grid an eye is sought on from the front, when the vertices are too few to show it
+SEEK_SIDE = (0.012, 0.06)   # how far to the side of the face's middle an eye can be (metres)
+
+
+def painted_eye_seen(head, image, nose, sign):
+    """The painted eye on one side (sign: -1 the subject's right, at -x; 1 the left), sought in the paint itself, seen
+    from the front on a grid over the band above the nose tip, for a head whose mesh is too sparse round the eyes for
+    its vertices to land on the iris (WarriorF: its grey irises fell between them). The eye is what is not warm there,
+    as opening() reads it; the point of it nearest its middle."""
+    centre = (sign * sum(SEEK_SIDE) / 2, 0.0, nose[2] + sum(IRIS_BAND) / 2)
+    reach = ((SEEK_SIDE[1] - SEEK_SIDE[0]) / 2, (IRIS_BAND[1] - IRIS_BAND[0]) / 2)
+    xs, zs, colour, depth = front_map(head, image, centre, reach, SEEK_STEP)
+    r, b = colour[..., 0], colour[..., 2]
+    warmth = (r - b) / np.maximum(colour.max(-1), 1e-3)
+    lum = colour @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    front = depth < nose[1] + 0.06
+    eye = np.argwhere((np.nan_to_num(warmth, nan=1.0) < WARM) & (np.nan_to_num(lum) > 0.12) & front)
+    if len(eye) < 20:
+        raise SystemExit("EYES no painted eye on one side of the face")
+    middle = np.median(eye, 0)
+    j, i = eye[np.argmin(((eye - middle) ** 2).sum(1))]
+    return np.array([xs[i], depth[j, i], zs[j]])
 
 
 def save_map(array, path, space):
@@ -600,7 +681,7 @@ def give_eyes(head, image, title, maps, checks, nose):
     for side, iris in zip(("right", "left"), painted_irises(head, image, nose)):
         xs, zs, colour, depth = front_map(head, image, iris)
         seed = (int(np.argmin(np.abs(zs - iris[2]))), int(np.argmin(np.abs(xs - iris[0]))))
-        mask, warmth = opening(colour, seed)
+        mask, warmth, line = opening(colour, seed)
         middle, radius = outline(mask, xs, zs)
         gx, gz = np.meshgrid(xs, zs)
         surface = np.c_[gx[mask], depth[mask], gz[mask]]
@@ -612,11 +693,11 @@ def give_eyes(head, image, title, maps, checks, nose):
         # The painted iris's colour: the eye's coloured middle round the seed, not the pupil, not the white.
         near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.0045
         lum = colour @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
-        painted = mask & near_seed & (lum > 0.12) & (lum < 0.62) & (np.nan_to_num(warmth, nan=1) < 0.1)
+        painted = mask & near_seed & (lum > 0.12) & (lum < 0.62) & (np.nan_to_num(warmth, nan=1) < line - (WARM - 0.1))
         report[side] = {"middle_m": [round(float(middle[0]), 4), round(float(middle[1]), 4)],
                         "width_mm": round(float(radius[0] + radius[ANGLES // 2]) * 1000, 1),
                         "height_mm": round(float(radius[ANGLES // 4] + radius[3 * ANGLES // 4]) * 1000, 1),
-                        "pixels": int(mask.sum()),
+                        "pixels": int(mask.sum()), "warm_line": round(line, 3),
                         "touches_map_edge": bool(mask[0].any() or mask[-1].any() or mask[:, 0].any() or mask[:, -1].any()),
                         "surface_y": round(float(np.nanmedian(depth[mask])), 4),
                         "eyeball": {"centre_m": centre.round(4).tolist(), "radius_mm": round(r * 1000, 1)},
