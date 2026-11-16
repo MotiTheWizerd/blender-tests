@@ -227,6 +227,14 @@ whole_index = bm.verts.layers.int.new("whole")
 for v in bm.verts:
     v[whole_index] = v.index
 bm.to_mesh(me); bm.free()
+# model.json "torso" (optional): a torso_* model (Tripo's, made alone at a higher detail) laid onto the Body's torso
+# part, drawing maps of its own (torso.py); before the normals, so they are the new shape's.
+TORSO = C.spec.get("torso")
+torso_fade = None
+if TORSO:
+    from torso import graft
+    report["torso"], torso_maps, torso_fade = graft(body, os.path.join(os.path.dirname(C.root), TORSO), TORSO, Title,
+                                                    PIECES.index("Body"), SEGMENTS.index("Torso"))
 me.shade_smooth()
 me.update()
 whole_normals = [v.normal.copy() for v in me.vertices]   # across every seam: both sides' faces
@@ -465,6 +473,19 @@ for head_title, (folder, fade) in seated.items():
         eyes_map = os.path.join(folder, f"{head_title}Eyes_{suffix}.png")
         if os.path.exists(eyes_map):
             shutil.copyfile(eyes_map, os.path.join(HEADS_OUT, f"{head_title}Eyes_{suffix}.png"))
+if torso_fade is not None:
+    # The torso's maps as a head's: its skin to the body's colour, the body's skin painted in where it fades out.
+    torso_colour = pixels(torso_maps["Color"])
+    covered = skin_of(torso_colour)
+    gain = body_skin / np.median(linear(torso_colour[..., :3][covered]), 0)
+    torso_colour[..., :3] = encoded(linear(torso_colour[..., :3]) * gain)
+    report["torso"]["skin_gain_rgb"] = [round(float(g), 3) for g in gain]
+    paint(torso_colour, torso_fade, body_at)
+    save(torso_colour, os.path.join(OUT, f"{Title}Torso_Color.png"), "sRGB")
+    del torso_colour
+    torso_normal = pixels(torso_maps["Normal"])
+    paint(torso_normal, torso_fade, lambda uvs: np.array([0.5, 0.5, 1.0]))
+    save(torso_normal, os.path.join(OUT, f"{Title}Torso_Normal.png"), "Non-Color")
 del body_colour
 
 
@@ -623,8 +644,10 @@ def textured(path):
 # Each head on the body in their colours, whole and the neck close, where a seam, a step or two skins would show. The
 # slots are replaced in place: clearing a mesh's materials puts every face in slot 0.
 skin = textured(os.path.join(OUT, f"{Title}_Color.png"))
+torso_skin = textured(os.path.join(OUT, f"{Title}Torso_Color.png")) if torso_fade is not None else None
 for ob in body_back.values():
-    ob.data.materials[0] = skin
+    for k, m in enumerate(ob.data.materials):     # by name: the FBX keeps each slot's material's name
+        ob.data.materials[k] = torso_skin if torso_skin and m and m.name.startswith(f"{Title}Torso") else skin
 scene.display.shading.color_type = "TEXTURE"
 scene.render.resolution_x = scene.render.resolution_y = 800
 neck = world_planes[0][0] + Vector((0, 0, 0.07))

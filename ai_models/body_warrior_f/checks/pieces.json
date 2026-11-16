@@ -118,6 +118,57 @@
    "to": "Body"
   }
  ],
+ "torso": {
+  "fade_cm": 4.0,
+  "waist_cm": 4.0,
+  "fit": {
+   "nipples_body_m": [
+    [
+     -0.12,
+     -0.149,
+     1.218
+    ],
+    [
+     0.121,
+     -0.149,
+     1.219
+    ]
+   ],
+   "scale_xyz": [
+    0.9076,
+    0.8515,
+    0.9236
+   ],
+   "shift_m": [
+    0.0004,
+    -0.0007,
+    0.949
+   ],
+   "median_off_mm_first_last": [
+    8.46,
+    3.13
+   ]
+  },
+  "cap_faces": 7264,
+  "covered_faces": 10279,
+  "covered_vertices": 5440,
+  "edge_vertices": 631,
+  "unreached": 0,
+  "moved_mm_median_max": [
+   1.63,
+   28.28
+  ],
+  "fade_triangles": 5920,
+  "texels_missed_near_filled_far": {
+   "Color": 567837,
+   "Normal": 0
+  },
+  "skin_gain_rgb": [
+   1.383,
+   1.319,
+   1.29
+  ]
+ },
  "heads": {
   "WarriorF": {
    "cut_cm": 2.5,
@@ -248,7 +299,7 @@
    "ArmL": 83,
    "Torso": 83,
    "apart_mm": 0.0,
-   "turn_deg": 0.048
+   "turn_deg": 0.0
   },
   "thigh.L": {
    "LegL": 131,
@@ -260,7 +311,7 @@
    "ArmR": 86,
    "Torso": 86,
    "apart_mm": 0.0,
-   "turn_deg": 0.04
+   "turn_deg": 0.071
   },
   "thigh.R": {
    "LegR": 129,
@@ -325,7 +376,7 @@
    "ArmL": 83,
    "Torso": 83,
    "apart_mm": 0.0,
-   "turn_deg": 0.048
+   "turn_deg": 0.0
   },
   "thigh.L": {
    "LegL": 131,
@@ -337,7 +388,7 @@
    "ArmR": 86,
    "Torso": 86,
    "apart_mm": 0.0,
-   "turn_deg": 0.04
+   "turn_deg": 0.071
   },
   "thigh.R": {
    "LegR": 129,

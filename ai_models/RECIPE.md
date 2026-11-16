@@ -226,6 +226,16 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   slot, its own `_Color.png` and a wet `_MetallicSmoothness.png`); `neck.py` keeps the eyeballs (shells of their own)
   and puts them wholly on the Head bone (no eye bones in Mixamo's rig). **LOOK** at `head_<name>/checks/eyes_*.jpg`
   and `eyes_map_<side>.png` (the outline on the paint). `probe_eyes.py` measures a head's painted eyes before any cut.
+- **A torso made apart** (model.json `"torso": "torso_<name>"`; `torso.py`, run by `pieces.py`): Tripo spends its
+  detail on what it is given, so the torso alone (Iris's edit of the body's own torso render: jaw to below the navel,
+  arms to the elbows, the body's A-pose; Tripo FBX, no rig) as `torso_<name>/source_tripo.fbx` + `.fbm`. It is fitted
+  to the body (started by the nipples, then ICP: a scale per axis and a shift), Tripo's caps over its cuts taken away
+  (faces at its ends turned out of them), and the Body's torso part laid onto it: each vertex to the nearest point,
+  fully from 4 cm inside, not at all on the neck seam, the limb lines, or within 4 cm of the torso's cuts, so every
+  seam keeps 0 mm. Those faces get UVs of their own and the material `<Title>Torso`, its colour and normals baked from
+  the torso (near rays for the folds, far ones for what they miss), its skin matched to the body's and faded into it
+  as a head's neck is. `pieces.json` "torso": the fit, how far the body moved (body_warrior_f: 1.6 mm median, 28 mm
+  at the breasts), the gain. **LOOK** in EEVEE with both maps: the waist, the armpits, under the breasts, the back.
 - **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front) → Tripo → `head_<name>/source_tripo.fbx`
   → `head.py -- head_<name> <Title>` → add it to the body's `"heads"` → `pieces.py` → copy `build/forge/<Title>/` to
   Forge's `Content/Characters/<Title>/` → *Build Characters*.
