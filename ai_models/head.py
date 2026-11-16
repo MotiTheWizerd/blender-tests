@@ -133,7 +133,9 @@ def save(array, path, fmt, alpha):
 # Eyes of their own (eyes.py): the painted ones opened, eyeballs put in, in a material of their own (<Title>Eyes).
 from eyes import give_eyes, eye_pictures
 skin = image_of("Base Color")
-eyes = give_eyes(head, skin, TITLE, OUT, os.path.join(ROOT, "checks"), nose_tip)
+# <name>/model.json (optional): "lid_rest", how far shut the lids rest (eyes.py rest_lids; WarriorF 0.3).
+SPEC = json.load(open(os.path.join(ROOT, "model.json"))) if os.path.exists(os.path.join(ROOT, "model.json")) else {}
+eyes = give_eyes(head, skin, TITLE, OUT, os.path.join(ROOT, "checks"), nose_tip, SPEC.get("lid_rest", 0.0))
 eye_pictures(head, skin, eyes, os.path.join(ROOT, "checks"))
 print("EYES", json.dumps(eyes))
 # The size cross-checked by the eyes: their spacing over the chin to the crown is a face's proportion, so a chin found

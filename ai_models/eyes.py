@@ -395,8 +395,19 @@ def cut(bm, middle, radius, surface_y, eyeball):
 
 
 RINGS, SEGMENTS = 28, 48     # the eyeball's rings from its front to its back, and its segments round its axis
-LIMBUS = math.radians(30)    # where the iris meets the white, from the front (a 6 mm iris on a 12 mm eye)
-PUPIL = math.radians(7.5)    # the pupil's edge (a 3 mm pupil)
+IRIS = 0.00575               # the iris's radius (metres): a real eye's 11.5 mm iris, however big the eyeball is fitted
+PUPIL_RADIUS = 0.0015        # the pupil's (a 3 mm pupil)
+
+
+def limbus(radius):
+    """Where the iris meets the white, from the front (radians), on an eyeball of radius: 29 degrees on WarriorM's
+    11.9 mm, 23 on WarriorF's 14.6 (as an angle alone, her larger eyeball wore a 14.6 mm iris: her stare)."""
+    return math.asin(min(IRIS / radius, 0.95))
+
+
+def pupil_edge(radius):
+    """The pupil's edge, from the front (radians), on an eyeball of radius."""
+    return math.asin(min(PUPIL_RADIUS / radius, 0.95))
 BULGE = 0.06                 # the cornea's rise over the sphere at its middle, a share of the radius (0.7 mm of 12)
 EYE_TEXTURE = 1024
 
@@ -414,8 +425,10 @@ def eyeball(bm, centre, radius, forward, side, material):
     shapes = list(bm.verts.layers.shape.values())
     eye_layer = bm.faces.layers.int.get("eye") or bm.faces.layers.int.new("eye")
 
+    rim = limbus(radius)
+
     def point(theta, phi):
-        lift = BULGE * (1 - (theta / LIMBUS) ** 2) ** 2 if theta < LIMBUS else 0.0
+        lift = BULGE * (1 - (theta / rim) ** 2) ** 2 if theta < rim else 0.0
         d = f * math.cos(theta) + (u * math.cos(phi) + v * math.sin(phi)) * math.sin(theta)
         return Vector(centre) + d * radius * (1 + lift)
 
@@ -554,7 +567,7 @@ def blink(bm, lids):
             # inside lies within the eyeball, hidden): its rise over the sphere at this far from where it can face.
             away = shut_at[v] - c
             theta = max(away.angle(Vector((0.0, -1.0, 0.0)), 0.0) - LOOK_REACH, 0.0)
-            cornea = r * (1 + (BULGE * (1 - (theta / LIMBUS) ** 2) ** 2 if theta < LIMBUS else 0.0))
+            cornea = r * (1 + (BULGE * (1 - (theta / limbus(r)) ** 2) ** 2 if theta < limbus(r) else 0.0))
             if away.length < cornea + CLEAR:
                 shut_at[v] = c + away.normalized() * (cornea + CLEAR)
         for v, shut in shut_at.items():
@@ -563,11 +576,13 @@ def blink(bm, lids):
     return report
 
 
-def eye_texture(iris, size=EYE_TEXTURE, seed=7):
-    """The eyeball's colour map (rows bottom-up, RGB 0..1, sRGB-encoded) for an iris of colour iris (sRGB 0..1): the
+def eye_texture(iris, radius, size=EYE_TEXTURE, seed=7):
+    """The eyeball's colour map (rows bottom-up, RGB 0..1, sRGB-encoded) for an iris of colour iris (sRGB 0..1), on
+    eyeballs of radius (metres; the iris and pupil are drawn their real size on it): the
     white, faintly warm and a little shaded toward the iris's rim and the back; the iris in fibres running out from the
     pupil, darker at its rim, lighter round the pupil; the pupil black. Laid as eyeball() lays its texture."""
     rng = np.random.default_rng(seed)
+    LIMBUS, PUPIL = limbus(radius), pupil_edge(radius)
     y, x = np.mgrid[0:size, 0:size]
     dx, dy = (x + 0.5) / size - 0.5, (y + 0.5) / size - 0.5
     theta = np.hypot(dx, dy) * 2 * math.pi
@@ -670,7 +685,24 @@ def save_map(array, path, space):
     return image
 
 
-def give_eyes(head, image, title, maps, checks, nose):
+def rest_lids(bm, share):
+    """The lids made at rest share of the way shut (0: as the AI made them), Blink still shutting them all the way: an
+    AI that opens its eyes wide (WarriorF: 9.5 mm tall against WarriorM's 7, white all round the iris, a stare) rests
+    its upper lids over the iris's top, as a face at ease does. Every other shape key moves with it."""
+    if not share:
+        return
+    key = bm.verts.layers.shape[BLINK]
+    others = [layer for name, layer in bm.verts.layers.shape.items() if name != BLINK]
+    for v in bm.verts:
+        moved = (v[key] - v.co) * share
+        if moved.length_squared == 0.0:
+            continue
+        v.co += moved
+        for layer in others:
+            v[layer] += moved
+
+
+def give_eyes(head, image, title, maps, checks, nose, lid_rest=0.0):
     """The head's painted eyes opened and eyeballs of their own put in (head: the mesh object, in its final frame:
     metres, front -y, up z; image: its colour map; nose: its nose tip). The eyeballs wear a material named
     <title>Eyes, the head's last slot, whose maps go to maps: <title>Eyes_Color.png (the iris the painted one's colour)
@@ -737,6 +769,8 @@ def give_eyes(head, image, title, maps, checks, nose):
             for k, side in enumerate(("right", "left"))}
     for side, shut in blink(bm, lids).items():
         report[side]["blink"] = shut
+    rest_lids(bm, lid_rest)
+    report["lid_rest"] = lid_rest
     bm.to_mesh(head.data)
     bm.free()
     for layer in ("eye", LID):
@@ -749,7 +783,8 @@ def give_eyes(head, image, title, maps, checks, nose):
     irises = [report[s]["iris_rgb"] for s in ("right", "left") if report[s]["iris_rgb"]]
     iris = np.mean(irises, 0) if irises else np.array([0.35, 0.28, 0.2])
     report["iris_rgb"] = np.round(iris, 3).tolist()
-    colour_map = save_map(eye_texture(iris), os.path.join(maps, f"{title}Eyes_Color.png"), "sRGB")
+    mean_radius = sum(report[side]["eyeball"]["radius_mm"] for side in ("right", "left")) / 2000
+    colour_map = save_map(eye_texture(iris, mean_radius),os.path.join(maps, f"{title}Eyes_Color.png"), "sRGB")
     shine = np.zeros((64, 64, 4), np.float32)
     shine[..., 3] = SHINE
     bpy.data.images.remove(save_map(shine, os.path.join(maps, f"{title}Eyes_MetallicSmoothness.png"), "Non-Color"))
