@@ -26,27 +26,29 @@
    1.5337
   ]
  },
- "laid_on_scalp": {
-  "inside_points": 10528,
-  "vertices_moved": 32382,
+ "shaped_to_scalp": {
+  "thin_cm": 1.0,
+  "thick_cm": 2.8000000000000003,
+  "lined": 26712,
+  "soft": 26781,
   "moved_mm_median_max": [
-   7.11,
-   27.85
+   11.8,
+   43.3
   ]
  },
  "pushed_off_heads": {
   "BodyWarriorF": {
-   "vertices": 15360,
-   "most_mm": 16.76
+   "vertices": 19360,
+   "most_mm": 13.53
   },
   "WarriorF": {
-   "vertices": 9038,
-   "most_mm": 9.54
+   "vertices": 6786,
+   "most_mm": 6.7
   }
  },
  "triangles": {
   "source": 100589,
-  "game": 19971
+  "game": 19967
  },
  "in_fbx": {
   "mesh": "Hair",
@@ -56,6 +58,6 @@
   "groups": [
    "mixamorig:Hair"
   ],
-  "vertices": 11670
+  "vertices": 11874
  }
 }

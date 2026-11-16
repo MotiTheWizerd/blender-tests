@@ -8,8 +8,9 @@ Reads <hair>/source_tripo.fbx and .fbm, and the body's pieces (pieces.py's build
 heads). The hair is fitted to the body's first face editor head (model.json "heads"), the one it is made in: its inside
 (the faces turned toward the shell's middle) sized and placed by ellipsoids: rays from within the head (the middle of its scalp, above the brows) and from within
 the hair (the middle of the sphere its inside makes) out to each surface, along the same directions, an axis-aligned
-ellipsoid fitted to each; the hair scaled along each axis to the head's, middle on middle. Its inside is then laid
-on the scalp (what faces the head within REACH, CLEAR off it, the rest moving with it over SPREAD), so it hugs it. Then no part of it may lie inside the head: a hair vertex within CLEAR of its surface, or
+ellipsoid fitted to each; the hair scaled along each axis to the head's, middle on middle. It is then shaped to the
+scalp: each vertex placed between the hair's inside, laid CLEAR off the scalp, and its outside, kept within a pixie's
+thickness (THIN at the brows, THICK at the crown), so it hugs her skull instead of floating round it. Then no part of it may lie inside the head: a hair vertex within CLEAR of its surface, or
 inside it, goes out along the head's normal to CLEAR off it (the body's other heads are measured, not pushed:
 a hair is made for a head). It is reduced to TRIANGLES (keeping its UVs: one
 material, its own maps) and weighed wholly to a bone of its own, <prefix>Hair on the Head bone, whose place on the
@@ -38,8 +39,9 @@ TRIANGLES = C.spec.get("triangles", 20000)
 TEXTURE = 4096
 CLEAR = 0.002       # metres every hair vertex keeps off the heads' surface
 BROWS = 0.035       # the scalp: the head above its eyes by this much (metres)
-REACH = 0.03       # the hair's inside this near the head, facing it, is laid on it
-SPREAD = 0.03      # the rest of the hair moves with the inside within this
+THIN = 0.01        # a pixie's thickness over the head at the brows' height (metres)
+THICK = 0.028      # and at the crown
+SMOOTH = 8         # passes evening out how far neighbouring points move (not the shape: its strands stay)
 LEVEL = -0.15       # the fit's rays go no lower than this (the sine of their angle below level): not into the face
 os.makedirs(OUT, exist_ok=True)
 
@@ -183,36 +185,78 @@ report["fit"] = {"head_axes_cm": [round(float(a) * 100, 2) for a in head_axes], 
                  "hair_axes": [round(float(a), 4) for a in hair_axes], "hair_rays": hair_rays,
                  "scale_xyz": [round(float(a), 4) for a in scale], "shift_m": [round(float(a), 4) for a in shift]}
 
-# Laid on the scalp: the hair's inside is not an ellipsoid (open at the face, the fringe off the forehead), so where
-# it faces the head within REACH, each such point goes onto the head CLEAR off it, and the rest of the hair moves with
-# the points within SPREAD of it (their moves averaged, nearer more), fading out SPREAD past the nearest: the hair
-# hugs the head and keeps its thickness.
+# Shaped to the scalp: the hair was made round another head, a shell 2-3 cm thick everywhere, so fitted by size alone
+# it floats where her skull differs and puffs out like a helmet. Each hair vertex is taken along the line from the
+# head's surface nearest it, out through the hair: where that line first enters the hair (its inside) and last leaves
+# it (its outside). Its place between the two is kept, but the inside is laid CLEAR off the scalp and the outside no
+# further than a pixie's thickness there (THIN at the brows' height, THICK at the crown, between by height), thinner
+# where the hair already is; a vertex no line through the hair finds is pulled in softly toward that thickness.
 fitted_co, fitted_faces = world_mesh(heads[first])
 fitted_bvh = BVHTree.FromPolygons(fitted_co, fitted_faces)
-moves = {}
+# model.json "drop" (metres, optional): the hair lowered on the head first, so its hairline comes down onto a taller
+# forehead than the one it was made on (hair_pixie on WarriorF: 0.02).
+DROP = C.spec.get("drop", 0.0)
+if DROP:
+    hm.transform(Matrix.Translation((0, 0, -DROP)))
+    hm.update()
+hair_bvh = BVHTree.FromPolygons([v.co.copy() for v in hm.vertices], [tuple(p.vertices) for p in hm.polygons])
+
+
+def through(start, way, most=0.08):
+    """How far out from start along way the line first enters the hair and last leaves it (None: it meets none)."""
+    hits, at, gone = [], start + way * 1e-4, 1e-4
+    for _ in range(24):
+        hit = hair_bvh.ray_cast(at, way, most - gone)
+        if hit[0] is None:
+            break
+        gone += hit[3] + 1e-4
+        hits.append(gone)
+        at = hit[0] + way * 1e-4
+    return (hits[0], hits[-1]) if len(hits) >= 2 else None
+
+
+def thickness_at(z):
+    h = min(max((z - brows) / max(crown - brows, 1e-6), 0.0), 1.0)
+    return THIN + (THICK - THIN) * h
+
+
+moved, lined, soft = [], 0, 0
+new_co = []
 for v in hm.vertices:
-    at, normal, _, distance = fitted_bvh.find_nearest(v.co)
-    if at is None or distance > REACH or v.normal.dot(at - v.co) <= 0:
-        continue
-    moves[v.index] = (at + normal * CLEAR) - v.co
-from mathutils.kdtree import KDTree
-tree = KDTree(len(moves))
-for i in moves:
-    tree.insert(hm.vertices[i].co, i)
-tree.balance()
-moved_by = []
-for v in hm.vertices:
-    near = tree.find_range(v.co, SPREAD)
-    if not near:
-        continue
-    weights = [(1 - d / SPREAD) ** 2 for _, _, d in near]
-    step = sum((moves[i] * w for (_, i, _), w in zip(near, weights)), Vector()) / sum(weights)
-    fade = (1 - min(d for _, _, d in near) / SPREAD)
-    v.co = v.co + step * (1 if v.index in moves else fade)
-    moved_by.append(step.length)
+    at, normal, _, _ = fitted_bvh.find_nearest(v.co)
+    out = v.co - at
+    d = out.length
+    way = out.normalized() if d > 1e-6 else normal
+    if way.dot(normal) < 0:          # inside the head: out along its normal
+        way = normal
+        d = -d
+    room = thickness_at(at.z)
+    span = through(at, way)
+    if span is not None and span[1] > span[0]:
+        t = min(max((d - span[0]) / (span[1] - span[0]), 0.0), 1.0)
+        depth = CLEAR + t * min(room - CLEAR, span[1] - span[0])
+        lined += 1
+    else:
+        depth = CLEAR + room * (1 - math.exp(-max(d, 0.0) / room))
+        soft += 1
+    target = at + way * depth
+    moved.append((target - v.co).length)
+    new_co.append(target)
+# How far each point moves, evened with its neighbours' (the edge where the hair's inside meets its outside is found
+# by no line and would crumple), the shape's own relief riding on it.
+step = np.array([(c - v.co)[:] for v, c in zip(hm.vertices, new_co)])
+edges = np.array([e.vertices[:] for e in hm.edges])
+count = np.bincount(edges.ravel(), minlength=len(step)).astype(float)[:, None]
+for _ in range(SMOOTH):
+    total = np.zeros_like(step)
+    np.add.at(total, edges[:, 0], step[edges[:, 1]])
+    np.add.at(total, edges[:, 1], step[edges[:, 0]])
+    step = 0.5 * step + 0.5 * total / np.maximum(count, 1)
+for v, d in zip(hm.vertices, step):
+    v.co = v.co + Vector(d)
 hm.update()
-report["laid_on_scalp"] = {"inside_points": len(moves), "vertices_moved": len(moved_by),
-                           "moved_mm_median_max": [round(float(np.median(moved_by)) * 1000, 2), round(max(moved_by) * 1000, 2)]}
+report["shaped_to_scalp"] = {"thin_cm": THIN * 100, "thick_cm": THICK * 100, "lined": lined, "soft": soft,
+                             "moved_mm_median_max": [round(float(np.median(moved)) * 1000, 2), round(max(moved) * 1000, 2)]}
 
 # Off the head it is made on: what lies inside it or within CLEAR goes out along its normal. (The others are
 # measured: how much of the hair lies inside each.)
