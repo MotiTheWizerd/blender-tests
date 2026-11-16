@@ -235,6 +235,15 @@ if TORSO:
     from torso import graft
     report["torso"], torso_maps, torso_fade = graft(body, os.path.join(os.path.dirname(C.root), TORSO), TORSO, Title,
                                                     PIECES.index("Body"), SEGMENTS.index("Torso"))
+# model.json "breasts" (optional): a bone for each, weighed on the Body's torso part (breasts.py), for Forge to spring.
+if C.spec.get("breasts"):
+    from breasts import add as add_breasts
+    face_piece = me.attributes["piece"].data
+    face_segment = me.attributes["segment"].data
+    trunk_verts = {v for k, p in enumerate(me.polygons)
+                   if face_piece[k].value == PIECES.index("Body") and face_segment[k].value == SEGMENTS.index("Torso")
+                   for v in p.vertices}
+    report["breasts"] = add_breasts(body, rig, prefix, trunk_verts.__contains__)
 me.shade_smooth()
 me.update()
 whole_normals = [v.normal.copy() for v in me.vertices]   # across every seam: both sides' faces

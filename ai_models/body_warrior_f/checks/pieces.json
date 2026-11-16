@@ -169,6 +169,40 @@
    1.29
   ]
  },
+ "breasts": {
+  "spacing_cm": 24.02,
+  "reach_cm": 12.01,
+  "Left": {
+   "root_m": [
+    0.1206,
+    -0.1102,
+    1.2193
+   ],
+   "nipple_m": [
+    0.1206,
+    -0.149,
+    1.2193
+   ],
+   "depth_cm": 3.88,
+   "vertices": 641,
+   "most": 0.882
+  },
+  "Right": {
+   "root_m": [
+    -0.1196,
+    -0.1102,
+    1.2177
+   ],
+   "nipple_m": [
+    -0.1196,
+    -0.1491,
+    1.2177
+   ],
+   "depth_cm": 3.89,
+   "vertices": 688,
+   "most": 0.866
+  }
+ },
  "heads": {
   "WarriorF": {
    "cut_cm": 2.5,
@@ -242,7 +276,7 @@
    "neck_in_fbx": {
     "Head": 127,
     "Body": 127,
-    "apart_mm": 0.0003,
+    "apart_mm": 0.0002,
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 111
    },
@@ -335,7 +369,7 @@
    "WarriorF": 28854
   }
  },
- "bones_in_fbx": 65,
+ "bones_in_fbx": 67,
  "meshes_in_fbx": [
   "Body",
   "Feet",

@@ -236,6 +236,12 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   the torso (near rays for the folds, far ones for what they miss), its skin matched to the body's and faded into it
   as a head's neck is. `pieces.json` "torso": the fit, how far the body moved (body_warrior_f: 1.6 mm median, 28 mm
   at the breasts), the gain. **LOOK** in EEVEE with both maps: the waist, the armpits, under the breasts, the back.
+- **Breasts that move** (model.json `"breasts": true`; `breasts.py`, run by `pieces.py` after the torso): a bone
+  each, `<prefix>LeftBreast` / `RightBreast` under Spine2, from the chest wall (the breastbone's depth) to the nipple
+  (the torso's most forward point on that side). A vertex of the Body's torso part is the breast's wholly within 1.1
+  times its depth from the root, none at half the nipples' spacing, smoothly between, and only as much as the spine
+  weighs it, taken from its other bones in proportion. `pieces.json` "breasts" (body_warrior_f: 641 and 688
+  vertices, 3.9 cm deep). Forge's `SoftTissue` springs them; **LOOK** with a bone moved 3 cm (no tearing, ribs still).
 - **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front) → Tripo → `head_<name>/source_tripo.fbx`
   → `head.py -- head_<name> <Title>` → add it to the body's `"heads"` → `pieces.py` → copy `build/forge/<Title>/` to
   Forge's `Content/Characters/<Title>/` → *Build Characters*.
