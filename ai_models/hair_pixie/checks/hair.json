@@ -1,0 +1,61 @@
+{
+ "hair": "hair_pixie",
+ "body": "body_warrior_f",
+ "fitted_on": "WarriorF",
+ "fit": {
+  "head_axes_cm": [
+   7.9,
+   9.94,
+   8.7
+  ],
+  "head_rays": 391,
+  "hair_axes": [
+   0.3659,
+   0.4474,
+   0.3786
+  ],
+  "hair_rays": 284,
+  "scale_xyz": [
+   0.2213,
+   0.2265,
+   0.235
+  ],
+  "shift_m": [
+   -0.0052,
+   0.0235,
+   1.5337
+  ]
+ },
+ "laid_on_scalp": {
+  "inside_points": 10528,
+  "vertices_moved": 32382,
+  "moved_mm_median_max": [
+   7.11,
+   27.85
+  ]
+ },
+ "pushed_off_heads": {
+  "BodyWarriorF": {
+   "vertices": 15360,
+   "most_mm": 16.76
+  },
+  "WarriorF": {
+   "vertices": 9038,
+   "most_mm": 9.54
+  }
+ },
+ "triangles": {
+  "source": 100589,
+  "game": 19971
+ },
+ "in_fbx": {
+  "mesh": "Hair",
+  "materials": [
+   "HairPixie"
+  ],
+  "groups": [
+   "mixamorig:Hair"
+  ],
+  "vertices": 11670
+ }
+}
