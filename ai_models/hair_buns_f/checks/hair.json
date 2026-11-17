@@ -1,0 +1,98 @@
+{
+ "hair": "hair_buns_f",
+ "body": "body_warrior_f",
+ "fitted_on": "WarriorF",
+ "cut_from_head": {
+  "faces": 46841,
+  "light_line": 0.438,
+  "dark_faces": 16371,
+  "dark_patches": 99,
+  "hair_faces": 15824,
+  "hair_paint": [
+   0.251,
+   0.157,
+   0.109
+  ],
+  "skin_paint": [
+   0.839,
+   0.653,
+   0.596
+  ],
+  "laid_on_head": {
+   "first_width_scale": 0.2627,
+   "scale": 0.3266,
+   "turn_deg": [
+    0.91,
+    -0.24,
+    -0.02
+   ],
+   "skin_off_mm_median": 1.37
+  },
+  "hair_vertices": 16377
+ },
+ "pushed_off_heads": {
+  "BodyWarriorF": {
+   "vertices": 5245,
+   "most_mm": 16.09
+  },
+  "WarriorF": {
+   "vertices": 2406,
+   "most_mm": 6.42
+  }
+ },
+ "buns": {
+  "Left": {
+   "core_points": 1676,
+   "weighted_points": 2485,
+   "radius_cm": 5.13,
+   "base": [
+    0.0502,
+    0.0466,
+    1.6691
+   ],
+   "middle": [
+    0.0812,
+    0.0585,
+    1.6989
+   ],
+   "height_cm": 4.46
+  },
+  "Right": {
+   "core_points": 1733,
+   "weighted_points": 2475,
+   "radius_cm": 5.53,
+   "base": [
+    -0.0553,
+    0.052,
+    1.6694
+   ],
+   "middle": [
+    -0.0823,
+    0.0657,
+    1.6959
+   ],
+   "height_cm": 4.03
+  }
+ },
+ "triangles": {
+  "source": 31647,
+  "game": 20000
+ },
+ "painted": {
+  "texels_painted": 4939438,
+  "share": 0.2944,
+  "skin_texels_recoloured": 144943
+ },
+ "in_fbx": {
+  "mesh": "Hair",
+  "materials": [
+   "HairBunsF"
+  ],
+  "groups": [
+   "mixamorig:Hair",
+   "mixamorig:HairBunLeft",
+   "mixamorig:HairBunRight"
+  ],
+  "vertices": 10540
+ }
+}

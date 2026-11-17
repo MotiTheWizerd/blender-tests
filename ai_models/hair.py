@@ -14,7 +14,9 @@ thickness (THIN at the brows, THICK at the crown), so it hugs her skull instead 
 inside it, goes out along the head's normal to CLEAR off it (the body's other heads are measured, not pushed:
 a hair is made for a head). It is reduced to TRIANGLES (keeping its UVs: one
 material, its own maps) and weighed wholly to a bone of its own, <prefix>Hair on the Head bone, whose place on the
-head is the hair's seat (Forge's Hold Stage tunes it).
+head is the hair's seat (Forge's Hold Stage tunes it). A hair whose model.json says "buns": true has each bun on a bone
+of its own under that one, <prefix>HairBunLeft and <prefix>HairBunRight, weighted to it from its base out (buns.py), so
+Forge swings them.
 
 Writes the body's build/forge/<Body>/Hair/<Title>.fbx (the skeleton and one mesh, "Hair", its material <Title>),
 <Title>_Color.png and <Title>_Normal.png; <hair>/checks/hair.json and pictures of it on each head (hair_<view>_<Head>.jpg).
@@ -306,6 +308,14 @@ bpy.ops.mesh.quads_convert_to_tris()
 bpy.ops.object.mode_set(mode="OBJECT")
 for p in hm.polygons:
     p.use_smooth = True
+# model.json "buns": true: each bun on a bone of its own under the hair's, which Forge swings about its base (buns.py).
+# The parting is the skeleton's middle (its Head bone's); the body's left, the side its LeftArm is on.
+buns = {}
+if C.spec.get("buns"):
+    from buns import find as find_buns
+    middle_x = (rig.matrix_world @ rig.data.bones[prefix + "Head"].head_local).x
+    left_sign = 1 if (rig.matrix_world @ rig.data.bones[prefix + "LeftArm"].head_local).x > middle_x else -1
+    buns, report["buns"] = find_buns(np.array([v.co[:] for v in hm.vertices]), head_bvh, middle_x, left_sign)
 hm.materials[0].name = TITLE
 hair.name = hm.name = "Hair"
 # Its own bone, <prefix>Hair on the Head bone where the head's is, carrying all of it: Forge adds it to the body as it
@@ -315,7 +325,7 @@ bpy.context.view_layer.objects.active = rig
 rig.select_set(True)
 bpy.ops.object.mode_set(mode="EDIT")
 bones = rig.data.edit_bones
-for bone in [b for b in bones if b.name == prefix + "Hair"]:
+for bone in [b for b in bones if b.name == prefix + "Hair" or b.name.startswith(prefix + "HairBun")]:
     bones.remove(bone)
 seat = bones.new(prefix + "Hair")
 seat.head = bones[prefix + "Head"].head.copy()
@@ -323,12 +333,27 @@ seat.tail = bones[prefix + "Head"].tail.copy()
 seat.roll = bones[prefix + "Head"].roll
 seat.parent = bones[prefix + "Head"]
 seat.use_deform = True
+# Each bun's bone from its base out through its middle (twice as far: its tip past the bun's top), on the hair's bone.
+to_rig = rig.matrix_world.inverted()
+for side, (base, middle, _) in buns.items():
+    bun = bones.new(prefix + "HairBun" + side)
+    bun.head = to_rig @ Vector(base)
+    bun.tail = to_rig @ Vector(base + 2 * (middle - base))
+    bun.parent = seat
+    bun.use_deform = True
 bpy.ops.object.mode_set(mode="OBJECT")
 bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = hair
 hair.select_set(True)
+on_buns = sum((w for _, _, w in buns.values()), np.zeros(len(hm.vertices)))
 group = hair.vertex_groups.new(name=prefix + "Hair")
-group.add(list(range(len(hm.vertices))), 1.0, "REPLACE")
+for i, w in enumerate(on_buns):
+    if w < 1.0:
+        group.add([i], float(1.0 - w), "REPLACE")
+for side, (_, _, weights) in buns.items():
+    bun_group = hair.vertex_groups.new(name=prefix + "HairBun" + side)
+    for i in np.nonzero(weights > 0)[0]:
+        bun_group.add([int(i)], float(weights[i]), "REPLACE")
 hair.parent = rig
 hair.matrix_parent_inverse = rig.matrix_world.inverted()
 skin = hair.modifiers.new("Armature", "ARMATURE")
@@ -390,6 +415,19 @@ for view, toward in {"front": Vector((0, 1, 0)), "side": Vector((-1, 0, 0)), "ba
     camera.rotation_euler = (-toward).to_track_quat("Z", "Y").to_euler()
     scene.render.filepath = C.picture(f"hair_{view}_{first}")
     bpy.ops.render.render(write_still=True)
+# The buns' weights pictured (red: with its bun, blue: with the cap), then gone again: no colours go to Forge.
+if buns:
+    shade = hm.color_attributes.new("buns", "FLOAT_COLOR", "POINT")
+    for i, w in enumerate(on_buns):
+        shade.data[i].color = (float(w), 0.1, float(1 - w), 1.0)
+    hm.color_attributes.active_color = shade
+    scene.display.shading.color_type = "VERTEX"
+    for view, toward in {"front": Vector((0, 1, 0)), "side": Vector((-1, 0, 0))}.items():
+        camera.location = middle - toward * 3
+        camera.rotation_euler = (-toward).to_track_quat("Z", "Y").to_euler()
+        scene.render.filepath = C.picture(f"buns_{view}_{first}")
+        bpy.ops.render.render(write_still=True)
+    hm.color_attributes.remove(shade)
 
 bpy.ops.object.select_all(action="DESELECT")
 rig.select_set(True); hair.select_set(True)
