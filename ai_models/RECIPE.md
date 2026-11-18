@@ -243,8 +243,13 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   weighs it, taken from its other bones in proportion. `pieces.json` "breasts" (body_warrior_f: 641 and 688
   vertices, 3.9 cm deep). Forge's `SoftTissue` springs them; **LOOK** with a bone moved 3 cm (no tearing, ribs still).
 - **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front) → Tripo → `head_<name>/source_tripo.fbx`
-  → `head.py -- head_<name> <Title>` → add it to the body's `"heads"` → `pieces.py` → copy `build/forge/<Title>/` to
-  Forge's `Content/Characters/<Title>/` → *Build Characters*.
+  + `.fbm` (with a `model.json`: `"lid_rest"`) → `head.py -- head_<name> <Title>` (the Title sorts the face editor's
+  Face choice: WarriorF2 after WarriorF) → **LOOK** at `checks/landmarks_front/side.jpg` (crown red, nose blue, chin
+  green: the size is taken between them; the eyes' spacing check stops a chin found on the neck, but a tall narrow head
+  trips it too, WarriorF2 at 0.254) and `eyes_*.jpg` → add it to the body's `"heads"` → `pieces.py` (**LOOK** at
+  `neck_*_<Head>.jpg`, `whole_front_<Head>.jpg`; `pieces.json` "heads": seam 0.0 mm, `skin_gain_rgb`) → copy only the
+  new `build/forge/<Body>/Heads/<Head>*` files to Forge's `Content/Characters/<Body>/Heads/` → *Build Characters*
+  (then `git checkout` Humanoid.controller if it only re-serialized) → EditMode → the face editor's Face choice.
 
 ## Next (planned, not built)
 
