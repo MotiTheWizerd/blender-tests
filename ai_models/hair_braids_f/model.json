@@ -1,0 +1,18 @@
+{
+ "kind": "hair",
+ "about": "Cornrows over the crown into a high ponytail, the right side hanging loose to the jaw, the left shaved (Moti, 2026-11-18): Iris painted it on WarriorF's own head (front and both sides), Tripo made the head with it. The ponytail and the loose side move as real hair does: chains of bones (locks.py) Forge moves with gravity, against her body and each other (HairLocks).",
+ "made_on": "head",
+ "locks": true,
+ "triangles": 24000,
+ "roots": [
+  {
+   "at": [
+    0.0,
+    0.028,
+    1.703
+   ],
+   "reach": 0.02
+  }
+ ],
+ "roots_about": "The ponytail's tie at the top of the crown; the rest of its free hair hangs as a curtain round the back and right of her head."
+}

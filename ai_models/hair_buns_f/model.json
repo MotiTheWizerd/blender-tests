@@ -1,7 +1,14 @@
 {
  "kind": "hair",
- "about": "Two buns on top, made on WarriorF's own head (Moti, 2026-11-18): her head drawn by sheet.py, the hair painted on by Iris (front and side), Tripo given both; the whole head with the hair on. hair.py cuts the hair out by its paint and lays it on her by its skin (haircut.py). Known: white specks on the buns' backs (Tripo's), to be made again.",
+ "about": "Two buns on top, made on WarriorF's own head (Moti, 2026-11-18): her head drawn by sheet.py, the hair painted on by Iris (front and side), Tripo given both; the whole head with the hair on. hair.py cuts the hair out by its paint and lays it on her by its skin (haircut.py); each bun a lock held all round its base (locks.py), firm, moved by Forge (HairLocks). Known: white specks on the buns' backs (Tripo's), to be made again.",
  "made_on": "head",
- "buns": true,
- "triangles": 20000
+ "triangles": 20000,
+ "locks": true,
+ "motion": {
+  "bend": 4.5,
+  "hold": 3.5,
+  "holdTip": 2.5,
+  "gravity": 0.35,
+  "damping": 5.0
+ }
 }

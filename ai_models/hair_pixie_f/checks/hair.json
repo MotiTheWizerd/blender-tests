@@ -6,7 +6,41 @@
   "faces": 41466,
   "light_line": 0.392,
   "dark_faces": 15441,
-  "dark_patches": 74,
+  "light_patches": 27,
+  "skin_faces": 25987,
+  "laid_on_head": {
+   "first_scale": 0.2917,
+   "started_at": 1.0,
+   "scale": 0.2872,
+   "turn_deg": [
+    -0.12,
+    -0.0,
+    0.0
+   ],
+   "skin_off_mm_median": 0.65,
+   "head_off_mm_median": 0.71,
+   "tries_mm": [
+    [
+     0.9,
+     0.64,
+     0.72
+    ],
+    [
+     1.0,
+     0.65,
+     0.71
+    ],
+    [
+     1.1,
+     0.66,
+     0.71
+    ]
+   ]
+  },
+  "scalp_faces": 38,
+  "hair_grown_into_skin": 0,
+  "hair_pieces": 74,
+  "hair_pieces_kept": 1,
   "hair_faces": 15139,
   "hair_paint": [
    0.32,
@@ -14,40 +48,31 @@
    0.099
   ],
   "skin_paint": [
-   0.836,
-   0.528,
-   0.44
+   0.839,
+   0.53,
+   0.443
   ],
-  "laid_on_head": {
-   "first_width_scale": 0.29,
-   "scale": 0.2863,
-   "turn_deg": [
-    0.11,
-    0.01,
-    0.04
-   ],
-   "skin_off_mm_median": 0.62
-  },
   "hair_vertices": 15454
  },
  "pushed_off_heads": {
   "BodyWarriorF": {
-   "vertices": 12926,
-   "most_mm": 17.64
+   "vertices": 12741,
+   "most_mm": 16.66
   },
   "WarriorF": {
-   "vertices": 10999,
-   "most_mm": 8.02
+   "vertices": 10515,
+   "most_mm": 7.24
   }
  },
  "triangles": {
   "source": 30278,
-  "game": 20000
+  "game": 19999
  },
  "painted": {
-  "texels_painted": 4399126,
-  "share": 0.2622,
-  "skin_texels_recoloured": 72949
+  "texels_painted": 4400447,
+  "share": 0.2623,
+  "edge_faces": 907,
+  "skin_texels_recoloured": 66697
  },
  "in_fbx": {
   "mesh": "Hair",

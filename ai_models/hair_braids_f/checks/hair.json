@@ -1,0 +1,157 @@
+{
+ "hair": "hair_braids_f",
+ "body": "body_warrior_f",
+ "fitted_on": "WarriorF",
+ "cut_from_head": {
+  "faces": 46469,
+  "light_line": 0.515,
+  "dark_faces": 24916,
+  "light_patches": 1287,
+  "skin_faces": 16921,
+  "laid_on_head": {
+   "first_scale": 0.3269,
+   "started_at": 1.1,
+   "scale": 0.3413,
+   "turn_deg": [
+    -0.65,
+    0.7,
+    0.68
+   ],
+   "skin_off_mm_median": 1.86,
+   "head_off_mm_median": 1.5,
+   "tries_mm": [
+    [
+     0.9,
+     1.95,
+     1.5
+    ],
+    [
+     1.0,
+     1.9,
+     1.47
+    ],
+    [
+     1.1,
+     1.86,
+     1.5
+    ]
+   ]
+  },
+  "scalp_faces": 501,
+  "hair_grown_into_skin": 203,
+  "hair_pieces": 82,
+  "hair_pieces_kept": 1,
+  "hair_faces": 28389,
+  "hair_paint": [
+   0.482,
+   0.351,
+   0.272
+  ],
+  "skin_paint": [
+   0.828,
+   0.635,
+   0.566
+  ],
+  "hair_vertices": 29045
+ },
+ "pushed_off_heads": {
+  "BodyWarriorF": {
+   "vertices": 6361,
+   "most_mm": 16.59
+  },
+  "WarriorF": {
+   "vertices": 3018,
+   "most_mm": 9.64
+  }
+ },
+ "locks": {
+  "cap_points": 3186,
+  "free_points": 9444,
+  "free_pieces": 2,
+  "cap_thickness_m": 0.0076,
+  "pieces": [
+   {
+    "points": 9443,
+    "line_points": 166,
+    "line_extent_cm": 20.0,
+    "gathered_roots": [
+     [
+      0.0,
+      0.027,
+      1.702
+     ]
+    ],
+    "curtain_columns_deg": [
+     -33.3,
+     -1.5
+    ],
+    "locks": [
+     "gathered",
+     "hanging",
+     "hanging"
+    ],
+    "bones": [
+     4,
+     5,
+     5
+    ],
+    "chain_cm": [
+     13.8,
+     23.5,
+     24.3
+    ]
+   }
+  ],
+  "locks": 3,
+  "links": [
+   [
+    0,
+    1
+   ],
+   [
+    0,
+    2
+   ],
+   [
+    1,
+    2
+   ]
+  ],
+  "weighted_points": 9412,
+  "skull_base_z": 1.5477
+ },
+ "triangles": {
+  "source": 56774,
+  "game": 24000
+ },
+ "painted": {
+  "texels_painted": 4261001,
+  "share": 0.254,
+  "edge_faces": 2344,
+  "skin_texels_recoloured": 207093
+ },
+ "in_fbx": {
+  "mesh": "Hair",
+  "materials": [
+   "HairBraidsF"
+  ],
+  "groups": [
+   "mixamorig:Hair",
+   "mixamorig:HairLock0_0",
+   "mixamorig:HairLock0_1",
+   "mixamorig:HairLock0_2",
+   "mixamorig:HairLock0_3",
+   "mixamorig:HairLock1_0",
+   "mixamorig:HairLock1_1",
+   "mixamorig:HairLock1_2",
+   "mixamorig:HairLock1_3",
+   "mixamorig:HairLock1_4",
+   "mixamorig:HairLock2_0",
+   "mixamorig:HairLock2_1",
+   "mixamorig:HairLock2_2",
+   "mixamorig:HairLock2_3",
+   "mixamorig:HairLock2_4"
+  ],
+  "vertices": 12630
+ }
+}

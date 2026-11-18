@@ -14,9 +14,9 @@ thickness (THIN at the brows, THICK at the crown), so it hugs her skull instead 
 inside it, goes out along the head's normal to CLEAR off it (the body's other heads are measured, not pushed:
 a hair is made for a head). It is reduced to TRIANGLES (keeping its UVs: one
 material, its own maps) and weighed wholly to a bone of its own, <prefix>Hair on the Head bone, whose place on the
-head is the hair's seat (Forge's Hold Stage tunes it). A hair whose model.json says "buns": true has each bun on a bone
-of its own under that one, <prefix>HairBunLeft and <prefix>HairBunRight, weighted to it from its base out (buns.py), so
-Forge swings them.
+head is the hair's seat (Forge's Hold Stage tunes it). A hair whose model.json says "locks": true has what of it stands
+or hangs free of the head on chains of bones of its own under that one, <prefix>HairLock<i>_<k> (locks.py), and a
+<Title>_Motion.json beside it that says how Forge moves them (HairLocks).
 
 Writes the body's build/forge/<Body>/Hair/<Title>.fbx (the skeleton and one mesh, "Hair", its material <Title>),
 <Title>_Color.png and <Title>_Normal.png; <hair>/checks/hair.json and pictures of it on each head (hair_<view>_<Head>.jpg).
@@ -308,14 +308,22 @@ bpy.ops.mesh.quads_convert_to_tris()
 bpy.ops.object.mode_set(mode="OBJECT")
 for p in hm.polygons:
     p.use_smooth = True
-# model.json "buns": true: each bun on a bone of its own under the hair's, which Forge swings about its base (buns.py).
-# The parting is the skeleton's middle (its Head bone's); the body's left, the side its LeftArm is on.
-buns = {}
-if C.spec.get("buns"):
-    from buns import find as find_buns
-    middle_x = (rig.matrix_world @ rig.data.bones[prefix + "Head"].head_local).x
-    left_sign = 1 if (rig.matrix_world @ rig.data.bones[prefix + "LeftArm"].head_local).x > middle_x else -1
-    buns, report["buns"] = find_buns(np.array([v.co[:] for v in hm.vertices]), head_bvh, middle_x, left_sign)
+# model.json "locks": true: what of it stands or hangs free of the head on chains of bones of its own under the hair's,
+# which Forge moves (locks.py; HairLocks), held where model.json "roots" says (points in the body's frame, one per
+# chain; none: all along where it meets the cap). The skull's base: the height of her nose's tip (her head's most
+# forward point).
+found_locks, lock_links, cap_weight, lock_weights = [], [], np.ones(len(hm.vertices)), None
+if C.spec.get("locks"):
+    import locks as hair_locks
+    from haircut import nose_and_width
+    head_points = np.array([c[:] for c in head_co])
+    skull_base = float(nose_and_width(head_points)[0][2])
+    found_locks, lock_links, lock_weights, _, _, report["locks"] = hair_locks.find(
+        np.array([v.co[:] for v in hm.vertices]), [tuple(e.vertices) for e in hm.edges], head_points, head_bvh,
+        skull_base, C.spec.get("roots"))
+    report["locks"]["skull_base_z"] = round(skull_base, 4)
+    cap_weight = 1.0 - lock_weights.sum(axis=(1, 2))
+    cap_weight, lock_weights = hair_locks.limit(cap_weight, lock_weights)
 hm.materials[0].name = TITLE
 hair.name = hm.name = "Hair"
 # Its own bone, <prefix>Hair on the Head bone where the head's is, carrying all of it: Forge adds it to the body as it
@@ -325,7 +333,7 @@ bpy.context.view_layer.objects.active = rig
 rig.select_set(True)
 bpy.ops.object.mode_set(mode="EDIT")
 bones = rig.data.edit_bones
-for bone in [b for b in bones if b.name == prefix + "Hair" or b.name.startswith(prefix + "HairBun")]:
+for bone in [b for b in bones if b.name == prefix + "Hair" or b.name.startswith(prefix + "HairLock")]:
     bones.remove(bone)
 seat = bones.new(prefix + "Hair")
 seat.head = bones[prefix + "Head"].head.copy()
@@ -333,27 +341,47 @@ seat.tail = bones[prefix + "Head"].tail.copy()
 seat.roll = bones[prefix + "Head"].roll
 seat.parent = bones[prefix + "Head"]
 seat.use_deform = True
-# Each bun's bone from its base out through its middle (twice as far: its tip past the bun's top), on the hair's bone.
+# Each lock's chain, <prefix>HairLock<i>_<k>, from its root (on the hair's bone) joint to joint, and a last bone at its
+# tip that carries nothing (Forge reads where the chain ends from it: a bone's tail is not in the file).
 to_rig = rig.matrix_world.inverted()
-for side, (base, middle, _) in buns.items():
-    bun = bones.new(prefix + "HairBun" + side)
-    bun.head = to_rig @ Vector(base)
-    bun.tail = to_rig @ Vector(base + 2 * (middle - base))
-    bun.parent = seat
-    bun.use_deform = True
+lock_bones = []
+for i, lock in enumerate(found_locks):
+    joints = lock["joints"]
+    names, parent = [], seat
+    for k in range(len(joints)):
+        bone = bones.new(f"{prefix}HairLock{i}_{k}")
+        bone.head = to_rig @ Vector(joints[k])
+        ahead = joints[k + 1] if k + 1 < len(joints) else joints[k] + 0.3 * (joints[k] - joints[k - 1])
+        bone.tail = to_rig @ Vector(ahead)
+        bone.parent = parent
+        bone.use_deform = k + 1 < len(joints)
+        names.append(bone.name)
+        parent = bone
+    lock_bones.append(names)
 bpy.ops.object.mode_set(mode="OBJECT")
 bpy.ops.object.select_all(action="DESELECT")
 bpy.context.view_layer.objects.active = hair
 hair.select_set(True)
-on_buns = sum((w for _, _, w in buns.values()), np.zeros(len(hm.vertices)))
 group = hair.vertex_groups.new(name=prefix + "Hair")
-for i, w in enumerate(on_buns):
-    if w < 1.0:
-        group.add([i], float(1.0 - w), "REPLACE")
-for side, (_, _, weights) in buns.items():
-    bun_group = hair.vertex_groups.new(name=prefix + "HairBun" + side)
-    for i in np.nonzero(weights > 0)[0]:
-        bun_group.add([int(i)], float(weights[i]), "REPLACE")
+for i, w in enumerate(cap_weight):
+    if w > 0:
+        group.add([i], float(w), "REPLACE")
+for i, names in enumerate(lock_bones):
+    for k, name in enumerate(names[:-1]):
+        on = lock_weights[:, i, k]
+        if (on > 0).any():
+            bone_group = hair.vertex_groups.new(name=name)
+            for v in np.nonzero(on > 0)[0]:
+                bone_group.add([int(v)], float(on[v]), "REPLACE")
+if found_locks:
+    # What Forge reads beside the hair: each lock's bones (root to tip), its radius at each joint past its root, its
+    # neighbours, how thick the cap is, and how it moves (model.json "motion"; none: HairLocks' own).
+    motion = {"capThickness": report["locks"]["cap_thickness_m"],
+              "locks": [{"bones": names, "radii": [round(float(r), 4) for r in lock["radii"]]}
+                        for names, lock in zip(lock_bones, found_locks)],
+              "links": [{"a": int(a), "b": int(b)} for a, b in lock_links],
+              "motion": C.spec.get("motion", {})}
+    json.dump(motion, open(os.path.join(OUT, f"{TITLE}_Motion.json"), "w"), indent=1)
 hair.parent = rig
 hair.matrix_parent_inverse = rig.matrix_world.inverted()
 skin = hair.modifiers.new("Armature", "ARMATURE")
@@ -415,18 +443,34 @@ for view, toward in {"front": Vector((0, 1, 0)), "side": Vector((-1, 0, 0)), "ba
     camera.rotation_euler = (-toward).to_track_quat("Z", "Y").to_euler()
     scene.render.filepath = C.picture(f"hair_{view}_{first}")
     bpy.ops.render.render(write_still=True)
-# The buns' weights pictured (red: with its bun, blue: with the cap), then gone again: no colours go to Forge.
-if buns:
-    shade = hm.color_attributes.new("buns", "FLOAT_COLOR", "POINT")
-    for i, w in enumerate(on_buns):
-        shade.data[i].color = (float(w), 0.1, float(1 - w), 1.0)
+# The locks pictured: each lock its own colour, mixed by its weights, the cap grey; the hair seen through, each joint a
+# ball as big as the lock is thick there. Then gone again: no colours or balls go to Forge.
+if found_locks:
+    palette = np.array([(0.95, 0.3, 0.2), (0.2, 0.6, 0.95), (0.3, 0.85, 0.35), (0.95, 0.8, 0.2), (0.75, 0.35, 0.9),
+                        (0.2, 0.85, 0.85), (0.95, 0.5, 0.75), (0.6, 0.45, 0.25)])
+    shade = hm.color_attributes.new("locks", "FLOAT_COLOR", "POINT")
+    per_lock = lock_weights.sum(axis=2)
+    for v in range(len(hm.vertices)):
+        c = cap_weight[v] * np.array([0.55, 0.55, 0.55]) + sum(per_lock[v, i] * palette[i % len(palette)] for i in range(len(found_locks)))
+        shade.data[v].color = (*c, 1.0)
     hm.color_attributes.active_color = shade
+    balls = []
+    for lock in found_locks:
+        for k, joint in enumerate(lock["joints"]):
+            radius = lock["radii"][k - 1] if k > 0 else 0.006
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=float(radius), location=Vector(joint), segments=12, ring_count=8)
+            balls.append(bpy.context.active_object)
     scene.display.shading.color_type = "VERTEX"
-    for view, toward in {"front": Vector((0, 1, 0)), "side": Vector((-1, 0, 0))}.items():
+    scene.display.shading.show_xray = True
+    scene.display.shading.xray_alpha = 0.55
+    for view, toward in {"front": Vector((0, 1, 0)), "side": Vector((-1, 0, 0)), "back": Vector((0, -1, 0)), "other_side": Vector((1, 0, 0))}.items():
         camera.location = middle - toward * 3
         camera.rotation_euler = (-toward).to_track_quat("Z", "Y").to_euler()
-        scene.render.filepath = C.picture(f"buns_{view}_{first}")
+        scene.render.filepath = C.picture(f"locks_{view}_{first}")
         bpy.ops.render.render(write_still=True)
+    scene.display.shading.show_xray = False
+    for ball in balls:
+        bpy.data.objects.remove(ball, do_unlink=True)
     hm.color_attributes.remove(shade)
 
 bpy.ops.object.select_all(action="DESELECT")

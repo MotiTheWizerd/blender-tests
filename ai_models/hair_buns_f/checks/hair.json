@@ -6,82 +6,142 @@
   "faces": 46841,
   "light_line": 0.438,
   "dark_faces": 16371,
-  "dark_patches": 99,
-  "hair_faces": 15824,
+  "light_patches": 183,
+  "skin_faces": 29868,
+  "laid_on_head": {
+   "first_scale": 0.3299,
+   "started_at": 1.1,
+   "scale": 0.329,
+   "turn_deg": [
+    0.63,
+    -0.27,
+    -0.04
+   ],
+   "skin_off_mm_median": 1.07,
+   "head_off_mm_median": 0.96,
+   "tries_mm": [
+    [
+     0.9,
+     1.1,
+     0.97
+    ],
+    [
+     1.0,
+     1.07,
+     0.97
+    ],
+    [
+     1.1,
+     1.07,
+     0.96
+    ]
+   ]
+  },
+  "scalp_faces": 411,
+  "hair_grown_into_skin": 2,
+  "hair_pieces": 99,
+  "hair_pieces_kept": 1,
+  "hair_faces": 15996,
   "hair_paint": [
    0.251,
    0.157,
    0.109
   ],
   "skin_paint": [
-   0.839,
-   0.653,
-   0.596
+   0.846,
+   0.659,
+   0.602
   ],
-  "laid_on_head": {
-   "first_width_scale": 0.2627,
-   "scale": 0.3266,
-   "turn_deg": [
-    0.91,
-    -0.24,
-    -0.02
-   ],
-   "skin_off_mm_median": 1.37
-  },
-  "hair_vertices": 16377
+  "hair_vertices": 16394
  },
  "pushed_off_heads": {
   "BodyWarriorF": {
-   "vertices": 5245,
-   "most_mm": 16.09
+   "vertices": 4742,
+   "most_mm": 13.96
   },
   "WarriorF": {
-   "vertices": 2406,
-   "most_mm": 6.42
+   "vertices": 1895,
+   "most_mm": 5.78
   }
  },
- "buns": {
-  "Left": {
-   "core_points": 1676,
-   "weighted_points": 2485,
-   "radius_cm": 5.13,
-   "base": [
-    0.0502,
-    0.0466,
-    1.6691
-   ],
-   "middle": [
-    0.0812,
-    0.0585,
-    1.6989
-   ],
-   "height_cm": 4.46
-  },
-  "Right": {
-   "core_points": 1733,
-   "weighted_points": 2475,
-   "radius_cm": 5.53,
-   "base": [
-    -0.0553,
-    0.052,
-    1.6694
-   ],
-   "middle": [
-    -0.0823,
-    0.0657,
-    1.6959
-   ],
-   "height_cm": 4.03
-  }
+ "locks": {
+  "cap_points": 3923,
+  "free_points": 6467,
+  "free_pieces": 5,
+  "cap_thickness_m": 0.0109,
+  "pieces": [
+   {
+    "points": 2939,
+    "line_points": 121,
+    "line_extent_cm": 16.2,
+    "gathered_roots": [
+     [
+      0.054,
+      0.05,
+      1.651
+     ]
+    ],
+    "curtain_columns_deg": [],
+    "locks": [
+     "gathered"
+    ],
+    "bones": [
+     2
+    ],
+    "chain_cm": [
+     7.5
+    ]
+   },
+   {
+    "points": 3140,
+    "line_points": 100,
+    "line_extent_cm": 14.4,
+    "gathered_roots": [
+     [
+      -0.055,
+      0.049,
+      1.658
+     ]
+    ],
+    "curtain_columns_deg": [],
+    "locks": [
+     "gathered"
+    ],
+    "bones": [
+     2
+    ],
+    "chain_cm": [
+     6.7
+    ]
+   },
+   {
+    "points": 386,
+    "line_points": 56,
+    "line_extent_cm": 12.6,
+    "gathered_roots": [],
+    "curtain_columns_deg": [
+     -18.1,
+     23.1
+    ],
+    "locks": [],
+    "bones": [],
+    "chain_cm": []
+   }
+  ],
+  "locks": 2,
+  "links": [],
+  "weighted_points": 5695,
+  "skull_base_z": 1.5477
  },
  "triangles": {
-  "source": 31647,
-  "game": 20000
+  "source": 31989,
+  "game": 19998
  },
  "painted": {
-  "texels_painted": 4939438,
-  "share": 0.2944,
-  "skin_texels_recoloured": 144943
+  "texels_painted": 4982862,
+  "share": 0.297,
+  "edge_faces": 1338,
+  "skin_texels_recoloured": 87638
  },
  "in_fbx": {
   "mesh": "Hair",
@@ -90,9 +150,11 @@
   ],
   "groups": [
    "mixamorig:Hair",
-   "mixamorig:HairBunLeft",
-   "mixamorig:HairBunRight"
+   "mixamorig:HairLock0_0",
+   "mixamorig:HairLock0_1",
+   "mixamorig:HairLock1_0",
+   "mixamorig:HairLock1_1"
   ],
-  "vertices": 10540
+  "vertices": 10390
  }
 }
