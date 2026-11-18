@@ -299,40 +299,40 @@
   },
   "WarriorF2": {
    "cut_cm": 2.5,
-   "blend_cm": 2.5,
+   "blend_cm": 3.3000000000000003,
    "size": 1.0,
    "scale": 1.0138,
    "body_chin_to_crown_cm": 23.52,
    "body_chin_z": 1.4647,
    "head_chin_z": 0.0442,
    "crown_body_m": 1.6999,
-   "crown_head_m": 1.7027,
+   "crown_head_m": 1.702,
    "shift_in_plane_mm": [
-    -4.2,
-    2.0,
-    0.7
+    0.2,
+    -0.2,
+    -0.1
    ],
    "chin_above_seam_cm": 7.4,
    "head_open_edges_off_the_cut": 0,
    "eyeballs": {
     "Right": {
      "centre_m": [
-      -0.03418,
-      -0.06053,
-      1.57886
+      -0.02981,
+      -0.06276,
+      1.57812
      ],
      "radius_mm": 12.27
     },
     "Left": {
      "centre_m": [
-      0.02553,
-      -0.06175,
-      1.57795
+      0.0299,
+      -0.06398,
+      1.5772
      ],
      "radius_mm": 11.35
     }
    },
-   "neck_vertices_blended": 2187,
+   "neck_vertices_blended": 2911,
    "rays_missed": 0,
    "collar_rings": 4,
    "seam_ring_vertices": 127,
@@ -341,7 +341,7 @@
    "collar_faces_across_uv_seams": 0,
    "shape_moves_at_cut_mm": 0.372,
    "source": "head_warrior_f2/build/forge/WarriorF2/WarriorF2.fbx",
-   "fade_triangles": 4369,
+   "fade_triangles": 5837,
    "neck_on_pieces": {
     "Head": 127,
     "Body": 127,
@@ -358,12 +358,12 @@
     "Left": {
      "vertices": 1298,
      "parent": "mixamorig:Head",
-     "bone_off_eyeball_mm": 0.003
+     "bone_off_eyeball_mm": 0.005
     },
     "Right": {
      "vertices": 1298,
      "parent": "mixamorig:Head",
-     "bone_off_eyeball_mm": 0.001
+     "bone_off_eyeball_mm": 0.005
     }
    },
    "neck_in_fbx": {

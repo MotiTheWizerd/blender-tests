@@ -4,7 +4,8 @@ model.json names under "heads" (a head_* model head.py made: a bust at a real he
 The head goes where the body's own head was: its chin at the body's chin's height (the chin is what Mixamo's rigger
 set the head's joint by), its neck centred on the body's, its chin to its crown as long as the body's own head's
 times `size` (1: the same; a head made at a real head's size looks small on a thick-necked body). It is cut CUT above the
-body's neck seam, and its neck, from there BLEND further up, is laid onto the body's own neck surface, wholly at the
+body's neck seam, and its neck, from there BLEND further up (or the head's own `blend`: a neck thinner than the body's
+is laid on it to just under the chin), is laid onto the body's own neck surface, wholly at the
 cut and less the higher, so it narrows or widens into the body's neck instead of stepping. Below the cut a collar of
 skin follows the body's neck surface down to the seam, a ring every RING, the last ring the body's seam ring itself:
 the same vertices in the same places, with the body's weights and normals, so the seam is the body's own. The head
@@ -29,7 +30,7 @@ from eyes import sphere_fit
 from face import profile
 
 CUT = 0.025       # how far above the seam the head is cut (metres, along the neck)
-BLEND = 0.025     # how far above the cut its neck comes back from the body's to its own
+BLEND = 0.025     # how far above the cut its neck comes back from the body's to its own (a head's model.json "neck_blend_cm" says otherwise: a thin neck laid on the body's to just under the chin)
 RING = 0.006      # between the collar's rings
 NECK = 0.1        # a slice of the neck is the vertices this near its line (the jaw and the shoulders are further)
 
@@ -171,14 +172,14 @@ class Skin:
         return out
 
 
-def seat(head_fbx, body_head, point, normal, material, size=1.0):
+def seat(head_fbx, body_head, point, normal, material, size=1.0, blend=BLEND):
     """The head of head_fbx seated on body_head's neck as a new object on its skeleton (body_head, the body's own Head
     piece, is left as it is), its own faces wearing `material` (a name) and its collar the body's, and a report: where
     it went, what was cut and blended, and the fade's triangles for pieces.py to paint."""
     if any(abs(a - b) > 1e-5 for row_a, row_b in zip(body_head.matrix_world, Matrix.Identity(4)) for a, b in zip(row_a, row_b)):
         raise SystemExit("NECK the body's mesh is not in the world's frame")
     plane = Plane(point, normal)
-    report = {"cut_cm": CUT * 100, "blend_cm": BLEND * 100, "size": size}
+    report = {"cut_cm": CUT * 100, "blend_cm": blend * 100, "size": size}
 
     # The body's head: its surface, its weights, its ring on the seam (with the normals the body gives it there).
     body_bm = bmesh.new()
@@ -218,7 +219,7 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
     _, f_chin_scaled, _, _ = profile(np.array([v.co[:] for v in me.vertices]))
     me.transform(Matrix.Translation((0, 0, b_chin - f_chin_scaled)), shape_keys=True)
     co = np.array([v.co[:] for v in me.vertices])
-    top = CUT + BLEND
+    top = CUT + blend
     shift = plane.flat(slice_centre(body_co, plane, top, ring_centre) - slice_centre(co, plane, top, ring_centre))
     me.transform(Matrix.Translation(shift), shape_keys=True)
     co = np.array([v.co[:] for v in me.vertices])
@@ -304,7 +305,7 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
         if hit is None:
             missed += 1
             continue
-        move = (hit - v.co) * (1 - smoothstep((h - CUT) / BLEND))
+        move = (hit - v.co) * (1 - smoothstep((h - CUT) / blend))
         v.co += move
         for layer in shapes:
             v[layer] += move
@@ -375,7 +376,7 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
                    "collar_faces": len(collar), "collar_faces_across_uv_seams": across})
 
     # The head's own neck where it comes back from the body's: its triangles, each corner with the body's skin under
-    # it and how much of the head's own shows there (none at the cut, all of it BLEND above), for pieces.py to paint
+    # it and how much of the head's own shows there (none at the cut, all of it `blend` above), for pieces.py to paint
     # the body's skin into the head's texture there, so the two skins meet with no edge.
     fade = []
     for f in bm.faces:
@@ -385,7 +386,7 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0):
         for tri in ([loops[0], loops[i], loops[i + 1]] for i in range(1, len(loops) - 1)):
             corners = [l.vert.co.copy() for l in tri]
             fade.append(([tuple(l[uv].uv) for l in tri], [tuple(u) for u in body_skin.uvs(corners)],
-                         [smoothstep((plane.height(c) - CUT) / BLEND) for c in corners]))
+                         [smoothstep((plane.height(c) - CUT) / blend) for c in corners]))
     report["fade_triangles"] = fade
 
     # Weighed from the body's head; the seam ring exactly as the body's; each eyeball wholly on an eye bone of its own

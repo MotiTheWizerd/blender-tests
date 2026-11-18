@@ -292,7 +292,11 @@ for head_name in HEADS:
     head_title = os.path.basename(os.path.dirname(made[0]))
     if head_title in heads:
         raise SystemExit(f"PIECES two heads are called {head_title}")
-    heads[head_title], placed = seat(made[0], own_head, *world_planes[0], material=head_title, size=HEAD_SIZE)
+    # The head's own model.json may say how far up its neck is laid onto the body's ("neck_blend_cm"; neck.py BLEND).
+    head_spec_path = os.path.join(os.path.dirname(C.root), head_name, "model.json")
+    head_spec = json.load(open(head_spec_path)) if os.path.exists(head_spec_path) else {}
+    heads[head_title], placed = seat(made[0], own_head, *world_planes[0], material=head_title, size=HEAD_SIZE,
+                                     **({"blend": head_spec["neck_blend_cm"] / 100} if "neck_blend_cm" in head_spec else {}))
     seated[head_title] = (os.path.dirname(made[0]), placed.pop("fade_triangles"))
     report.setdefault("heads", {})[head_title] = dict(
         placed, source=os.path.relpath(made[0], os.path.dirname(C.root)).replace(os.sep, "/"),
