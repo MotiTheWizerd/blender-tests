@@ -618,14 +618,38 @@ def sphere_fit(points):
     return centre, float(np.sqrt(solution[3] + (centre ** 2).sum()))
 
 
+EYEBALL = (0.0105, 0.014)   # a real eyeball's radius (12 mm) and what a fit to a well-shown eye gave (WarriorM 11.3 to WarriorF 14.6)
+EYEBALL_REAL = 0.012
+
+
+def eyeball_fit(surface):
+    """The eyeball under the painted eye's surface (n, 3; x, y, z, the face toward -y): the sphere fitted to it when it
+    is an eyeball's size, else a real eyeball's whose front lies on the surface at the eye's middle (a narrow eye,
+    WarriorF3's at 7.6 mm tall, shows too little of the sculpted ball for its curvature to be read: 8.0 mm came out)."""
+    centre, r = sphere_fit(surface)
+    if EYEBALL[0] <= r <= EYEBALL[1]:
+        return centre, r
+    middle = np.array([surface[:, 0].mean(), surface[:, 2].mean()])
+    near = np.hypot(surface[:, 0] - middle[0], surface[:, 2] - middle[1]) < 0.003
+    front = float(np.median(surface[near if near.any() else slice(None), 1]))
+    print(f"EYES an eyeball fitted {r * 1000:.1f} mm: a real one, {EYEBALL_REAL * 1000:.0f} mm, put under the paint instead")
+    return np.array([middle[0], front + EYEBALL_REAL, middle[1]]), EYEBALL_REAL
+
+
 IRIS_BAND = (0.005, 0.07)     # where painted eyes can be: this far above the nose tip (metres)
 SHINE = 0.9                   # the eye's smoothness: wet, every bit of it
 
 
+SEED_VERTICES = 3   # an iris shown by fewer vertices than this is not trusted (a mesh sparse at the eyes)
+
+
 def painted_irises(head, image, nose):
     """Each painted eye's iris (x, y, z), from the texture under the mesh's vertices: in the band above the nose tip
-    (nose: its (x, y, z)), at the face's front, the vertices whose paint is the iris (coloured, not warm), else the
-    white too (bright and grey). The subject's right first (at -x), then left."""
+    (nose: its (x, y, z)), at the face's front, the vertices whose paint is the iris (coloured, not warm). A side
+    too sparse to show its iris takes the other side's, mirrored across the face (a head made from one picture is
+    symmetric); both too sparse, each is sought in the paint itself (painted_eye_seen). The eye's white is no
+    seed: a highlight painted on the nose is as bright and grey (WarriorF3's right eye was sought from one). The
+    subject's right first (at -x), then left."""
     me = head.data
     co = np.array([v.co[:] for v in me.vertices])
     w, h = image.size
@@ -644,10 +668,18 @@ def painted_irises(head, image, nose):
     band = (co[:, 2] > nose[2] + IRIS_BAND[0]) & (co[:, 2] < nose[2] + IRIS_BAND[1]) & (co[:, 1] < nose[1] + 0.06)
     white = band & (lum > 0.55) & (colour.max(1) - colour.min(1) < 0.12)
     iris = band & ~white & ((b > r + 0.02) | (g > r + 0.02)) & (lum < 0.6)
+    sides = ((-1, iris & (co[:, 0] < 0)), (1, iris & (co[:, 0] > 0)))
+    shown = {sign: co[on].mean(0) for sign, on in sides if on.sum() >= SEED_VERTICES}
     found = []
-    for sign, side in ((-1, co[:, 0] < 0), (1, co[:, 0] > 0)):
-        pick = co[iris & side] if (iris & side).sum() >= 3 else co[(iris | white) & side]
-        found.append(pick.mean(0) if len(pick) >= 3 else painted_eye_seen(head, image, nose, sign))
+    for sign, on in sides:
+        if sign in shown:
+            found.append(shown[sign])
+        elif -sign in shown:
+            print(f"EYES the {'right' if sign < 0 else 'left'} iris shows on {int(on.sum())} vertices: "
+                  f"seeded from the other eye mirrored")
+            found.append(shown[-sign] * np.array([-1.0, 1.0, 1.0]))
+        else:
+            found.append(painted_eye_seen(head, image, nose, sign))
     return found
 
 
@@ -733,7 +765,7 @@ def give_eyes(head, image, title, maps, checks, nose, lid_rest=0.0):
         # lies on the eyeball Tripo sculpts under the paint.
         on = mask if (gx[mask].max() - gx[mask].min()) > 0.012 else (np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.008)
         surface = np.c_[gx[on], depth[on], gz[on]]
-        centre, r = sphere[:2] if sphere is not None else sphere_fit(surface[~np.isnan(surface).any(1)])
+        centre, r = sphere[:2] if sphere is not None else eyeball_fit(surface[~np.isnan(surface).any(1)])
         # The eye the paint leaves in shadow (under the upper lid, a dark side of the iris): on the eyeball the paint
         # lies over, and not as warm as skin; joined to what was found.
         dark = (np.nan_to_num(colour, nan=1.0) @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)) < DARK
@@ -743,7 +775,7 @@ def give_eyes(head, image, title, maps, checks, nose, lid_rest=0.0):
             # A sphere given is the other eye's mirrored, and a face is not quite symmetric: a looser fit the first time.
             mask = on_the_eyeball(mask, warmth, depth, gx, gz, centre, r, dark, 0.002 if sphere is not None and _ == 0 else ON_BALL)
             surface = np.c_[gx[mask], depth[mask], gz[mask]]
-            centre, r = sphere_fit(surface[~np.isnan(surface).any(1)])
+            centre, r = eyeball_fit(surface[~np.isnan(surface).any(1)])
         middle, radius = outline(mask, xs, zs)
         # The painted iris's colour: the eye's coloured middle round the seed, not the pupil, not the white.
         near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.0045

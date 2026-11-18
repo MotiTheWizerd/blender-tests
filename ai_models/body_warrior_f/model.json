@@ -6,7 +6,8 @@
  "rig": "tripo",
  "heads": [
   "head_warrior_f",
-  "head_warrior_f2"
+  "head_warrior_f2",
+  "head_warrior_f3"
  ],
  "neck_along": 0.25,
  "torso": "torso_warrior_f",

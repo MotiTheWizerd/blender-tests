@@ -1,0 +1,9 @@
+{
+ "kind": "character",
+ "about": "The Viking woman, the first character made from zero by the standard pipeline (Moti, 2026-11-18): the base body of the Viking female, which her body shapes and head shapes are morphs of. Iris's picture of a Nordic woman of middle build, bald, nude, barefoot, A-pose, neutral face; Tripo image to model, one skin, rigged by Tripo on Mixamo's bone names (tripo_rig.py). 1.70 m tall, as Forge's women.",
+ "height": 1.7,
+ "triangles": 50000,
+ "rig": "tripo",
+ "heads": [],
+ "breasts": true
+}

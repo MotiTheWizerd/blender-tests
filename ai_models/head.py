@@ -24,6 +24,7 @@ HEAD_HEIGHT = 0.232  # chin to crown, an adult man's
 EYES_OVER_HEIGHT = (0.245, 0.33)  # the eyes' middles apart over chin to crown, a face's (WarriorM 0.281, WarriorM2 0.297, WarriorF 0.284; WarriorF2 0.254 as a tall narrow head and 0.320 made from the sheet, landmarks_*.jpg right both times)
 MAP_SIZE = 4096
 SKIN_SHINE = 0.6  # Tripo's roughness read as URP smoothness looks wet (oily lips and brow): skin shines this much of it
+ROUGHNESS = 0.55  # skin's roughness, flat, for an export without a roughness map (WarriorF3)
 
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(os.path.join(ROOT, "checks"), exist_ok=True)
@@ -44,12 +45,23 @@ def close_holes(mesh):
     bm.from_mesh(mesh)
     uv = bm.loops.layers.uv.active
     made = bmesh.ops.holes_fill(bm, edges=[e for e in bm.edges if e.is_boundary], sides=0)["faces"]
+    made_set = set(made)
     for f in made:
         f.smooth = True
+        # Each corner's choices: what the faces across the hole's edges at that corner draw there. A hole along a
+        # texture seam offers two islands; every corner takes the island most of them lie on (WarriorF3's one hole,
+        # on her right upper lid, had one corner given the other island and the face stretched across the map).
+        choices = {}
         for loop in f.loops:
-            other = next((l for l in loop.vert.link_loops if l.face not in made), None)
-            if other is not None:
-                loop[uv].uv = other[uv].uv
+            choices[loop] = [l[uv].uv.copy() for e in loop.vert.link_edges for g in e.link_faces
+                             if g not in made_set for l in g.loops if l.vert is loop.vert]
+        offered = [c for cs in choices.values() for c in cs]
+        if not offered:
+            continue
+        middle = Vector(np.median(np.array([c[:] for c in offered]), axis=0))
+        for loop, cs in choices.items():
+            if cs:
+                loop[uv].uv = min(cs, key=lambda c: (c - middle).length)
     bm.to_mesh(mesh)
     bm.free()
     return len(made)
@@ -145,14 +157,15 @@ landmark_pictures()
 
 
 def image_of(label):
-    """The texture behind the material's socket <label> (Base Color, Normal, Roughness)."""
+    """The texture behind the material's socket <label> (Base Color, Normal, Roughness); None when the export has
+    none there (WarriorF3's Tripo FBX came with colour and normal maps alone)."""
     nodes = head.active_material.node_tree.nodes
     bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
     link = bsdf.inputs[label].links[0] if bsdf.inputs[label].links else None
     node = link.from_node if link else None
     while node is not None and node.type != "TEX_IMAGE":
         node = next((i.links[0].from_node for i in node.inputs if i.links), None)
-    return node.image
+    return node.image if node is not None else None
 
 
 def pixels(image, size):
@@ -196,9 +209,10 @@ base = pixels(skin, MAP_SIZE)
 base[..., 3] = 1.0
 save(base, os.path.join(OUT, f"{TITLE}_BaseColor.jpg"), "JPEG", False)
 save(pixels(image_of("Normal"), MAP_SIZE), os.path.join(OUT, f"{TITLE}_Normal.png"), "PNG", False)
-rough = pixels(image_of("Roughness"), MAP_SIZE)
-ms = np.zeros_like(rough)
-ms[..., 3] = (1.0 - rough[..., 0]) * SKIN_SHINE
+roughness = image_of("Roughness")
+rough = pixels(roughness, MAP_SIZE)[..., 0] if roughness is not None else np.full((MAP_SIZE, MAP_SIZE), ROUGHNESS, np.float32)
+ms = np.zeros((MAP_SIZE, MAP_SIZE, 4), np.float32)
+ms[..., 3] = (1.0 - rough) * SKIN_SHINE
 save(ms, os.path.join(OUT, f"{TITLE}_MetallicSmoothness.png"), "PNG", True)
 
 bpy.ops.object.select_all(action="DESELECT")

@@ -242,7 +242,10 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   times its depth from the root, none at half the nipples' spacing, smoothly between, and only as much as the spine
   weighs it, taken from its other bones in proportion. `pieces.json` "breasts" (body_warrior_f: 641 and 688
   vertices, 3.9 cm deep). Forge's `SoftTissue` springs them; **LOOK** with a bone moved 3 cm (no tearing, ribs still).
-- **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front) → Tripo → `head_<name>/source_tripo.fbx`
+- **A new head** for a body: Iris's sheet (bald, neutral, symmetric, facing front; **eyes open, mouth closed, and from
+  WarriorF3 on, Moti's rule: zero makeup round the eyes, no eyeliner, no eyebrows**: the eye finder takes dark paint
+  on the eyeball for eye, a shut lid shows the open eye's paint, and brows painted in can't be changed, where brows made
+  as a part of their own, on the head's sheet as the hair is, can) → Tripo → `head_<name>/source_tripo.fbx`
   + `.fbm` (with a `model.json`: `"lid_rest"`) → `head.py -- head_<name> <Title>` (the Title sorts the face editor's
   Face choice: WarriorF2 after WarriorF) → **LOOK** at `checks/landmarks_front/side.jpg` (crown red, nose blue, chin
   green: the size is taken between them; the eyes' spacing check stops a chin found on the neck, but a tall narrow head
@@ -250,6 +253,13 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   `neck_*_<Head>.jpg`, `whole_front_<Head>.jpg`; `pieces.json` "heads": seam 0.0 mm, `skin_gain_rgb`) → copy only the
   new `build/forge/<Body>/Heads/<Head>*` files to Forge's `Content/Characters/<Body>/Heads/` → *Build Characters*
   (then `git checkout` Humanoid.controller if it only re-serialized) → EditMode → the face editor's Face choice.
+  What WarriorF3 (a Tripo head from a picture of its own, 8K colour and normal maps alone) taught the scripts: a mesh
+  sparse at the eyes may show an iris on 2 vertices, and a painted highlight on the nose is as bright and grey as an
+  eye's white, so a sparse side is seeded from the other eye mirrored (`eyes.py painted_irises`); a narrow eye (7 mm
+  open) shows too little of the sculpted ball to fit its curvature (8 mm came out), so a fit outside 10.5 to 14 mm is
+  replaced by a real 12 mm ball under the paint (`eyeball_fit`); no roughness map, a flat 0.55 stands in (`head.py
+  ROUGHNESS`); and a hole closed on a texture seam takes every corner from the island most of them lie on
+  (`close_holes`: one corner from the other island stretched the face across the map, a tan square on her lid).
 
 ## Next (planned, not built)
 
