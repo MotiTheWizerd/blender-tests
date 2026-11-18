@@ -5,10 +5,10 @@
  "triangles": 20000,
  "locks": true,
  "motion": {
-  "bend": 4.5,
-  "hold": 3.5,
-  "holdTip": 2.5,
+  "bend": 15.0,
+  "hold": 15.0,
+  "holdTip": 15.0,
   "gravity": 0.35,
-  "damping": 5.0
+  "damping": 40.0
  }
 }
