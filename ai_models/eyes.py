@@ -105,15 +105,17 @@ def opening(colour, seed):
 
 ON_BALL = 0.0004    # paint this near the fitted eyeball's surface lies on it (the lids stand off it)
 SHADED = 0.4        # the eye in the paint's shadow is less warm than this (skin ~0.5; the eye in light ~0.05)
+DARK = 0.22         # or darker than this (luminance): a brown iris is as warm as brown skin (WarriorF2 made from the sheet), but far darker
 
 
-def on_the_eyeball(mask, warmth, depth, gx, gz, centre, r):
-    """mask grown over what lies on the eyeball (centre, r: the sphere fitted to it) and is not as warm as skin,
-    joined to it: the eye where its paint is shaded, which a warmth alone takes for skin."""
+def on_the_eyeball(mask, warmth, depth, gx, gz, centre, r, dark=None, tolerance=ON_BALL):
+    """mask grown over what lies on the eyeball (centre, r: the sphere fitted to it) and is not as warm as skin (or is
+    dark, `dark`: a brown iris), joined to it: the eye where its paint is shaded or brown, which a warmth alone takes
+    for skin."""
     inside = r ** 2 - (gx - centre[0]) ** 2 - (gz - centre[2]) ** 2
     front = centre[1] - np.sqrt(np.maximum(inside, 0.0))
-    near = (inside > 0) & (np.abs(np.nan_to_num(depth, nan=1.0) - front) < ON_BALL) \
-        & (np.nan_to_num(warmth, nan=1.0) < SHADED)
+    near = (inside > 0) & (np.abs(np.nan_to_num(depth, nan=1.0) - front) < tolerance) \
+        & ((np.nan_to_num(warmth, nan=1.0) < SHADED) | (dark if dark is not None else False))
     grown = mask.copy()
     stack = [tuple(p) for p in np.argwhere(mask)]
     rows, cols = mask.shape
@@ -710,17 +712,38 @@ def give_eyes(head, image, title, maps, checks, nose, lid_rest=0.0):
     eye's front map with its outline drawn (eyes_map_<side>.png). Returns what was found and made."""
     import bmesh
     report, outlines = {}, {}
-    for side, iris in zip(("right", "left"), painted_irises(head, image, nose)):
+    irises = list(painted_irises(head, image, nose))
+
+    def find(side, iris, sphere=None):
+        """The eye at iris (the painted iris's place) found, cut round and put in the report; sphere: the eyeball to
+        start from instead of one fitted to the opening (the other eye's, mirrored, when this one's paint hid it)."""
         xs, zs, colour, depth = front_map(head, image, iris)
         seed = (int(np.argmin(np.abs(zs - iris[2]))), int(np.argmin(np.abs(xs - iris[0]))))
         mask, warmth, line = opening(colour, seed)
-        middle, radius = outline(mask, xs, zs)
         gx, gz = np.meshgrid(xs, zs)
-        surface = np.c_[gx[mask], depth[mask], gz[mask]]
-        centre, r = sphere_fit(surface[~np.isnan(surface).any(1)])
+        if sphere is not None:
+            # The other eye's outline mirrored across the face is this eye's opening too (a symmetric sheet gives symmetric
+            # eyes), joined to what the paint gave.
+            other_middle, other_radius = sphere[2]
+            rr = np.array([[radius_at(other_middle, other_radius, -x, z) for x in xs] for z in zs])
+            mask |= np.hypot(-gx - other_middle[0], gz - other_middle[1]) < rr
+        middle, radius = outline(mask, xs, zs)
+        # A sphere through the opening found; an opening that is only a sliver of white (WarriorF2's right eye, a brown
+        # iris on brown skin: 2.2 mm across of 22) gives a wrong one, so then through the disc round the seed, which
+        # lies on the eyeball Tripo sculpts under the paint.
+        on = mask if (gx[mask].max() - gx[mask].min()) > 0.012 else (np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.008)
+        surface = np.c_[gx[on], depth[on], gz[on]]
+        centre, r = sphere[:2] if sphere is not None else sphere_fit(surface[~np.isnan(surface).any(1)])
         # The eye the paint leaves in shadow (under the upper lid, a dark side of the iris): on the eyeball the paint
         # lies over, and not as warm as skin; joined to what was found.
-        mask = on_the_eyeball(mask, warmth, depth, gx, gz, centre, r)
+        dark = (np.nan_to_num(colour, nan=1.0) @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)) < DARK
+        # Twice: a sphere fitted to a sliver of white (WarriorF2's right eye, 7.6 mm) grows over little; grown, it is
+        # fitted again to the whole eye and grows over the rest.
+        for _ in range(2):
+            # A sphere given is the other eye's mirrored, and a face is not quite symmetric: a looser fit the first time.
+            mask = on_the_eyeball(mask, warmth, depth, gx, gz, centre, r, dark, 0.002 if sphere is not None and _ == 0 else ON_BALL)
+            surface = np.c_[gx[mask], depth[mask], gz[mask]]
+            centre, r = sphere_fit(surface[~np.isnan(surface).any(1)])
         middle, radius = outline(mask, xs, zs)
         # The painted iris's colour: the eye's coloured middle round the seed, not the pupil, not the white.
         near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.0045
@@ -746,6 +769,17 @@ def give_eyes(head, image, title, maps, checks, nose, lid_rest=0.0):
             if 0 <= j < picture.shape[0] and 0 <= i < picture.shape[1]:
                 picture[j, i] = (1.0, 0.1, 0.8)
         bpy.data.images.remove(save_map(picture, os.path.join(checks, f"eyes_map_{side}.png"), "sRGB"))
+
+    for side, iris in zip(("right", "left"), irises):
+        find(side, iris)
+    # An eye found far narrower than the other was hidden by its paint (a brown iris under a dark lid): found again
+    # from the other's eyeball mirrored across the face (the head is centred on x = 0), which it lies on.
+    for side, other in (("right", "left"), ("left", "right")):
+        if report[side]["width_mm"] < 0.6 * report[other]["width_mm"]:
+            ball = report[other]["eyeball"]
+            centre = np.array(ball["centre_m"]) * np.array([-1.0, 1.0, 1.0])
+            find(side, irises[0 if side == "right" else 1], (centre, ball["radius_mm"] / 1000, outlines[other]))
+            report[side]["found_from_the_other"] = True
 
     bm = bmesh.new()
     bm.from_mesh(head.data)

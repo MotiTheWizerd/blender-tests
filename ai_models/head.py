@@ -21,7 +21,7 @@ from face import profile
 ROOT = os.path.join(HERE, NAME)
 OUT = os.path.join(ROOT, "build", "forge", TITLE)
 HEAD_HEIGHT = 0.232  # chin to crown, an adult man's
-EYES_OVER_HEIGHT = (0.245, 0.32)  # the eyes' middles apart over chin to crown, a face's (WarriorM 0.281, WarriorM2 0.297, WarriorF 0.284; WarriorF2 0.254, a tall narrow head whose landmarks_*.jpg are right)
+EYES_OVER_HEIGHT = (0.245, 0.33)  # the eyes' middles apart over chin to crown, a face's (WarriorM 0.281, WarriorM2 0.297, WarriorF 0.284; WarriorF2 0.254 as a tall narrow head and 0.320 made from the sheet, landmarks_*.jpg right both times)
 MAP_SIZE = 4096
 SKIN_SHINE = 0.6  # Tripo's roughness read as URP smoothness looks wet (oily lips and brow): skin shines this much of it
 

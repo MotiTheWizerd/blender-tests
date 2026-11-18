@@ -1,5 +1,4 @@
 {
- "about": "A second female face for BodyWarriorF (Moti, 2026-11-18, Tripo), beside WarriorF: the face editor's second woman's face. Her Tripo neck is thinner than the body's, so it is laid on the body's to just under her chin (neck_blend_cm).",
- "lid_rest": 0.3,
- "neck_blend_cm": 3.3
+ "about": "A second female face for BodyWarriorF (Moti, 2026-11-18, Tripo), beside WarriorF: the face editor's second woman's face. Made from WarriorF's own head sheet (sheet.py) with the new face painted on in Iris, so its skull and neck are the body's own.",
+ "lid_rest": 0.3
 }
