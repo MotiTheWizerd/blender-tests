@@ -21,7 +21,7 @@ from face import profile
 ROOT = os.path.join(HERE, NAME)
 OUT = os.path.join(ROOT, "build", "forge", TITLE)
 HEAD_HEIGHT = 0.232  # chin to crown, an adult man's
-EYES_OVER_HEIGHT = (0.27, 0.32)  # the eyes' middles apart over chin to crown, a face's (WarriorM 0.281, WarriorM2 0.297)
+EYES_OVER_HEIGHT = (0.245, 0.32)  # the eyes' middles apart over chin to crown, a face's (WarriorM 0.281, WarriorM2 0.297, WarriorF 0.284; WarriorF2 0.254, a tall narrow head whose landmarks_*.jpg are right)
 MAP_SIZE = 4096
 SKIN_SHINE = 0.6  # Tripo's roughness read as URP smoothness looks wet (oily lips and brow): skin shines this much of it
 
@@ -97,6 +97,51 @@ shape("JawWidth", co + np.c_[co[:, 0] * 0.15 * f, 0 * f, 0 * f])
 f = falloff(chin_front + [0, 0, 0.012], np.array([0.03, 0.03, 0.025]))
 shape("JawChin", co + np.c_[0 * f, -0.012 * f, 0 * f])
 print("LANDMARKS nose", nose_tip.round(4), "chin", chin_front.round(4))
+
+
+def landmark_pictures():
+    """checks/landmarks_front.jpg and landmarks_side.jpg: the head flat grey with its crown (red), nose tip (blue) and
+    chin's front (green) marked, to see by eye that its size was taken between the right places (a chin found on the
+    neck made head_face_1 13% small; eyes set close for a tall head, WarriorF2's, are the face's own, and the eyes'
+    check below cannot tell the two apart)."""
+    from place import pictures_as_jpeg
+    scene = bpy.context.scene
+    pictures_as_jpeg(scene)
+    scene.render.engine = "BLENDER_WORKBENCH"
+    scene.display.shading.light = "FLAT"
+    scene.display.shading.color_type = "MATERIAL"
+    crown_z = co[:, 2].max()
+    crown_y = co[co[:, 2] > crown_z - 0.01][:, 1].mean()
+    marks = []
+    for name, at, colour in (("crown", (0.0, crown_y, crown_z), (1, 0, 0, 1)), ("nose", nose_tip, (0, 0, 1, 1)),
+                             ("chin", chin_front, (0, 1, 0, 1))):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.005, location=tuple(float(v) for v in at))
+        mark = bpy.context.object
+        material = bpy.data.materials.new(name + " (mark)")
+        material.diffuse_color = colour
+        mark.data.materials.append(material)
+        marks.append(mark)
+    cam = bpy.data.objects.new("landmarks camera", bpy.data.cameras.new("landmarks camera"))
+    scene.collection.objects.link(cam)
+    scene.camera = cam
+    cam.data.type = "ORTHO"
+    cam.data.ortho_scale = crown_z * 1.15
+    centre = Vector((0.0, (co[:, 1].min() + co[:, 1].max()) / 2, crown_z / 2))
+    scene.render.resolution_x = scene.render.resolution_y = 900
+    for view, direction in (("front", (0, -1, 0)), ("side", (1, 0, 0))):
+        d = Vector(direction)
+        cam.location = centre + d * 2
+        cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+        scene.render.filepath = os.path.join(ROOT, "checks", f"landmarks_{view}.jpg")
+        bpy.ops.render.render(write_still=True)
+    for mark in marks:
+        bpy.data.objects.remove(mark)
+    bpy.data.objects.remove(cam)
+    bpy.context.view_layer.objects.active = head
+    head.select_set(True)
+
+
+landmark_pictures()
 
 
 def image_of(label):

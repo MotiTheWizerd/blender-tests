@@ -1,0 +1,106 @@
+{
+  "chin_to_crown": 0.232,
+  "scale": 0.2828,
+  "holes_closed": 1,
+  "size_m": [
+    0.276,
+    0.221,
+    0.276
+  ],
+  "triangles": 95095,
+  "nose_tip": [
+    0.0001,
+    -0.1106,
+    0.1105
+  ],
+  "chin_front": [
+    0.0001,
+    -0.0763,
+    0.047
+  ],
+  "shapes": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+  ],
+  "eyes": {
+    "right": {
+      "middle_m": [
+        -0.0299,
+        0.1539
+      ],
+      "width_mm": 21.5,
+      "height_mm": 8.6,
+      "pixels": 4694,
+      "warm_line": 0.274,
+      "touches_map_edge": false,
+      "surface_y": -0.0732,
+      "eyeball": {
+        "centre_m": [
+          -0.0296,
+          -0.0627,
+          0.154
+        ],
+        "radius_mm": 12.1
+      },
+      "iris_rgb": [
+        0.6470000147819519,
+        0.5690000057220459,
+        0.5180000066757202
+      ],
+      "faces_cut": 253,
+      "rim_vertices": 72,
+      "wall_faces": 72,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "holes_mended_faces": 1,
+      "blink": {
+        "most_turn_deg": 34.3,
+        "vertices_moved": 516
+      }
+    },
+    "left": {
+      "middle_m": [
+        0.0311,
+        0.1538
+      ],
+      "width_mm": 22.1,
+      "height_mm": 9.1,
+      "pixels": 5973,
+      "warm_line": 0.343,
+      "touches_map_edge": false,
+      "surface_y": -0.0734,
+      "eyeball": {
+        "centre_m": [
+          0.0293,
+          -0.0639,
+          0.1531
+        ],
+        "radius_mm": 11.2
+      },
+      "iris_rgb": [
+        0.5059999823570251,
+        0.45100000500679016,
+        0.3799999952316284
+      ],
+      "faces_cut": 322,
+      "rim_vertices": 75,
+      "wall_faces": 75,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "holes_mended_faces": 0,
+      "blink": {
+        "most_turn_deg": 39.4,
+        "vertices_moved": 503
+      }
+    },
+    "lid_rest": 0.3,
+    "iris_rgb": [
+      0.576,
+      0.51,
+      0.449
+    ],
+    "spacing_over_height": 0.254
+  }
+}

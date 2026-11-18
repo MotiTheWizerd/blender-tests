@@ -5,7 +5,8 @@
  "triangles": 50000,
  "rig": "tripo",
  "heads": [
-  "head_warrior_f"
+  "head_warrior_f",
+  "head_warrior_f2"
  ],
  "neck_along": 0.25,
  "torso": "torso_warrior_f",

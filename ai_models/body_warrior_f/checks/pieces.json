@@ -296,6 +296,99 @@
     "1 its own": 25504,
     "2 its eyes": 2688
    }
+  },
+  "WarriorF2": {
+   "cut_cm": 2.5,
+   "blend_cm": 2.5,
+   "size": 1.0,
+   "scale": 1.0138,
+   "body_chin_to_crown_cm": 23.52,
+   "body_chin_z": 1.4647,
+   "head_chin_z": 0.0442,
+   "crown_body_m": 1.6999,
+   "crown_head_m": 1.7027,
+   "shift_in_plane_mm": [
+    -4.2,
+    2.0,
+    0.7
+   ],
+   "chin_above_seam_cm": 7.4,
+   "head_open_edges_off_the_cut": 0,
+   "eyeballs": {
+    "Right": {
+     "centre_m": [
+      -0.03418,
+      -0.06053,
+      1.57886
+     ],
+     "radius_mm": 12.27
+    },
+    "Left": {
+     "centre_m": [
+      0.02553,
+      -0.06175,
+      1.57795
+     ],
+     "radius_mm": 11.35
+    }
+   },
+   "neck_vertices_blended": 2187,
+   "rays_missed": 0,
+   "collar_rings": 4,
+   "seam_ring_vertices": 127,
+   "cut_ring_vertices": 187,
+   "collar_faces": 695,
+   "collar_faces_across_uv_seams": 0,
+   "shape_moves_at_cut_mm": 0.372,
+   "source": "head_warrior_f2/build/forge/WarriorF2/WarriorF2.fbx",
+   "fade_triangles": 4369,
+   "neck_on_pieces": {
+    "Head": 127,
+    "Body": 127,
+    "apart_mm": 0.0002,
+    "turn_deg": 0.044,
+    "head_open_edge_vertices_on_no_seam": 147
+   },
+   "skin_gain_rgb": [
+    0.812,
+    1.068,
+    1.566
+   ],
+   "eye_bones_in_fbx": {
+    "Left": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.003
+    },
+    "Right": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.001
+    }
+   },
+   "neck_in_fbx": {
+    "Head": 127,
+    "Body": 127,
+    "apart_mm": 0.0002,
+    "turn_deg": 0.044,
+    "head_open_edge_vertices_on_no_seam": 147
+   },
+   "shape_keys_in_fbx": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+   ],
+   "materials_in_fbx": [
+    "BodyWarriorF.003",
+    "WarriorF2",
+    "WarriorF2Eyes"
+   ],
+   "faces_per_material_in_fbx": {
+    "0 body's (collar)": 695,
+    "1 its own": 31021,
+    "2 its eyes": 2688
+   }
   }
  },
  "seams_on_pieces": {
@@ -366,7 +459,8 @@
   "Feet": 8315,
   "heads": {
    "BodyWarriorF": 5415,
-   "WarriorF": 28854
+   "WarriorF": 28854,
+   "WarriorF2": 34404
   }
  },
  "bones_in_fbx": 67,
