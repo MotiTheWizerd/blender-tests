@@ -163,10 +163,17 @@
    "Color": 567837,
    "Normal": 0
   },
+  "skin_even": {
+   "strength": 0.7,
+   "factor_p5_p95": [
+    0.864,
+    1.264
+   ]
+  },
   "skin_gain_rgb": [
-   1.383,
-   1.319,
-   1.29
+   1.371,
+   1.325,
+   1.272
   ]
  },
  "breasts": {
@@ -256,10 +263,17 @@
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 111
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.93,
+     1.179
+    ]
+   },
    "skin_gain_rgb": [
-    0.785,
-    0.854,
-    1.038
+    0.781,
+    0.858,
+    1.035
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -349,10 +363,17 @@
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 168
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.689,
+     1.317
+    ]
+   },
    "skin_gain_rgb": [
-    0.736,
-    0.908,
-    0.964
+    0.739,
+    0.905,
+    0.95
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -442,10 +463,17 @@
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 162
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.6,
+     1.6
+    ]
+   },
    "skin_gain_rgb": [
-    1.24,
-    1.124,
-    1.166
+    1.266,
+    1.149,
+    1.209
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -535,10 +563,17 @@
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 108
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.723,
+     1.207
+    ]
+   },
    "skin_gain_rgb": [
     0.821,
-    0.867,
-    0.964
+    0.857,
+    0.937
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -628,10 +663,17 @@
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 167
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.828,
+     1.24
+    ]
+   },
    "skin_gain_rgb": [
-    0.812,
-    0.726,
-    0.851
+    0.801,
+    0.731,
+    0.842
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -721,10 +763,17 @@
     "turn_deg": 0.044,
     "head_open_edge_vertices_on_no_seam": 63
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.837,
+     1.154
+    ]
+   },
    "skin_gain_rgb": [
-    0.744,
-    0.591,
-    0.579
+    0.712,
+    0.598,
+    0.584
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -838,6 +887,13 @@
    "WarriorF5": 46222,
    "WarriorF7": 46803
   }
+ },
+ "skin_even": {
+  "strength": 0.7,
+  "factor_p5_p95": [
+   0.89,
+   1.175
+  ]
  },
  "bones_in_fbx": 67,
  "meshes_in_fbx": [

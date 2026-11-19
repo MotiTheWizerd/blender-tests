@@ -469,8 +469,13 @@ def body_at(uvs):
 
 
 for head_title, (folder, fade) in seated.items():
-    # The head's skin to the body's colour: their whole skins' middles (linear), not a strip of either.
+    # The head's skin to the body's colour: their whole skins' middles (linear), not a strip of either; evened as the
+    # body's is first (a head from a picture brings its neck painted in the jaw's shadow: on body_warrior_f the neck
+    # of every head read 0.475 to 0.49 against a 0.51 to 0.54 face and a 0.56 chest, a dark ring under the jaw).
     head_colour = pixels(os.path.join(folder, f"{head_title}_BaseColor.jpg"))
+    if SKIN_EVEN:
+        report["heads"][head_title]["skin_even"] = {"strength": SKIN_EVEN,
+                                                   "factor_p5_p95": [round(f, 3) for f in even(head_colour, SKIN_EVEN)]}
     gain = body_skin / np.median(linear(head_colour[..., :3][skin_of(head_colour)]), 0)
     head_colour[..., :3] = encoded(linear(head_colour[..., :3]) * gain)
     report["heads"][head_title]["skin_gain_rgb"] = [round(float(g), 3) for g in gain]
@@ -489,6 +494,9 @@ for head_title, (folder, fade) in seated.items():
 if torso_fade is not None:
     # The torso's maps as a head's: its skin to the body's colour, the body's skin painted in where it fades out.
     torso_colour = pixels(torso_maps["Color"])
+    if SKIN_EVEN:
+        report["torso"]["skin_even"] = {"strength": SKIN_EVEN,
+                                        "factor_p5_p95": [round(f, 3) for f in even(torso_colour, SKIN_EVEN)]}
     covered = skin_of(torso_colour)
     gain = body_skin / np.median(linear(torso_colour[..., :3][covered]), 0)
     torso_colour[..., :3] = encoded(linear(torso_colour[..., :3]) * gain)

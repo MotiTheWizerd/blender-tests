@@ -212,7 +212,10 @@ with skin) saved as `<name>/source_mixamo.fbx` (private, git-ignored as the Trip
   repainted on that strip of neck from the body's skin into its own, so neither the seam nor the cut shows; its
   colour is matched to the body's, whole skin to whole skin (`skin_gain_rgb`; a strip of neck matched only the neck,
   and in the game his face read pinker than his chest), after the body's own large blotches are evened (model.json
-  `skin_even`, 0.7 here: the AI paints grime and shading into a body's skin; pores stay). Each collar face takes its
+  `skin_even`, 0.7 here: the AI paints grime and shading into a body's skin; pores stay). The heads' maps and the
+  torso's are evened by the same knob before their gains (body_warrior_f, measured in Unity, s1022: every neck was
+  painted in the jaw's shadow, 0.475 to 0.49 against a 0.51 to 0.54 face and a 0.56 chest in the green channel, a
+  dark ring at the join on every picture-head; evened, 0.50 to 0.54 along the whole front). Each collar face takes its
   UVs from one island of the texture (`collar_faces_across_uv_seams` must be 0: across two, it draws the black
   between them). The shape keys (the face's sliders) survive into the FBX (`shape_keys_in_fbx`). Per head, the seam
   is measured again (`neck_on_pieces`, `neck_in_fbx`: 156 vertices, 0.0005 mm, 0°) and pictured on the body
