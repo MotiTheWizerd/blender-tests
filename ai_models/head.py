@@ -33,15 +33,23 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 # along every texture seam (the recipe's step 1), so it is welded first, or every seam is an open edge to close_holes
 # and the eyes' cut; its roughness is the green channel of a packed map (image_of says which).
 GLB = not os.path.exists(os.path.join(ROOT, "source_tripo.fbx")) and os.path.exists(os.path.join(ROOT, "source_tripo.glb"))
-if GLB:
-    bpy.ops.import_scene.gltf(filepath=os.path.join(ROOT, "source_tripo.glb"))
+SOURCE = os.path.join(ROOT, "source_tripo.glb" if GLB else "source_tripo.fbx")
+# The reduced head (reduce_head: 4 minutes on a 2M-triangle GLB) kept beside the build and taken from there while the
+# source is older than it, so a run that fails past it (an eye's cut) costs seconds to try again. Delete it to reduce afresh.
+REDUCED = os.path.join(ROOT, "build", f"{TITLE}_reduced.blend")
+FROM_REDUCED = os.path.exists(REDUCED) and os.path.getmtime(REDUCED) > os.path.getmtime(SOURCE)
+if FROM_REDUCED:
+    bpy.ops.wm.open_mainfile(filepath=REDUCED)
+    print(f"REDUCE taken from {os.path.basename(REDUCED)}")
+elif GLB:
+    bpy.ops.import_scene.gltf(filepath=SOURCE)
 else:
-    bpy.ops.import_scene.fbx(filepath=os.path.join(ROOT, "source_tripo.fbx"))
+    bpy.ops.import_scene.fbx(filepath=SOURCE)
 head = next(o for o in bpy.context.scene.objects if o.type == "MESH")
 bpy.context.view_layer.objects.active = head
 head.select_set(True)
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-if GLB:
+if GLB and not FROM_REDUCED:
     import bmesh
     welded = bmesh.new()
     welded.from_mesh(head.data)
@@ -128,10 +136,12 @@ def reduce_head(high):
     return low
 
 
-if sum(len(f.vertices) - 2 for f in head.data.polygons) > REDUCE_OVER:
+if not FROM_REDUCED and sum(len(f.vertices) - 2 for f in head.data.polygons) > REDUCE_OVER:
     head = reduce_head(head)
     bpy.context.view_layer.objects.active = head
     head.select_set(True)
+    os.makedirs(os.path.dirname(REDUCED), exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=REDUCED, relative_remap=False, copy=True)
 
 
 def close_holes(mesh):

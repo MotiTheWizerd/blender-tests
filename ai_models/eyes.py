@@ -172,7 +172,12 @@ def rim_loop(rim):
         at = loop[-1]
         ways = [e.other_vert(at) for e in at.link_edges if e.is_boundary and e.other_vert(at) in rim]
         if len(ways) != 2:
-            raise SystemExit(f"EYES the eye's hole is not one plain loop ({len(ways)} edges of it at a vertex)")
+            edges = [(tuple(round(c, 4) for c in e.other_vert(at).co), e.other_vert(at) in rim, e.is_boundary,
+                      len(e.link_faces)) for e in at.link_edges]
+            raise SystemExit(f"EYES the eye's hole is not one plain loop ({len(ways)} edges of it at a vertex): "
+                             f"rim {len(rim)} vertices, loop so far {len(loop)}, at {tuple(round(c, 4) for c in at.co)} "
+                             f"with {sum(e.is_boundary for e in at.link_edges)} open edges of {len(at.link_edges)}; "
+                             f"its edges (other end, in rim, open, faces): {edges}")
         ahead = ways[0] if ways[1] is previous else ways[1]
         if ahead is start:
             break
@@ -186,9 +191,14 @@ def rim_loop(rim):
     return loop
 
 
+HOLE_REACH = 0.06   # a hole seeded near the eye is followed round through vertices this near it, whatever their depth
+
+
 def boundary_loops(bm, middle, surface_y):
     """The holes near an eye (middle: its (x, z); surface_y: its painted surface's depth): each the set of its open
-    edges, joined at their vertices."""
+    edges, joined at their vertices. A hole is found by its edges within FRONT of the eye's surface and 3 cm of its
+    middle, then followed whole: a deep-set eye's corners lie further back than FRONT (WarriorM3: eyeballs 17.8 mm,
+    its outer corners behind the window), and a loop cut by the window is not one plain loop."""
     near = {e for e in bm.edges if e.is_boundary and all(
         abs(v.co.y - surface_y) < FRONT and math.hypot(v.co.x - middle[0], v.co.z - middle[1]) < 0.03 for v in e.verts)}
     holes = []
@@ -198,12 +208,22 @@ def boundary_loops(bm, middle, surface_y):
             e = todo.pop()
             hole.add(e)
             for v in e.verts:
+                if math.hypot(v.co.x - middle[0], v.co.z - middle[1]) > HOLE_REACH:
+                    continue
                 for g in v.link_edges:
-                    if g in near:
+                    if g.is_boundary and g not in hole:
                         near.discard(g)
                         todo.append(g)
         holes.append(hole)
     return holes
+
+
+def hole_verts(bm, middle, surface_y):
+    """The vertices of the eye's own hole (the largest near it), whole."""
+    holes = boundary_loops(bm, middle, surface_y)
+    if not holes:
+        raise SystemExit("EYES no hole near the eye after the cut")
+    return {v for e in max(holes, key=len) for v in e.verts}
 
 
 def cut(bm, middle, radius, surface_y, eyeball):
@@ -253,9 +273,24 @@ def cut(bm, middle, radius, surface_y, eyeball):
     holes = boundary_loops(bm, middle, surface_y)
     if len(holes) > 1:
         uv = bm.loops.layers.uv.active
-        for hole in sorted(holes, key=len)[:-1]:
-            # A face straight from the hole's edge in order (holes_fill leaves one a fraction of a millimetre across).
-            made = [bm.faces.new(rim_loop({v for e in hole for v in e.verts}))]
+        holes = sorted(holes, key=len)
+        opening = holes[-1]
+        for hole in holes[:-1]:
+            verts = {v for e in hole for v in e.verts}
+            if all(sum(1 for e in v.link_edges if e in hole) == 2 for v in verts) and all(len(e.link_faces) == 1 for e in hole):
+                # A face straight from the hole's edge in order (holes_fill leaves one a fraction of a millimetre across).
+                made = [bm.faces.new(rim_loop(verts))]
+            else:
+                # Not a hole but a sliver the reduce left non-manifold (WarriorM3: three vertices at the right eye, an
+                # edge with three faces on it): its faces go, and what they leave open is filled plainly.
+                centre = sum((v.co for v in verts), Vector()) / len(verts)
+                bmesh.ops.delete(bm, geom=list({f for e in hole for f in e.link_faces}), context="FACES_ONLY")
+                bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+                open_edges = [e for e in bm.edges if e.is_valid and e.is_boundary and e not in opening
+                              and all((v.co - centre).length < 0.004 for v in e.verts)]
+                made = bmesh.ops.holes_fill(bm, edges=open_edges, sides=12)["faces"]
+                print(f"EYES a non-manifold sliver of {len(verts)} vertices at {tuple(round(c, 4) for c in centre)} "
+                      f"taken away, {len(made)} faces filled in")
             for f in made:
                 f.smooth = True
                 for loop in f.loops:
@@ -314,8 +349,7 @@ def cut(bm, middle, radius, surface_y, eyeball):
         weights = poly_3d_calc([v.co for v in found.verts], location)
         return sum((l[before_uv].uv * w for l, w in zip(found.loops, weights)), Vector((0.0, 0.0)))
 
-    rim = {v for e in bm.edges if e.is_boundary for v in e.verts
-           if abs(v.co.y - surface_y) < FRONT and math.hypot(v.co.x - middle[0], v.co.z - middle[1]) < 0.03}
+    rim = hole_verts(bm, middle, surface_y)
     shapes = list(bm.verts.layers.shape.values())
     # The cut's edge is a staircase on the skin's grid. Each of its vertices goes onto the outline in its turn round
     # the hole, as far along the outline as it is along the staircase: in order, evenly, so the rim never folds back
@@ -353,8 +387,7 @@ def cut(bm, middle, radius, surface_y, eyeball):
             v[layer] += move
     # Edges of the rim that the snapping made too short to see: their two ends become one.
     bmesh.ops.remove_doubles(bm, verts=list(rim), dist=0.0002)
-    rim = [v for v in bm.verts if v.is_valid and v.is_boundary
-           and abs(v.co.y - surface_y) < FRONT and math.hypot(v.co.x - middle[0], v.co.z - middle[1]) < 0.03]
+    rim = [v for v in hole_verts(bm, middle, surface_y) if v.is_valid and v.is_boundary]
     # The rim draws the skin now under it (its corners' texture was where the grid's corner stood, on the eye's white),
     # each face's corner from that face's island.
     for v in rim:

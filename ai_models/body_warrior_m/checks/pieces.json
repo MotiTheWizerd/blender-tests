@@ -4,6 +4,14 @@
  "open_edges_source": 130,
  "holes_closed": 12,
  "open_edges_left": 81,
+ "neck_clear": {
+  "clear_cm": 6.0,
+  "reach_cm": 6.0,
+  "fade_cm": 4.0,
+  "vertices": 90,
+  "weight_moved": 0.74,
+  "weight_moved_max": 0.024
+ },
  "seams": {
   "neck": {
    "bone": "Neck -> Head at 0.4",
@@ -216,10 +224,17 @@
     "turn_deg": 0.0,
     "head_open_edge_vertices_on_no_seam": 89
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.672,
+     1.149
+    ]
+   },
    "skin_gain_rgb": [
-    0.839,
-    0.997,
-    1.144
+    0.837,
+    0.994,
+    1.151
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -305,14 +320,21 @@
    "neck_on_pieces": {
     "Head": 156,
     "Body": 156,
-    "apart_mm": 0.0004,
+    "apart_mm": 0.0005,
     "turn_deg": 0.0,
     "head_open_edge_vertices_on_no_seam": 76
    },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.733,
+     1.263
+    ]
+   },
    "skin_gain_rgb": [
-    0.839,
+    0.846,
     1.138,
-    1.41
+    1.423
    ],
    "eye_bones_in_fbx": {
     "Left": {
@@ -347,6 +369,106 @@
    "faces_per_material_in_fbx": {
     "0 body's (collar)": 817,
     "1 its own": 25258,
+    "2 its eyes": 2688
+   }
+  },
+  "WarriorM3": {
+   "cut_cm": 2.5,
+   "blend_cm": 2.9,
+   "size": 1.0,
+   "scale": 1.1068,
+   "body_chin_to_crown_cm": 25.68,
+   "body_chin_z": 1.5432,
+   "head_chin_z": 0.1092,
+   "crown_body_m": 1.8,
+   "crown_head_m": 1.8065,
+   "shift_in_plane_mm": [
+    -0.1,
+    11.6,
+    3.4
+   ],
+   "chin_above_seam_cm": 7.0,
+   "head_open_edges_off_the_cut": 0,
+   "eyeballs": {
+    "Right": {
+     "centre_m": [
+      -0.03892,
+      -0.06711,
+      1.68043
+     ],
+     "radius_mm": 13.28
+    },
+    "Left": {
+     "centre_m": [
+      0.03822,
+      -0.06722,
+      1.68054
+     ],
+     "radius_mm": 13.28
+    }
+   },
+   "neck_vertices_blended": 1379,
+   "rays_missed": 0,
+   "collar_rings": 4,
+   "seam_ring_vertices": 156,
+   "cut_ring_vertices": 282,
+   "collar_faces": 906,
+   "collar_faces_across_uv_seams": 0,
+   "shape_moves_at_cut_mm": 0.233,
+   "source": "head_warrior_m3/build/forge/WarriorM3/WarriorM3.fbx",
+   "fade_triangles": 2600,
+   "neck_on_pieces": {
+    "Head": 156,
+    "Body": 156,
+    "apart_mm": 0.0004,
+    "turn_deg": 0.0,
+    "head_open_edge_vertices_on_no_seam": 107
+   },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.833,
+     1.169
+    ]
+   },
+   "skin_gain_rgb": [
+    0.576,
+    0.782,
+    1.03
+   ],
+   "eye_bones_in_fbx": {
+    "Left": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.003
+    },
+    "Right": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.003
+    }
+   },
+   "neck_in_fbx": {
+    "Head": 156,
+    "Body": 156,
+    "apart_mm": 0.0005,
+    "turn_deg": 0.0,
+    "head_open_edge_vertices_on_no_seam": 107
+   },
+   "shape_keys_in_fbx": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+   ],
+   "materials_in_fbx": [
+    "BodyWarriorM.004",
+    "WarriorM3",
+    "WarriorM3Eyes"
+   ],
+   "faces_per_material_in_fbx": {
+    "0 body's (collar)": 906,
+    "1 its own": 33444,
     "2 its eyes": 2688
    }
   }
@@ -420,7 +542,8 @@
   "heads": {
    "BodyWarriorM": 6150,
    "WarriorM": 28466,
-   "WarriorM2": 28763
+   "WarriorM2": 28763,
+   "WarriorM3": 37038
   }
  },
  "skin_even": {
