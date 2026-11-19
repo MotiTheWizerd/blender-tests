@@ -125,6 +125,53 @@ for f in closed:
 group_bone = {g.index: g.name[len(prefix):] if g.name.startswith(prefix) else g.name for g in body.vertex_groups}
 cut_at = bm.verts.layers.int.new("seam")       # the seam a vertex lies on, 1-based; 0 for none
 
+# Tripo's auto-rig lets the shoulders (the clavicles) hold the throat and the jaw: on body_warrior_f up to 0.08 of some
+# 600 jaw vertices a side, where Mixamo's rig gives the jaw none, so an arm raised (the bow's) dragged that side of
+# every woman's face and its skin with it (Moti, s1022: "right stretch/deform" on all the women, not the men). Above
+# the neck seam only the neck and the head move the skin (every head takes its weights from here, neck.py); below it
+# the limbs' hold fades in over NECK_CLEAR, what they held going to the neck; and only near the neck's axis (wholly
+# within NECK_REACH of it, fading out to NECK_REACH + NECK_FADE), so the shoulders' tops beside it keep their
+# clavicles' hold and nothing steps where the clearing ends.
+NECK_CLEAR = 0.06
+NECK_REACH = 0.06
+NECK_FADE = 0.04
+LIMB_BONES = {f"{side}{bone}" for side in ("Left", "Right") for bone in ("Shoulder", "Arm", "ForeArm", "Hand")}
+
+
+def smoothstep(x):
+    t = min(max(x, 0.0), 1.0)
+    return t * t * (3 - 2 * t)
+
+
+_seam, _a, _b, _along = SEAMS[0][:4]
+clear_point = joint(_a).lerp(joint(_b), _along)
+clear_normal = (joint(_b) - joint(_a)).normalized()
+neck_group = body.vertex_groups[prefix + "Neck"].index
+neck_clear = {"clear_cm": NECK_CLEAR * 100, "reach_cm": NECK_REACH * 100, "fade_cm": NECK_FADE * 100, "vertices": 0,
+              "weight_moved": 0.0, "weight_moved_max": 0.0}
+for v in bm.verts:
+    above = (v.co - clear_point).dot(clear_normal)
+    lateral = ((v.co - clear_point) - above * clear_normal).length
+    if above < -NECK_CLEAR or lateral > NECK_REACH + NECK_FADE:
+        continue
+    # The limbs' whole hold NECK_CLEAR below the seam and past the neck's reach; none at and above the seam on the neck.
+    keep = 1 - (1 - smoothstep(-above / NECK_CLEAR)) * (1 - smoothstep((lateral - NECK_REACH) / NECK_FADE))
+    moved = 0.0
+    for g, w in list(v[deform].items()):
+        if group_bone.get(g) in LIMB_BONES:
+            moved += w * (1 - keep)
+            if keep > 0:
+                v[deform][g] = w * keep
+            else:
+                del v[deform][g]
+    if moved > 0:
+        v[deform][neck_group] = v[deform].get(neck_group, 0.0) + moved
+        neck_clear["vertices"] += 1
+        neck_clear["weight_moved"] += moved
+        neck_clear["weight_moved_max"] = max(neck_clear["weight_moved_max"], moved)
+neck_clear["weight_moved"] = round(neck_clear["weight_moved"], 2)
+neck_clear["weight_moved_max"] = round(neck_clear["weight_moved_max"], 3)
+
 
 def heaviest(v):
     weights = v[deform]
@@ -133,7 +180,8 @@ def heaviest(v):
 
 report = {"source": os.path.basename(SOURCE), "triangles_source": len(bm.faces) - len(closed),
           "open_edges_source": open_before, "holes_closed": len(closed),
-          "open_edges_left": sum(1 for e in bm.edges if e.is_boundary), "seams": {}, "lines": {}}
+          "open_edges_left": sum(1 for e in bm.edges if e.is_boundary), "neck_clear": neck_clear, "seams": {},
+          "lines": {}}
 planes = []
 for i, (seam, a, b, along, of_limb, piece, end) in enumerate(SEAMS + LINES):
     point = joint(a).lerp(joint(b), along)

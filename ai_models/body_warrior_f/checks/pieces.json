@@ -4,6 +4,14 @@
  "open_edges_source": 0,
  "holes_closed": 0,
  "open_edges_left": 0,
+ "neck_clear": {
+  "clear_cm": 6.0,
+  "reach_cm": 6.0,
+  "fade_cm": 4.0,
+  "vertices": 870,
+  "weight_moved": 123.93,
+  "weight_moved_max": 0.561
+ },
  "seams": {
   "neck": {
    "bone": "Neck -> Head at 0.25",
