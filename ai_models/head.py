@@ -29,11 +29,109 @@ ROUGHNESS = 0.55  # skin's roughness, flat, for an export without a roughness ma
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(os.path.join(ROOT, "checks"), exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.fbx(filepath=os.path.join(ROOT, "source_tripo.fbx"))
+# Tripo's FBX export (source_tripo.fbx + .fbm) or its GLB (source_tripo.glb; WarriorF5). A glTF splits its vertices
+# along every texture seam (the recipe's step 1), so it is welded first, or every seam is an open edge to close_holes
+# and the eyes' cut; its roughness is the green channel of a packed map (image_of says which).
+GLB = not os.path.exists(os.path.join(ROOT, "source_tripo.fbx")) and os.path.exists(os.path.join(ROOT, "source_tripo.glb"))
+if GLB:
+    bpy.ops.import_scene.gltf(filepath=os.path.join(ROOT, "source_tripo.glb"))
+else:
+    bpy.ops.import_scene.fbx(filepath=os.path.join(ROOT, "source_tripo.fbx"))
 head = next(o for o in bpy.context.scene.objects if o.type == "MESH")
 bpy.context.view_layer.objects.active = head
 head.select_set(True)
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+if GLB:
+    import bmesh
+    welded = bmesh.new()
+    welded.from_mesh(head.data)
+    before_weld = len(welded.verts)
+    bmesh.ops.remove_doubles(welded, verts=welded.verts, dist=1e-5)
+    welded.to_mesh(head.data)
+    welded.free()
+    print(f"WELD {before_weld} -> {len(head.data.vertices)} vertices")
+
+HEAD_TRIANGLES = 50000      # a head's game mesh (the FBX exports came at 50k to 94k; a face editor head is seen closest)
+REDUCE_OVER = 60000         # a source past this many triangles is reduced, its detail baked into its normal map
+BAKE_REACH = 0.004          # the bake's cage out past the reduced surface, a share of the head's size (reduce.py's)
+
+
+def reduce_head(high):
+    """A game mesh from a film-scale head (Tripo's GLB: WarriorF5 came at 1.96M triangles), as reduce.py makes a
+    creature's: a collapse to HEAD_TRIANGLES keeping the UVs (the colour and roughness maps still fit), smooth and
+    triangulated, and its normals baked in Cycles from the full head with its own normal map, so the sculpt's pores
+    and folds ride on the reduced mesh. Returns the reduced head; the full one is gone."""
+    scene = bpy.context.scene
+    source = sum(len(f.vertices) - 2 for f in high.data.polygons)
+    low = high.copy(); low.data = high.data.copy()
+    scene.collection.objects.link(low)
+    bpy.context.view_layer.objects.active = low
+    mod = low.modifiers.new("reduce", "DECIMATE")
+    mod.decimate_type = "COLLAPSE"
+    mod.ratio = HEAD_TRIANGLES / source
+    mod.use_collapse_triangulate = True
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    for f in low.data.polygons:
+        f.use_smooth = True
+    material = high.data.materials[0]
+    low_mat = material.copy(); low_mat.name = f"{TITLE}_reduced"
+    low.data.materials.clear(); low.data.materials.append(low_mat)
+    baked = bpy.data.images.new(f"{TITLE}_NormalBaked", MAP_SIZE, MAP_SIZE, alpha=False)
+    baked.colorspace_settings.name = "Non-Color"
+    target = low_mat.node_tree.nodes.new("ShaderNodeTexImage")
+    target.image = baked
+    low_mat.node_tree.nodes.active = target
+    scene.render.engine = "CYCLES"
+    prefs = bpy.context.preferences.addons["cycles"].preferences
+    prefs.compute_device_type = "OPTIX"; prefs.get_devices()
+    for d in prefs.devices:
+        d.use = d.type == "OPTIX"
+    scene.cycles.device = "GPU"
+    scene.cycles.samples = 1
+    size = max(high.dimensions)
+    bake = scene.render.bake
+    bake.use_selected_to_active = True
+    bake.cage_extrusion = BAKE_REACH * size
+    bake.max_ray_distance = 3 * BAKE_REACH * size
+    bake.margin = 8
+    bake.normal_space = "TANGENT"
+    bpy.ops.object.select_all(action="DESELECT")
+    high.select_set(True); low.select_set(True)
+    bpy.context.view_layer.objects.active = low
+    bpy.ops.object.bake(type="NORMAL")
+    # Saved and loaded back from the file: a generated image's copy (pixels() takes one to scale it) carries no
+    # pixels, and the first WarriorF5 map came out black.
+    path = os.path.join(ROOT, "build", f"{TITLE}_NormalBaked.png")
+    baked.filepath_raw = path
+    baked.file_format = "PNG"
+    baked.save()
+    bpy.data.images.remove(baked)
+    baked = bpy.data.images.load(path)
+    baked.colorspace_settings.name = "Non-Color"
+    # The bake takes the place of the source's normal map on the reduced material (image_of("Normal") finds it there).
+    bsdf = next(n for n in low_mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+    node = bsdf.inputs["Normal"].links[0].from_node if bsdf.inputs["Normal"].links else None
+    while node is not None and node.type != "TEX_IMAGE":
+        node = next((i.links[0].from_node for i in node.inputs if i.links), None)
+    if node is not None:
+        node.image = baked
+        low_mat.node_tree.nodes.remove(target)
+    else:
+        nodes, links = low_mat.node_tree.nodes, low_mat.node_tree.links
+        normal_map = nodes.new("ShaderNodeNormalMap")
+        links.new(target.outputs["Color"], normal_map.inputs["Color"])
+        links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
+    low.name = low.data.name = high.name
+    bpy.data.objects.remove(high, do_unlink=True)
+    reduced = sum(len(f.vertices) - 2 for f in low.data.polygons)
+    print(f"REDUCE {source} -> {reduced} triangles, normals baked at {MAP_SIZE}")
+    return low
+
+
+if sum(len(f.vertices) - 2 for f in head.data.polygons) > REDUCE_OVER:
+    head = reduce_head(head)
+    bpy.context.view_layer.objects.active = head
+    head.select_set(True)
 
 
 def close_holes(mesh):
@@ -156,16 +254,26 @@ def landmark_pictures():
 landmark_pictures()
 
 
-def image_of(label):
+CHANNELS = {"Red": 0, "Green": 1, "Blue": 2}
+
+
+def image_of(label, channel=False):
     """The texture behind the material's socket <label> (Base Color, Normal, Roughness); None when the export has
-    none there (WarriorF3's Tripo FBX came with colour and normal maps alone)."""
+    none there (WarriorF3's Tripo FBX came with colour and normal maps alone). With channel, also which channel of
+    it feeds the socket (a glTF packs roughness in the green of one map, split by a Separate Color node): 0 when
+    the image feeds it whole."""
     nodes = head.active_material.node_tree.nodes
     bsdf = next(n for n in nodes if n.type == "BSDF_PRINCIPLED")
     link = bsdf.inputs[label].links[0] if bsdf.inputs[label].links else None
     node = link.from_node if link else None
+    which = 0
     while node is not None and node.type != "TEX_IMAGE":
-        node = next((i.links[0].from_node for i in node.inputs if i.links), None)
-    return node.image if node is not None else None
+        if node.type in ("SEPARATE_COLOR", "SEPRGB") and link is not None:
+            which = CHANNELS.get(link.from_socket.name, 0)
+        link = next((i.links[0] for i in node.inputs if i.links), None)
+        node = link.from_node if link is not None else None
+    image = node.image if node is not None else None
+    return (image, which) if channel else image
 
 
 def pixels(image, size):
@@ -209,8 +317,8 @@ base = pixels(skin, MAP_SIZE)
 base[..., 3] = 1.0
 save(base, os.path.join(OUT, f"{TITLE}_BaseColor.jpg"), "JPEG", False)
 save(pixels(image_of("Normal"), MAP_SIZE), os.path.join(OUT, f"{TITLE}_Normal.png"), "PNG", False)
-roughness = image_of("Roughness")
-rough = pixels(roughness, MAP_SIZE)[..., 0] if roughness is not None else np.full((MAP_SIZE, MAP_SIZE), ROUGHNESS, np.float32)
+roughness, rough_channel = image_of("Roughness", channel=True)
+rough = pixels(roughness, MAP_SIZE)[..., rough_channel] if roughness is not None else np.full((MAP_SIZE, MAP_SIZE), ROUGHNESS, np.float32)
 ms = np.zeros((MAP_SIZE, MAP_SIZE, 4), np.float32)
 ms[..., 3] = (1.0 - rough) * SKIN_SHINE
 save(ms, os.path.join(OUT, f"{TITLE}_MetallicSmoothness.png"), "PNG", True)

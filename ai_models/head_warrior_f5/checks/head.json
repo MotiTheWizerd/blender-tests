@@ -1,0 +1,106 @@
+{
+  "chin_to_crown": 0.232,
+  "scale": 0.2814,
+  "holes_closed": 0,
+  "size_m": [
+    0.263,
+    0.223,
+    0.276
+  ],
+  "triangles": 54899,
+  "nose_tip": [
+    -0.0,
+    -0.1113,
+    0.1215
+  ],
+  "chin_front": [
+    -0.0,
+    -0.0835,
+    0.047
+  ],
+  "shapes": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+  ],
+  "eyes": {
+    "right": {
+      "middle_m": [
+        -0.0356,
+        0.1641
+      ],
+      "width_mm": 23.1,
+      "height_mm": 8.3,
+      "pixels": 6420,
+      "warm_line": 0.301,
+      "touches_map_edge": false,
+      "surface_y": -0.072,
+      "eyeball": {
+        "centre_m": [
+          -0.034,
+          -0.0614,
+          0.1656
+        ],
+        "radius_mm": 12.1
+      },
+      "iris_rgb": [
+        0.46700000762939453,
+        0.41600000858306885,
+        0.32199999690055847
+      ],
+      "faces_cut": 301,
+      "rim_vertices": 79,
+      "wall_faces": 79,
+      "corners_split": 1,
+      "scrap_faces": 0,
+      "holes_mended_faces": 0,
+      "blink": {
+        "most_turn_deg": 60.2,
+        "vertices_moved": 1080
+      }
+    },
+    "left": {
+      "middle_m": [
+        0.0348,
+        0.1622
+      ],
+      "width_mm": 20.8,
+      "height_mm": 8.9,
+      "pixels": 6488,
+      "warm_line": 0.318,
+      "touches_map_edge": false,
+      "surface_y": -0.0721,
+      "eyeball": {
+        "centre_m": [
+          0.0341,
+          -0.0617,
+          0.1654
+        ],
+        "radius_mm": 11.9
+      },
+      "iris_rgb": [
+        0.46299999952316284,
+        0.40400001406669617,
+        0.3059999942779541
+      ],
+      "faces_cut": 318,
+      "rim_vertices": 88,
+      "wall_faces": 88,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "holes_mended_faces": 0,
+      "blink": {
+        "most_turn_deg": 45.0,
+        "vertices_moved": 1185
+      }
+    },
+    "lid_rest": 0.3,
+    "iris_rgb": [
+      0.465,
+      0.41,
+      0.314
+    ],
+    "spacing_over_height": 0.294
+  }
+}
