@@ -1025,6 +1025,106 @@
     "1 its own": 9835,
     "2 its eyes": 2688
    }
+  },
+  "WarriorF10": {
+   "cut_cm": 2.5,
+   "blend_cm": 3.2,
+   "size": 1.0,
+   "scale": 1.0126,
+   "body_chin_to_crown_cm": 23.49,
+   "body_chin_z": 1.465,
+   "head_chin_z": 0.168,
+   "crown_body_m": 1.6999,
+   "crown_head_m": 1.6997,
+   "shift_in_plane_mm": [
+    -0.3,
+    5.8,
+    1.9
+   ],
+   "chin_above_seam_cm": 7.4,
+   "head_open_edges_off_the_cut": 0,
+   "eyeballs": {
+    "Right": {
+     "centre_m": [
+      -0.03499,
+      -0.06491,
+      1.57604
+     ],
+     "radius_mm": 12.15
+    },
+    "Left": {
+     "centre_m": [
+      0.03347,
+      -0.06967,
+      1.57301
+     ],
+     "radius_mm": 10.94
+    }
+   },
+   "neck_vertices_blended": 905,
+   "rays_missed": 0,
+   "collar_rings": 4,
+   "seam_ring_vertices": 127,
+   "cut_ring_vertices": 101,
+   "collar_faces": 609,
+   "collar_faces_across_uv_seams": 0,
+   "shape_moves_at_cut_mm": 0.248,
+   "source": "head_warrior_f10/build/forge/WarriorF10/WarriorF10.fbx",
+   "fade_triangles": 1813,
+   "neck_on_pieces": {
+    "Head": 127,
+    "Body": 127,
+    "apart_mm": 0.0002,
+    "turn_deg": 0.034,
+    "head_open_edge_vertices_on_no_seam": 86
+   },
+   "skin_even": {
+    "strength": 0.7,
+    "factor_p5_p95": [
+     0.6,
+     1.572
+    ]
+   },
+   "skin_gain_rgb": [
+    2.023,
+    1.733,
+    2.177
+   ],
+   "eye_bones_in_fbx": {
+    "Left": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.007
+    },
+    "Right": {
+     "vertices": 1298,
+     "parent": "mixamorig:Head",
+     "bone_off_eyeball_mm": 0.007
+    }
+   },
+   "neck_in_fbx": {
+    "Head": 127,
+    "Body": 127,
+    "apart_mm": 0.0002,
+    "turn_deg": 0.034,
+    "head_open_edge_vertices_on_no_seam": 86
+   },
+   "shape_keys_in_fbx": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+   ],
+   "materials_in_fbx": [
+    "BodyWarriorF.010",
+    "WarriorF10",
+    "WarriorF10Eyes"
+   ],
+   "faces_per_material_in_fbx": {
+    "0 body's (collar)": 609,
+    "1 its own": 10742,
+    "2 its eyes": 2688
+   }
   }
  },
  "seams_on_pieces": {
@@ -1102,7 +1202,8 @@
    "WarriorF5": 46254,
    "WarriorF7": 46806,
    "WarriorF8": 40954,
-   "WarriorF9": 13130
+   "WarriorF9": 13130,
+   "WarriorF10": 14039
   }
  },
  "skin_even": {
