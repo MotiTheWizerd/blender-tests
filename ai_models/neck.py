@@ -172,7 +172,7 @@ class Skin:
         return out
 
 
-def seat(head_fbx, body_head, point, normal, material, size=1.0, blend=BLEND):
+def seat(head_fbx, body_head, point, normal, material, size=1.0, blend=BLEND, body_profile=None):
     """The head of head_fbx seated on body_head's neck as a new object on its skeleton (body_head, the body's own Head
     piece, is left as it is), its own faces wearing `material` (a name) and its collar the body's, and a report: where
     it went, what was cut and blended, and the fade's triangles for pieces.py to paint."""
@@ -194,7 +194,9 @@ def seat(head_fbx, body_head, point, normal, material, size=1.0, blend=BLEND):
     for loop, corner in zip(body_head.data.loops, corner_normals):
         if loop.vertex_index in ring_normal:
             ring_normal[loop.vertex_index] += corner.vector
-    b_crown, b_chin, _, b_chin_front = profile(body_co)
+    # The body's landmarks, as pieces.py measured them before it shaped the neck (body_profile): the chin is sought
+    # where the profile falls back to the neck the most, and a neck made thinner falls back more lower down.
+    b_crown, b_chin, _, b_chin_front = body_profile if body_profile is not None else profile(body_co)
 
     # The head, imported, in the world's frame (its shape keys with it).
     before = set(bpy.data.objects)

@@ -172,6 +172,47 @@ for v in bm.verts:
 neck_clear["weight_moved"] = round(neck_clear["weight_moved"], 2)
 neck_clear["weight_moved_max"] = round(neck_clear["weight_moved_max"], 3)
 
+# model.json "neck_width_cm" (optional): how wide the body's neck is across at the join, NECK_FIT_ABOVE above the seam,
+# the heads' own necks' width (body_warrior_f, s1022: the body's 13.3 cm against her heads' 10.7 to 11.7, and the 3.3 cm
+# blend stretched every head's neck out to it: Moti, "the body neck part is too big and the woman's neck is small").
+# The neck is scaled across (about its axis) to that width: wholly between NECK_FIT_FROM below the seam and
+# NECK_FIT_ABOVE above it, fading in from the collarbones (NECK_FIT_FADE) and out under the jaw; vertices past
+# NECK_FIT_REACH of the axis (the shoulders) are left alone.
+NECK_WIDTH = C.spec.get("neck_width_cm")
+# The body's own head's landmarks (crown, chin, nose, chin front: face.profile), taken before the neck is shaped, for
+# every head's seat (neck.seat): the chin finder reads the profile's fall-back to the neck, which a thinner neck moves.
+from face import profile
+BODY_PROFILE = profile(np.array([v.co[:] for v in bm.verts if (v.co - clear_point).dot(clear_normal) > -0.02]))
+NECK_FIT_ABOVE = 0.035
+NECK_FIT_FROM = -0.03
+NECK_FIT_FADE = 0.04         # in from the collarbones
+NECK_FIT_FADE_OUT = 0.025    # out under the jaw (the chin stands 7 cm above the seam: untouched, or neck.py's limit moves)
+NECK_FIT_REACH = 0.12
+neck_fit = None
+if NECK_WIDTH:
+    band = [v for v in bm.verts if NECK_FIT_ABOVE - 0.005 <= (v.co - clear_point).dot(clear_normal) <= NECK_FIT_ABOVE + 0.005
+            and ((v.co - clear_point) - (v.co - clear_point).dot(clear_normal) * clear_normal).length < NECK_FIT_REACH]
+    side = Vector((1.0, 0.0, 0.0))
+    across = [v.co.dot(side) for v in band]
+    was = max(across) - min(across)
+    factor = NECK_WIDTH / 100 / was
+    axis_point = sum((v.co for v in band), Vector()) / len(band)
+    neck_fit = {"width_was_cm": round(was * 100, 2), "width_cm": NECK_WIDTH, "factor": round(factor, 4), "vertices": 0,
+                "moved_mm_max": 0.0}
+    for v in bm.verts:
+        above = (v.co - clear_point).dot(clear_normal)
+        if above < NECK_FIT_FROM - NECK_FIT_FADE or above > NECK_FIT_ABOVE + NECK_FIT_FADE_OUT:
+            continue
+        radial = (v.co - axis_point) - (v.co - axis_point).dot(clear_normal) * clear_normal
+        if radial.length > NECK_FIT_REACH:
+            continue
+        hold = smoothstep((above - (NECK_FIT_FROM - NECK_FIT_FADE)) / NECK_FIT_FADE) * smoothstep((NECK_FIT_ABOVE + NECK_FIT_FADE_OUT - above) / NECK_FIT_FADE_OUT)
+        move = radial * ((factor - 1) * hold)
+        if move.length > 0:
+            v.co += move
+            neck_fit["vertices"] += 1
+            neck_fit["moved_mm_max"] = max(neck_fit["moved_mm_max"], round(move.length * 1000, 2))
+
 
 def heaviest(v):
     weights = v[deform]
@@ -180,8 +221,8 @@ def heaviest(v):
 
 report = {"source": os.path.basename(SOURCE), "triangles_source": len(bm.faces) - len(closed),
           "open_edges_source": open_before, "holes_closed": len(closed),
-          "open_edges_left": sum(1 for e in bm.edges if e.is_boundary), "neck_clear": neck_clear, "seams": {},
-          "lines": {}}
+          "open_edges_left": sum(1 for e in bm.edges if e.is_boundary), "neck_clear": neck_clear, "neck_fit": neck_fit,
+          "seams": {}, "lines": {}}
 planes = []
 for i, (seam, a, b, along, of_limb, piece, end) in enumerate(SEAMS + LINES):
     point = joint(a).lerp(joint(b), along)
@@ -344,6 +385,7 @@ for head_name in HEADS:
     head_spec_path = os.path.join(os.path.dirname(C.root), head_name, "model.json")
     head_spec = json.load(open(head_spec_path)) if os.path.exists(head_spec_path) else {}
     heads[head_title], placed = seat(made[0], own_head, *world_planes[0], material=head_title, size=HEAD_SIZE,
+                                     body_profile=BODY_PROFILE,
                                      **({"blend": head_spec["neck_blend_cm"] / 100} if "neck_blend_cm" in head_spec else {}))
     seated[head_title] = (os.path.dirname(made[0]), placed.pop("fade_triangles"))
     report.setdefault("heads", {})[head_title] = dict(
