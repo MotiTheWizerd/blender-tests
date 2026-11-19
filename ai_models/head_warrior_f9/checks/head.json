@@ -7,7 +7,7 @@
     0.215,
     0.422
   ],
-  "triangles": 52214,
+  "triangles": 52222,
   "nose_tip": [
     0.0,
     -0.1076,
@@ -27,81 +27,80 @@
   "eyes": {
     "right": {
       "middle_m": [
-        -0.0338,
-        0.3056
+        -0.034,
+        0.3054
       ],
-      "width_mm": 20.6,
-      "height_mm": 8.1,
-      "pixels": 5600,
+      "width_mm": 16.8,
+      "height_mm": 8.2,
+      "pixels": 4967,
       "warm_line": 0.16,
       "touches_map_edge": false,
-      "surface_y": -0.0792,
+      "surface_y": -0.0791,
       "eyeball": {
         "centre_m": [
-          -0.0336,
+          -0.034,
           -0.0671,
-          0.3054
+          0.3053
         ],
         "radius_mm": 12.0
       },
       "iris_rgb": [
-        0.45100000500679016,
-        0.4309999942779541,
-        0.45899999141693115
+        0.3709999918937683,
+        0.3610000014305115,
+        0.41200000047683716
       ],
-      "faces_cut": 23,
-      "rim_vertices": 24,
-      "wall_faces": 24,
+      "faces_cut": 16,
+      "rim_vertices": 20,
+      "wall_faces": 20,
       "corners_split": 0,
       "scrap_faces": 0,
       "holes_mended_faces": 0,
       "blink": {
-        "most_turn_deg": 34.3,
-        "vertices_moved": 84
+        "most_turn_deg": 34.2,
+        "vertices_moved": 81
       }
     },
     "left": {
       "middle_m": [
         0.0346,
-        0.3047
+        0.305
       ],
-      "width_mm": 21.7,
-      "height_mm": 10.8,
-      "pixels": 8030,
+      "width_mm": 19.1,
+      "height_mm": 9.5,
+      "pixels": 5924,
       "warm_line": 0.16,
       "touches_map_edge": false,
       "surface_y": -0.0789,
       "eyeball": {
         "centre_m": [
-          0.0344,
+          0.0347,
           -0.0672,
-          0.3047
+          0.3049
         ],
         "radius_mm": 12.0
       },
       "iris_rgb": [
-        0.5139999985694885,
-        0.46299999952316284,
-        0.4779999852180481
+        0.3610000014305115,
+        0.3409999907016754,
+        0.36899998784065247
       ],
-      "found_from_the_other": true,
-      "faces_cut": 25,
-      "rim_vertices": 24,
-      "wall_faces": 24,
+      "faces_cut": 18,
+      "rim_vertices": 18,
+      "wall_faces": 18,
       "corners_split": 0,
       "scrap_faces": 0,
       "holes_mended_faces": 0,
       "blink": {
-        "most_turn_deg": 46.1,
-        "vertices_moved": 82
+        "most_turn_deg": 40.6,
+        "vertices_moved": 75
       }
     },
     "lid_rest": 0.3,
     "iris_rgb": [
-      0.483,
-      0.447,
-      0.468
+      0.366,
+      0.351,
+      0.39
     ],
-    "spacing_over_height": 0.293
+    "spacing_over_height": 0.296
   }
 }
