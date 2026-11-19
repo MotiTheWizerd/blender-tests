@@ -1,0 +1,106 @@
+{
+  "chin_to_crown": 0.232,
+  "scale": 0.3036,
+  "holes_closed": 2,
+  "size_m": [
+    0.291,
+    0.221,
+    0.297
+  ],
+  "triangles": 50792,
+  "nose_tip": [
+    0.0,
+    -0.1104,
+    0.1398
+  ],
+  "chin_front": [
+    0.0,
+    -0.0835,
+    0.0684
+  ],
+  "shapes": [
+    "NoseWidth",
+    "JawWidth",
+    "JawChin",
+    "Blink"
+  ],
+  "eyes": {
+    "right": {
+      "middle_m": [
+        -0.0328,
+        0.181
+      ],
+      "width_mm": 22.1,
+      "height_mm": 8.4,
+      "pixels": 3637,
+      "warm_line": 0.23,
+      "touches_map_edge": false,
+      "surface_y": -0.0713,
+      "eyeball": {
+        "centre_m": [
+          -0.0343,
+          -0.0606,
+          0.1799
+        ],
+        "radius_mm": 12.0
+      },
+      "iris_rgb": [
+        0.4390000104904175,
+        0.3799999952316284,
+        0.34700000286102295
+      ],
+      "faces_cut": 117,
+      "rim_vertices": 56,
+      "wall_faces": 56,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "holes_mended_faces": 0,
+      "blink": {
+        "most_turn_deg": 41.6,
+        "vertices_moved": 500
+      }
+    },
+    "left": {
+      "middle_m": [
+        0.0329,
+        0.1808
+      ],
+      "width_mm": 21.9,
+      "height_mm": 8.2,
+      "pixels": 5785,
+      "warm_line": 0.263,
+      "touches_map_edge": false,
+      "surface_y": -0.0721,
+      "eyeball": {
+        "centre_m": [
+          0.0325,
+          -0.0627,
+          0.1811
+        ],
+        "radius_mm": 10.7
+      },
+      "iris_rgb": [
+        0.44699999690055847,
+        0.3799999952316284,
+        0.3140000104904175
+      ],
+      "faces_cut": 107,
+      "rim_vertices": 52,
+      "wall_faces": 52,
+      "corners_split": 0,
+      "scrap_faces": 0,
+      "holes_mended_faces": 1,
+      "blink": {
+        "most_turn_deg": 38.6,
+        "vertices_moved": 443
+      }
+    },
+    "lid_rest": 0.3,
+    "iris_rgb": [
+      0.443,
+      0.38,
+      0.331
+    ],
+    "spacing_over_height": 0.288
+  }
+}

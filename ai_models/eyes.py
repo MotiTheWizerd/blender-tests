@@ -156,6 +156,7 @@ def radius_at(middle, radius, x, z):
 
 
 TUCK = 0.0005       # how far inside the eyeball's sphere the lids' inside lies, so the eyeball always hides it
+BACK_WITHIN = 0.85  # a rim vertex within this share of the eyeball's radius of its axis sends its band straight back
 FRONT = 0.012       # only faces this near the eye's painted surface are cut (not the back of the head behind it)
 OUTLINE = 720       # the outline as a line, a point every half degree round the eye
 RIM_SMOOTH = 3      # a rim vertex's depth is sought from the mean of its own and this many neighbours' each way
@@ -364,9 +365,16 @@ def cut(bm, middle, radius, surface_y, eyeball):
     wall_verts = [g for g in made if isinstance(g, bmesh.types.BMVert)]
     centre, r = Vector(eyeball[0]), eyeball[1]
     for v in wall_verts:
-        # Straight toward the eyeball's middle, TUCK under its surface: neighbours stay in their order round the
-        # opening, so the lid's inside is one smooth band from the rim to the eyeball.
-        target = centre + (v.co - centre).normalized() * (r - TUCK)
+        # Straight back from the rim to the eyeball, TUCK under its surface, where the rim lies within the eyeball's
+        # outline seen from the front (a lid sculpted hanging low stands in front of the cornea: WarriorF4's upper lids
+        # at the eye's middle, 2 mm before it, and a band toward the middle showed its first 2 mm as a painted wedge);
+        # toward the eyeball's middle at the sides, past the outline. Neighbours stay in their order round the
+        # opening either way, so the lid's inside is one smooth band from the rim to the eyeball.
+        across = (v.co.x - centre.x) ** 2 + (v.co.z - centre.z) ** 2
+        if across < (BACK_WITHIN * r) ** 2:
+            target = Vector((v.co.x, centre.y - math.sqrt(r * r - across) + TUCK, v.co.z))
+        else:
+            target = centre + (v.co - centre).normalized() * (r - TUCK)
         move = target - v.co
         v.co += move
         for layer in shapes:
@@ -776,11 +784,19 @@ def give_eyes(head, image, title, maps, checks, nose, lid_rest=0.0):
             mask = on_the_eyeball(mask, warmth, depth, gx, gz, centre, r, dark, 0.002 if sphere is not None and _ == 0 else ON_BALL)
             surface = np.c_[gx[mask], depth[mask], gz[mask]]
             centre, r = eyeball_fit(surface[~np.isnan(surface).any(1)])
+        # The iris is eye whatever its colour: the disc of an iris round the seed, where the paint lies on the eyeball
+        # (WarriorF4's brown irises on brown skin were neither cool nor dark enough for the rules above, and the mask
+        # had a hole where each iris was: its colour was read off the white round it, and the eye drawn pale grey).
+        front = centre[1] - np.sqrt(np.maximum(r ** 2 - (gx - centre[0]) ** 2 - (gz - centre[2]) ** 2, 0.0))
+        on_ball = np.abs(np.nan_to_num(depth, nan=1.0) - front) < ON_BALL
+        near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < IRIS * 1.1
+        mask |= near_seed & on_ball
         middle, radius = outline(mask, xs, zs)
-        # The painted iris's colour: the eye's coloured middle round the seed, not the pupil, not the white.
-        near_seed = np.hypot(gx - xs[seed[1]], gz - zs[seed[0]]) < 0.0045
+        # The painted iris's colour: the eye's middle round the seed, on the eyeball, not the pupil, not the white.
         lum = colour @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
-        painted = mask & near_seed & (lum > 0.12) & (lum < 0.62) & (np.nan_to_num(warmth, nan=1) < line - (WARM - 0.1))
+        painted = near_seed & on_ball & (lum > 0.12) & (lum < 0.55)
+        if not painted.any():
+            painted = mask & near_seed & (lum > 0.12) & (lum < 0.62)
         report[side] = {"middle_m": [round(float(middle[0]), 4), round(float(middle[1]), 4)],
                         "width_mm": round(float(radius[0] + radius[ANGLES // 2]) * 1000, 1),
                         "height_mm": round(float(radius[ANGLES // 4] + radius[3 * ANGLES // 4]) * 1000, 1),

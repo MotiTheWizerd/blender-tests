@@ -7,7 +7,8 @@
  "heads": [
   "head_warrior_f",
   "head_warrior_f2",
-  "head_warrior_f3"
+  "head_warrior_f3",
+  "head_warrior_f4"
  ],
  "neck_along": 0.25,
  "torso": "torso_warrior_f",
