@@ -19,5 +19,8 @@
  "neck_along": 0.25,
  "neck_width_cm": 10.5,
  "torso": "torso_warrior_f",
- "breasts": true
+ "breasts": true,
+ "chests": [
+  "chest_warrior_f2"
+ ]
 }

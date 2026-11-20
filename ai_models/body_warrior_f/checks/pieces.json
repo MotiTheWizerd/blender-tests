@@ -225,6 +225,152 @@
    "most": 0.867
   }
  },
+ "chests": {
+  "ChestWarriorF2": {
+   "fit": {
+    "scale": 0.444,
+    "shift_m": [
+     0.0004,
+     -0.0108,
+     1.0173
+    ],
+    "median_off_mm_first_last": [
+     19.74,
+     5.04
+    ],
+    "nipples_body_m": [
+     [
+      -0.12,
+      -0.149,
+      1.218
+     ],
+     [
+      0.121,
+      -0.149,
+      1.219
+     ]
+    ],
+    "nipples_chest_m": [
+     [
+      -0.116,
+      -0.166,
+      1.18
+     ],
+     [
+      0.116,
+      -0.166,
+      1.179
+     ]
+    ],
+    "nipples_apart_mm": [
+     41.5,
+     43.4
+    ]
+   },
+   "cap_faces": 20372,
+   "shape_faces": 90000,
+   "region_vertices": 1381,
+   "held": 129,
+   "aimed": 914,
+   "filled": 338,
+   "missed": 0,
+   "near_cut": 19,
+   "moved_mm_median_max": [
+    14.44,
+    41.66
+   ],
+   "covered_faces": 2631,
+   "texels_missed_near_filled_far": {
+    "Color": 1793719,
+    "Normal": 0
+   },
+   "fade_triangles": 1160,
+   "skin_gain_rgb_p5_median_p95": [
+    [
+     0.67,
+     0.749,
+     0.73
+    ],
+    [
+     0.715,
+     0.862,
+     0.871
+    ],
+    [
+     0.774,
+     1.019,
+     1.06
+    ]
+   ],
+   "seams_in_fbx": {
+    "neck": {
+     "Head": 127,
+     "Body": 127,
+     "apart_mm": 0.0,
+     "turn_deg": 0.02
+    },
+    "wrist.L": {
+     "Hands": 86,
+     "Body": 86,
+     "apart_mm": 0.0,
+     "turn_deg": 0.02
+    },
+    "ankle.L": {
+     "Feet": 117,
+     "Body": 117,
+     "apart_mm": 0.0,
+     "turn_deg": 0.0
+    },
+    "wrist.R": {
+     "Hands": 79,
+     "Body": 79,
+     "apart_mm": 0.0,
+     "turn_deg": 0.034
+    },
+    "ankle.R": {
+     "Feet": 112,
+     "Body": 112,
+     "apart_mm": 0.0,
+     "turn_deg": 0.02
+    },
+    "arm.L": {
+     "ArmL": 83,
+     "Torso": 83,
+     "apart_mm": 0.0,
+     "turn_deg": 0.0
+    },
+    "thigh.L": {
+     "LegL": 131,
+     "Torso": 131,
+     "apart_mm": 0.0,
+     "turn_deg": 0.034
+    },
+    "arm.R": {
+     "ArmR": 86,
+     "Torso": 86,
+     "apart_mm": 0.0,
+     "turn_deg": 0.02
+    },
+    "thigh.R": {
+     "LegR": 129,
+     "Torso": 129,
+     "apart_mm": 0.0,
+     "turn_deg": 0.034
+    },
+    "open_edge_vertices_on_no_seam": {
+     "Body": 0,
+     "Feet": 0,
+     "Hands": 0,
+     "Head": 0
+    }
+   },
+   "materials_in_fbx": [
+    "BodyWarriorF.011",
+    "BodyWarriorFTorso.002",
+    "ChestWarriorF2"
+   ]
+  }
+ },
  "heads": {
   "WarriorF": {
    "cut_cm": 2.5,

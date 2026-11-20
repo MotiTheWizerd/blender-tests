@@ -333,22 +333,42 @@ if C.spec.get("breasts"):
                    if face_piece[k].value == PIECES.index("Body") and face_segment[k].value == SEGMENTS.index("Torso")
                    for v in p.vertices}
     report["breasts"] = add_breasts(body, rig, prefix, trunk_verts.__contains__)
+# model.json "chests" (optional): chest_* models (Tripo's, from a picture of a woman's chest), each laid onto a copy of
+# the body as one of its body types (chest.py); after the torso and the breasts' bones, so every type keeps the body's
+# skeleton and weights (Forge's SoftTissue only moves those bones, so where they rest does not matter to a type).
+# Exported as Bodies/<Chest>.fbx beside the body's own Body as Bodies/<Title>.fbx, for Forge to switch.
+CHESTS = C.spec.get("chests", [])
+COLOUR_REACH = 30     # a chest's colour field smoothed over this many steps of the mesh's edges (about 6 cm on her)
+BODIES_OUT = os.path.join(OUT, "Bodies")
+chest_bodies = {}
+if CHESTS:
+    from chest import lay
+    for chest_name in CHESTS:
+        chest_title = "".join(part.capitalize() for part in chest_name.split("_"))
+        copy = body.copy(); copy.data = me.copy()
+        for collection in body.users_collection:
+            collection.objects.link(copy)
+        chest_report, chest_maps, chest_fade = lay(copy, os.path.join(os.path.dirname(C.root), chest_name), chest_name,
+                                                   chest_title, PIECES.index("Body"), SEGMENTS.index("Torso"))
+        report.setdefault("chests", {})[chest_title] = chest_report
+        chest_bodies[chest_title] = (copy, chest_maps, chest_fade)
 me.shade_smooth()
 me.update()
 whole_normals = [v.normal.copy() for v in me.vertices]   # across every seam: both sides' faces
 
-# The pieces: copies of the cut body, each keeping its own faces, on the same skeleton with the same weights.
-pieces = []
-for k, name in enumerate(PIECES):
-    ob = body.copy(); ob.data = me.copy()
+
+def cut(source, k, name, normals):
+    """Piece k of source (the cut body or a body type's copy of it): its own faces, on the same skeleton with the same
+    weights, its normals the whole body's (normals: per whole vertex), Body split along the lines."""
+    ob = source.copy(); ob.data = source.data.copy()
     ob.name = ob.data.name = name
-    for collection in body.users_collection:
+    for collection in source.users_collection:
         collection.objects.link(ob)
     pbm = bmesh.new(); pbm.from_mesh(ob.data)
     layer = pbm.faces.layers.int["piece"]
     bmesh.ops.delete(pbm, geom=[f for f in pbm.faces if f[layer] != k], context="FACES_ONLY")
     bmesh.ops.delete(pbm, geom=[v for v in pbm.verts if not v.link_faces], context="VERTS")
-    if name == "Body":
+    if PIECES[k] == "Body":
         # Apart along the lines (each new vertex a copy: the same place, weights and whole vertex, so the same
         # normal), each corner saying its part.
         segment = pbm.faces.layers.int["segment"]
@@ -360,11 +380,23 @@ for k, name in enumerate(PIECES):
                 loop[uv].uv = (f[segment], 0.0)
     pbm.to_mesh(ob.data); pbm.free()
     whole = ob.data.attributes["whole"].data
-    ob.data.normals_split_custom_set_from_vertices([whole_normals[whole[j].value] for j in range(len(ob.data.vertices))])
+    ob.data.normals_split_custom_set_from_vertices([normals[whole[j].value] for j in range(len(ob.data.vertices))])
     for attribute in ("whole", "piece", "seam", "segment"):
         if attribute in ob.data.attributes:
             ob.data.attributes.remove(ob.data.attributes[attribute])
-    pieces.append(ob)
+    return ob
+
+
+# The pieces: copies of the cut body, each keeping its own faces.
+pieces = [cut(body, k, name, whole_normals) for k, name in enumerate(PIECES)]
+# Each body type's Body, its normals its own shape's.
+chest_pieces = {}
+for chest_title, (copy, _, _) in chest_bodies.items():
+    copy.data.shade_smooth()
+    copy.data.update()
+    chest_pieces[chest_title] = cut(copy, PIECES.index("Body"), f"Body {chest_title}",
+                                    [v.normal.copy() for v in copy.data.vertices])
+    bpy.data.objects.remove(copy, do_unlink=True)
 world_planes = [(body.matrix_world @ p, (body.matrix_world.to_3x3() @ n).normalized()) for p, n in planes]
 bpy.data.objects.remove(body, do_unlink=True)
 
@@ -597,6 +629,86 @@ if torso_fade is not None:
     torso_normal = pixels(torso_maps["Normal"])
     paint(torso_normal, torso_fade, lambda uvs: np.array([0.5, 0.5, 1.0]))
     save(torso_normal, os.path.join(OUT, f"{Title}Torso_Normal.png"), "Non-Color")
+if chest_bodies:
+    # Each chest's maps as the torso's: its skin to the body's colour, evened as the body's is, and where it fades out
+    # what lay under it painted in (the torso's skin under the torso's faces, the body's elsewhere).
+    os.makedirs(BODIES_OUT, exist_ok=True)
+    torso_final = pixels(os.path.join(OUT, f"{Title}Torso_Color.png")) if torso_fade is not None else None
+
+    def torso_at(uvs):
+        at = np.clip(uvs, 0.0, 1.0)
+        return torso_final[(at[:, 1] * (TEXTURE - 1)).astype(int), (at[:, 0] * (TEXTURE - 1)).astype(int), :3]
+
+    def corners_at(array, uvs):
+        uvs = np.clip(np.array(uvs), 0.0, 1.0)
+        return array[(uvs[:, 1] * (TEXTURE - 1)).astype(int), (uvs[:, 0] * (TEXTURE - 1)).astype(int), :3]
+
+    def scale_triangles(target, triangles, corner_gains):
+        """Each triangle's texels of target (its corners' UVs on it) times the gain between its corners' (linear)."""
+        size = np.array([target.shape[1] - 1, target.shape[0] - 1])
+        for uvs, gains in zip(triangles, corner_gains):
+            p = np.array(uvs) * size
+            lo = np.maximum(np.floor(p.min(0)).astype(int) - 1, 0)
+            hi = np.minimum(np.ceil(p.max(0)).astype(int) + 1, size)
+            xs, ys = np.meshgrid(np.arange(lo[0], hi[0] + 1), np.arange(lo[1], hi[1] + 1))
+            e1, e2 = p[1] - p[0], p[2] - p[0]
+            det = e1[0] * e2[1] - e1[1] * e2[0]
+            if abs(det) < 1e-9:
+                continue
+            dx, dy = xs - p[0][0], ys - p[0][1]
+            b1, b2 = (dx * e2[1] - dy * e2[0]) / det, (e1[0] * dy - e1[1] * dx) / det
+            b0 = 1 - b1 - b2
+            slack = 1.0 / max(np.linalg.norm(e1), np.linalg.norm(e2), 1.0)
+            inside = (b0 >= -slack) & (b1 >= -slack) & (b2 >= -slack)
+            if not inside.any():
+                continue
+            w = np.stack([b0[inside], b1[inside], b2[inside]], 1).clip(0, None)
+            w /= w.sum(1, keepdims=True)
+            yi, xi = ys[inside], xs[inside]
+            target[yi, xi, :3] = encoded(linear(target[yi, xi, :3]) * (w @ np.array(gains)))
+
+    for chest_title, (_, chest_maps, (chest_triangles, chest_edges)) in chest_bodies.items():
+        chest_colour = pixels(chest_maps["Color"])
+        # Its skin coloured as hers under it, its own detail kept (the areolas, the pores; the picture's woman had paler
+        # breasts, tan lines, which one gain for the whole map turned grey): each vertex's chest colour and her skin's
+        # under it, each smoothed over the mesh (COLOUR_REACH steps of its neighbours: about 6 cm, wider than an
+        # areola; on the mesh, so the map's islands make no steps), their ratio the gain painted into each triangle.
+        on_torso = [torso_final is not None and t[3].startswith(f"{Title}Torso") for t in chest_triangles]
+        mine = corners_at(chest_colour, [uv for t in chest_triangles for uv in t[0]])
+        under = np.concatenate([
+            (torso_at if torso else body_at)(np.array(t[1])) for t, torso in zip(chest_triangles, on_torso)])
+        valid = skin_of(np.concatenate([mine, np.ones((len(mine), 1))], 1))             & skin_of(np.concatenate([under, np.ones((len(under), 1))], 1))
+        vertex_of = [v for t in chest_triangles for v in t[4]]
+        sums = {}
+        for v, ok, m, u in zip(vertex_of, valid, linear(mine), linear(under)):
+            if ok:
+                s_m, s_u, n = sums.get(v, (0.0, 0.0, 0))
+                sums[v] = (s_m + m, s_u + u, n + 1)
+        field = {v: (m / n, u / n) for v, (m, u, n) in sums.items()}
+        neighbours = {}
+        for a, b in chest_edges:
+            neighbours.setdefault(a, []).append(b)
+            neighbours.setdefault(b, []).append(a)
+        known = dict(field)
+        for _ in range(COLOUR_REACH):
+            known = {v: tuple(np.mean([known[n][k] for n in [v] + neighbours.get(v, []) if n in known], 0) for k in (0, 1))
+                     for v in set(known) | {n for v in known for n in neighbours.get(v, [])}}
+        gain_of = {v: m_u[1] / np.maximum(m_u[0], 1e-4) for v, m_u in known.items()}
+        overall = np.median(np.array(list(gain_of.values())), 0)
+        scale_triangles(chest_colour, [t[0] for t in chest_triangles],
+                        [[gain_of.get(v, overall) for v in t[4]] for t in chest_triangles])
+        gains = np.array(list(gain_of.values()))
+        report["chests"][chest_title]["skin_gain_rgb_p5_median_p95"] = [
+            [round(float(g), 3) for g in np.percentile(gains, q, 0)] for q in (5, 50, 95)]
+        fade = [t for t in chest_triangles if min(t[2]) < 1.0]
+        paint(chest_colour, [t[:3] for t, torso in zip(chest_triangles, on_torso) if min(t[2]) < 1.0 and torso], torso_at)
+        paint(chest_colour, [t[:3] for t, torso in zip(chest_triangles, on_torso) if min(t[2]) < 1.0 and not torso], body_at)
+        save(chest_colour, os.path.join(BODIES_OUT, f"{chest_title}_Color.png"), "sRGB")
+        del chest_colour
+        chest_normal = pixels(chest_maps["Normal"])
+        paint(chest_normal, [t[:3] for t in fade], lambda uvs: np.array([0.5, 0.5, 1.0]))
+        save(chest_normal, os.path.join(BODIES_OUT, f"{chest_title}_Normal.png"), "Non-Color")
+    del torso_final
 del body_colour
 
 
@@ -646,6 +758,17 @@ for head_title, ob in heads.items():
     export(os.path.join(HEADS_OUT, f"{head_title}.fbx"), [ob])
     ob.name = f"Head {head_title}"
 eye_bones({})
+# Each body type's Body named "Body" in its file, the body's own among them (Bodies/<Title>.fbx), the others out of
+# the way while it is.
+if chest_pieces:
+    body_types = dict({Title: body_pieces["Body"]}, **chest_pieces)
+    for type_title, ob in body_types.items():
+        ob.name = f"Body {type_title}"
+    for type_title, ob in body_types.items():
+        ob.name = "Body"
+        export(os.path.join(BODIES_OUT, f"{type_title}.fbx"), [ob])
+        ob.name = f"Body {type_title}"
+    body_pieces["Body"].name = "Body"
 
 
 # What Forge will read: the FBX back, measured again, and pictured.
@@ -692,6 +815,17 @@ for head_title in seated:
         materials_in_fbx=[m.name for m in head.data.materials],
         faces_per_material_in_fbx={"0 body's (collar)": int(faces_per_slot[0]), "1 its own": int(faces_per_slot[1]),
                                    "2 its eyes": int(faces_per_slot[2])})
+# Each body type read back: its seams against the body's other pieces and its own head (the chest never reaches them).
+types_back = {}
+for chest_title in chest_pieces:
+    meshes = imported(os.path.join(BODIES_OUT, f"{chest_title}.fbx"))
+    if len(meshes) != 1:
+        raise SystemExit(f"PIECES the body type {chest_title} read back as {len(meshes)} meshes")
+    types_back[chest_title] = meshes[0]
+    meshes[0].hide_render = True       # out of the body's own pictures; its own come last
+    report["chests"][chest_title].update(
+        seams_in_fbx=seam_match(dict(body_back, Body=meshes[0], Head=heads_back[Title])),
+        materials_in_fbx=[m.name for m in meshes[0].data.materials])
 json.dump(report, open(C.checks(f"pieces{TAG}.json"), "w"), indent=1)
 
 colours = {"Body": (0.62, 0.62, 0.6, 1), "Head": (0.85, 0.35, 0.3, 1), "Hands": (0.3, 0.55, 0.85, 1),
@@ -779,5 +913,30 @@ for head_title, head in heads_back.items():
             cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
             scene.render.filepath = C.picture(f"{name}_{view}_{head_title}{TAG}")
             bpy.ops.render.render(write_still=True)
+
+# Each body type in its colours with the body's own head, whole and the chest close, beside the body's own.
+if types_back:
+    wearing(Title)
+    chest_at = Vector((0, 0, report["breasts"]["Left"]["nipple_m"][2] if "breasts" in report else height * 0.72))
+    for type_title, ob in [(Title, body_back["Body"]), *types_back.items()]:
+        for other in [body_back["Body"], *types_back.values()]:
+            other.hide_render = other is not ob
+        for k, m in enumerate(ob.data.materials):
+            if m and m.name.startswith(f"{Title}Torso") and torso_skin:
+                ob.data.materials[k] = torso_skin
+            elif m and type_title != Title and m.name.startswith(type_title):
+                ob.data.materials[k] = textured(os.path.join(BODIES_OUT, f"{type_title}_Color.png"))
+            elif m and not m.name.endswith("_Color.png"):
+                ob.data.materials[k] = skin
+        for name, ortho, centre in (("whole", height * 1.1, Vector((0, 0, height / 2))), ("chest", 0.6, chest_at)):
+            cam.data.ortho_scale = ortho
+            for view, d in {"front": (0, -1, 0), "three_quarter": (0.7, -0.7, 0), "side": (1, 0, 0)}.items():
+                if name == "whole" and view != "front":
+                    continue
+                d = Vector(d).normalized()
+                cam.location = centre + d * 5
+                cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+                scene.render.filepath = C.picture(f"type_{name}_{view}_{type_title}{TAG}")
+                bpy.ops.render.render(write_still=True)
 
 print("PIECES", json.dumps(report))
