@@ -21,6 +21,7 @@
  "torso": "torso_warrior_f",
  "breasts": true,
  "chests": [
-  "chest_warrior_f2"
+  "chest_warrior_f2",
+  "chest_warrior_f3"
  ]
 }
