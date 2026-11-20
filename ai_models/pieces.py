@@ -324,32 +324,40 @@ if TORSO:
     from torso import graft
     report["torso"], torso_maps, torso_fade = graft(body, os.path.join(os.path.dirname(C.root), TORSO), TORSO, Title,
                                                     PIECES.index("Body"), SEGMENTS.index("Torso"))
+# model.json "chests" (optional): chest_* models (Tripo's, from a picture of a woman's chest), each laid onto a copy of
+# the body as one of its body types (chest.py, below), its breasts grown by the chest's model.json "size" (1: as the
+# picture). The copies are taken after the torso and before the breasts are weighed, so every type keeps the body's
+# skeleton and weighs its own breasts to the body's breast bones (Forge's SoftTissue only moves those bones, so where
+# they rest does not matter to a type). Exported as Bodies/<Chest>.fbx beside the body's own Body as Bodies/<Title>.fbx,
+# for Forge to switch.
+CHESTS = C.spec.get("chests", [])
+COLOUR_REACH = 30     # a chest's colour field smoothed over this many steps of the mesh's edges (about 6 cm on her)
+BODIES_OUT = os.path.join(OUT, "Bodies")
+chest_copies = {}
+for chest_name in CHESTS:
+    copy = body.copy(); copy.data = me.copy()
+    for collection in body.users_collection:
+        collection.objects.link(copy)
+    chest_copies[chest_name] = copy
 # model.json "breasts" (optional): a bone for each, weighed on the Body's torso part (breasts.py), for Forge to spring.
 if C.spec.get("breasts"):
-    from breasts import add as add_breasts
+    from breasts import add as add_breasts, weigh as weigh_breasts
     face_piece = me.attributes["piece"].data
     face_segment = me.attributes["segment"].data
     trunk_verts = {v for k, p in enumerate(me.polygons)
                    if face_piece[k].value == PIECES.index("Body") and face_segment[k].value == SEGMENTS.index("Torso")
                    for v in p.vertices}
     report["breasts"] = add_breasts(body, rig, prefix, trunk_verts.__contains__)
-# model.json "chests" (optional): chest_* models (Tripo's, from a picture of a woman's chest), each laid onto a copy of
-# the body as one of its body types (chest.py); after the torso and the breasts' bones, so every type keeps the body's
-# skeleton and weights (Forge's SoftTissue only moves those bones, so where they rest does not matter to a type).
-# Exported as Bodies/<Chest>.fbx beside the body's own Body as Bodies/<Title>.fbx, for Forge to switch.
-CHESTS = C.spec.get("chests", [])
-COLOUR_REACH = 30     # a chest's colour field smoothed over this many steps of the mesh's edges (about 6 cm on her)
-BODIES_OUT = os.path.join(OUT, "Bodies")
 chest_bodies = {}
 if CHESTS:
     from chest import lay
-    for chest_name in CHESTS:
+    for chest_name, copy in chest_copies.items():
         chest_title = "".join(part.capitalize() for part in chest_name.split("_"))
-        copy = body.copy(); copy.data = me.copy()
-        for collection in body.users_collection:
-            collection.objects.link(copy)
+        chest_size = float(Creature(chest_name).spec.get("size", 1.0))
         chest_report, chest_maps, chest_fade = lay(copy, os.path.join(os.path.dirname(C.root), chest_name), chest_name,
-                                                   chest_title, PIECES.index("Body"), SEGMENTS.index("Torso"))
+                                                   chest_title, PIECES.index("Body"), SEGMENTS.index("Torso"), chest_size)
+        if C.spec.get("breasts"):
+            chest_report["breasts"] = weigh_breasts(copy, prefix, trunk_verts.__contains__, report["breasts"]["wall_m"])
         report.setdefault("chests", {})[chest_title] = chest_report
         chest_bodies[chest_title] = (copy, chest_maps, chest_fade)
 me.shade_smooth()

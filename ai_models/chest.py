@@ -18,6 +18,14 @@ normals it spikes at the nipple). So:
   The maps: the region's faces get their own material (<Title>, the chest's) and UVs, baked from the full chest
   (selected to active, near then far as torso.py does); the faces near the held edge fade into what was under them
   (pieces.py paints it, as for a head's neck), so the skin has no line.
+  The size (the chest's model.json "size"; 1: as the picture): a picture carries a breast only in proportion to its
+  frame, and every woman's breast is about three quarters of her nipples' spacing wide (measured s1024: her own 0.70,
+  two chests 0.73 and 0.75, laid on her 0.79 and 0.75), so from the front every type has the same footprint and only
+  its depth differs. For a breast beyond any picture's, each vertex's stand over the chest wall (the region relaxed
+  to its held edge, a harmonic surface, so the wall is her ribs with the breasts taken off) is grown by the size along
+  her normal, and a share of the growth (SAG) goes downward, so the extra is depth and hang, not a wider base (the
+  base is where the stand is nothing, so it stays; nothing slides along the wall, so nothing folds under). The maps
+  are baked before the growth, so the grown surface wears them stretched rather than missing the chest.
 
 Works in the body mesh's frame, which is the world's: metres, front -Y, up Z.
 
@@ -53,6 +61,10 @@ SHAPE_FACES = 90000     # and smaller again for the shape her surface takes
 FILL_STEPS = 400
 SMOOTH_STEPS = 3
 TEX_FADE = 0.03     # metres in from the held edge over which the chest's maps come in
+FULL_STAND = 0.01   # a vertex standing this far (metres) over the chest wall is wholly the breast's, for the size
+SAG = 0.5           # of the size's growth goes downward too, so a bigger breast hangs as well as stands
+GROW_SMOOTH = 36    # the stand and her normal smoothed over this many steps (about 5 cm) before the growth
+MIDLINE = 0.004     # a breast grown into the other stops this far (metres) from the breastbone's line
 TEXTURE = 4096
 NEAR, FAR = 0.003, 0.02             # the bake's cage, as torso.py's
 MISS = (1.0, 0.0, 1.0, 1.0)
@@ -116,11 +128,11 @@ def load_chest(folder, name):
     return high
 
 
-def lay(body, folder, name, title, body_piece=0, torso_segment=0):
-    """Lays the chest of folder onto body (the whole cut body, as pieces.py has it after the torso and the breasts'
-    bones). Returns the report, the baked maps' paths (Color, Normal) and (triangles, edges): each covered triangle's
-    corners' UVs on the chest's map, the UVs under them, how much of the chest shows at each, the material under and its
-    vertices; the covered vertices' edges."""
+def lay(body, folder, name, title, body_piece=0, torso_segment=0, size=1.0):
+    """Lays the chest of folder onto body (the whole cut body, as pieces.py has it after the torso), its breasts grown
+    by size (1: as the picture). Returns the report, the baked maps' paths (Color, Normal) and (triangles, edges): each
+    covered triangle's corners' UVs on the chest's map, the UVs under them, how much of the chest shows at each, the
+    material under and its vertices; the covered vertices' edges."""
     if any(abs(a - b) > 1e-5 for row_a, row_b in zip(body.matrix_world, Matrix.Identity(4)) for a, b in zip(row_a, row_b)):
         raise SystemExit("CHEST the body's mesh is not in the world's frame")
     me = body.data
@@ -255,6 +267,39 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0):
             around = [move[n] for n in neighbours[v] if n in move]
             smoothed[v] = (move[v] + sum(around, Vector()) / len(around)) / 2
         move.update(smoothed)
+
+    # The size: the chest wall under her breasts is the region relaxed to its held edge; each vertex's stand over it,
+    # once laid, grows by the size along her normal, a share of it downward. Applied after the bake (below).
+    growth = {}
+    stands = {}
+    if size != 1.0:
+        wall = {v: me.vertices[v].co.copy() for v in region}
+        for _ in range(FILL_STEPS):
+            for v in region - held:
+                around = [wall[n] for n in neighbours[v] if n in wall]
+                wall[v] = sum(around, Vector()) / len(around)
+        # Each vertex's stand over the wall and her normal there, both smoothed over the mesh (GROW_SMOOTH steps), so
+        # the growth is the breast's gross shape and not its detail: the chest's puffy areola grown with the rest stood
+        # out as a disc with a rim, and neighbours grown along their own normals spread apart (size 2, seen s1024).
+        normals = {v: me.vertices[v].normal.copy() for v in region}
+        stands = {v: 0.0 for v in region}
+        for v in region - held:
+            stands[v] = (me.vertices[v].co + move[v] - wall[v]).dot(normals[v])
+        raw = dict(stands)
+        inside = {v: [n for n in neighbours[v] if n in stands] for v in region - held}
+        for _ in range(GROW_SMOOTH):
+            stands.update({v: (stands[v] + sum(stands[n] for n in inside[v]) / len(inside[v])) / 2 for v in inside})
+            normals.update({v: (normals[v] + sum((normals[n] for n in inside[v]), Vector())).normalized() for v in inside})
+        for v in region - held:
+            grow = (size - 1) * smoothstep(stands[v] / FULL_STAND) * stands[v]
+            if grow <= 0:
+                continue
+            g = grow * (normals[v] + SAG * Vector((0, 0, -1)))
+            # Not through the middle: a breast grown into the other stops at the breastbone's line, pressed flat.
+            x = (me.vertices[v].co + move[v]).x
+            if x * (x + g.x) < 0 or abs(x + g.x) < MIDLINE:
+                g.x = math.copysign(MIDLINE, x) - x
+            growth[v] = g
     moves = []
     for v in region:
         me.vertices[v].co += move[v]
@@ -263,6 +308,13 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0):
     report.update({"region_vertices": len(region), "held": len(held), "aimed": aimed, "filled": len(free),
                    "missed": missed, "near_cut": near_cut,
                    "moved_mm_median_max": [round(float(np.median(moves)) * 1000, 2), round(float(max(moves)) * 1000, 2)]})
+    if size != 1.0:
+        nipple_verts = [min(region, key=lambda v: (me.vertices[v].co - move[v] - her).length) for her in hers]
+        report["size"] = {"size": size, "grown_vertices": len(growth),
+                          "nipple_stand_cm_laid": [round(raw.get(v, 0.0) * 100, 2) for v in nipple_verts],
+                          "nipple_stand_cm_smoothed": [round(stands.get(v, 0.0) * 100, 2) for v in nipple_verts],
+                          "nipple_grown_cm": [round(growth[v].length * 100, 2) if v in growth else 0.0 for v in nipple_verts],
+                          "grown_mm_max": round(max(g.length for g in growth.values()) * 1000, 2) if growth else 0.0}
 
     # The maps' share: the region's faces, the chest showing by how far each corner is in from the held edge.
     covered = [p.index for p in me.polygons if piece[p.index] == body_piece and all(v in region for v in p.vertices)]
@@ -366,6 +418,11 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0):
         near_image.save()
         out[kind] = path
     scene.render.engine = engine
+    # The size's growth, now that the maps are baked on the surface as the chest has it.
+    for v, grow in growth.items():
+        me.vertices[v].co += grow
+    if growth:
+        me.update()
     # Gone with what they hold: removing an object leaves its mesh, and its material its images (an 8K map).
     low_data, high_data = low.data, high.data
     images = {n.image for m in high_data.materials if m and m.node_tree for n in m.node_tree.nodes
