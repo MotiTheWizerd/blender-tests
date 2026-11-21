@@ -16,12 +16,14 @@ from mathutils import Vector
 
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 BODY = ARGS[0]
+WHOLE = "--whole" in ARGS     # the whole body, crown to floor (<Body>_body_<view>.png): a body type's arms and legs too
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from place import Creature, pictures_as_jpeg
 
 B = Creature(BODY)
 SIZE = 3000           # the picture's side (pixels): Iris edits at full detail
+WHOLE_MARGIN = 0.03   # --whole: the picture's margin over her crown and under her feet, a share of her height
 TOP_OVER_CHIN = 0.03  # metres above the body's chin the picture starts: the jaw shows, so the neck's end is plain
 BOTTOM = 0.36         # the picture's lower edge, as a share of her height: the upper thighs
 BACKGROUND = (0.5, 0.5, 0.5)   # plain mid grey: not skin, not hair, not the white a model paints with
@@ -35,6 +37,11 @@ for path in (os.path.join(folder, f"{B.title}.fbx"), os.path.join(folder, "Heads
 meshes = [o for o in bpy.data.objects if o.type == "MESH"]
 if not meshes:
     raise SystemExit(f"no mesh in {folder}")
+# Her own shape: every body type's shape key off (the FBX carries them, and read back they came on, all at once).
+for ob in meshes:
+    if ob.data.shape_keys:
+        for key in ob.data.shape_keys.key_blocks:
+            key.value = 0.0
 
 
 def textured(name):
@@ -77,7 +84,10 @@ if os.path.exists(report):
     if chins:
         chin = chins[0]
 top, bottom = chin + TOP_OVER_CHIN, floor + BOTTOM * height
+if WHOLE:
+    top, bottom = floor + height * (1 + WHOLE_MARGIN), floor - height * WHOLE_MARGIN
 side = top - bottom
+SHEET = "body" if WHOLE else "torso"
 centre = Vector((0.0, 0.0, (top + bottom) / 2))
 # The body's frame: front -Y, up Z (pieces.py's).
 VIEWS = {"front": Vector((0, 1, 0)), "side": Vector((-1, 0, 0)), "back": Vector((0, -1, 0)),
@@ -119,12 +129,12 @@ def shoot(toward, path):
 
 scene.render.image_settings.file_format, scene.render.image_settings.color_mode = "PNG", "RGB"
 for view, toward in VIEWS.items():
-    shoot(toward, os.path.join(OUT, f"{B.title}_torso_{view}.png"))
+    shoot(toward, os.path.join(OUT, f"{B.title}_{SHEET}_{view}.png"))
 
 # The record: the same, small.
 scene.render.resolution_percentage = 25
 pictures_as_jpeg(scene)
 for view, toward in VIEWS.items():
-    shoot(toward, B.picture(f"torso_sheet_{view}"))
+    shoot(toward, B.picture(f"{SHEET}_sheet_{view}"))
 
-print(f"TORSO SHEET {B.title}: {bottom:.3f} to {top:.3f} m ({side * 100:.0f} cm square), {len(VIEWS)} views of {SIZE} px in {OUT}")
+print(f"{SHEET.upper()} SHEET {B.title}: {bottom:.3f} to {top:.3f} m ({side * 100:.0f} cm square), {len(VIEWS)} views of {SIZE} px in {OUT}")

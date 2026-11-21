@@ -28,6 +28,7 @@ WAIST = 0.04      # what the torso covers keeps this far (metres) from its open 
 CAP_BAND = 0.15               # the torso's ends: this share of its height at the bottom and the top
 CAP_FACING = 0.7              # a face there turned out of the end steeper than this (its normal's z) is a cap's
 FACING = 0.5                  # the torso's surface and the body's turned less than 60 degrees apart
+WHOLE_OVER = 0.75             # a model standing this share of the body's height is a whole body, laid over the whole Body piece
 FIT_STEPS = 40
 FIT_KEEP = 0.8    # each fitting step weighs the torso's points nearest the body, this share of them
 TEXTURE = 4096
@@ -125,14 +126,17 @@ def fit(high, body_bvh, body_pair):
             "median_off_mm_first_last": [round(steps[0] * 1000, 2), round(steps[-1] * 1000, 2)]}
 
 
-def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_x=None):
+def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_x=None, whole=None):
     """The shape: the torso of torso_folder fitted to body (the whole cut body: its faces' "piece" and "segment" and
     its vertices' "seam" attributes as pieces.py set them) and the Body piece's torso part laid onto it, each covered
     vertex to the torso's surface, wholly from FADE inside and not at all at the edge of what it covers. With
     shoulder_x the covered faces end at the shoulders (|x| within it): a body type's torso made from a picture whose
-    arms hang otherwise than the body's would pull its upper arms after them. Returns the report, the torso (for
-    graft's bake; the caller removes it), the covered faces (list and set), the covered vertices, the edge's among
-    them and how much of the torso shows at each."""
+    arms hang otherwise than the body's would pull its upper arms after them. A WHOLE body (whole; None: so when the
+    model stands WHOLE_OVER of the body's height, Iris's edit of the body's whole sheet) is laid over the whole Body
+    piece, trunk, arms and legs, fitted to the whole cut body (its head, hands and feet too), its edges the neck, wrist
+    and ankle seams alone, so every head, hand and foot still fits. Returns the report, the torso (for graft's bake;
+    the caller removes it), the covered faces (list and set), the covered vertices, the edge's among them and how much
+    of the torso shows at each."""
     if any(abs(a - b) > 1e-5 for row_a, row_b in zip(body.matrix_world, Matrix.Identity(4)) for a, b in zip(row_a, row_b)):
         raise SystemExit("TORSO the body's mesh is not in the world's frame")
     me = body.data
@@ -141,19 +145,26 @@ def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_
     seam = [a.value for a in me.attributes["seam"].data]
     on_body = [i for i, f in enumerate(me.polygons) if piece[i] == body_piece]
 
+    high = load_torso(torso_folder, torso_name)
+    body_height = max(v.co.z for v in me.vertices) - min(v.co.z for v in me.vertices)
+    model_height = max(v.co.z for v in high.data.vertices) - min(v.co.z for v in high.data.vertices)
+    if whole is None:
+        whole = model_height > WHOLE_OVER * body_height
     bm = bmesh.new(); bm.from_mesh(me)
     bm.faces.ensure_lookup_table(); bm.verts.ensure_lookup_table()
+    fit_faces = range(len(me.polygons)) if whole else on_body
     body_bvh = BVHTree.FromPolygons([me.vertices[v].co.copy() for v in range(len(me.vertices))],
-                                    [tuple(me.polygons[i].vertices) for i in on_body])
+                                    [tuple(me.polygons[i].vertices) for i in fit_faces])
     # Her nipples: the most forward points of the Body's torso part, between her shoulders' height and her hips'.
     torso_verts = {v for i in on_body if segment[i] == torso_segment for v in me.polygons[i].vertices}
     zs = sorted(me.vertices[v].co.z for v in torso_verts)
     lo, hi = zs[0], zs[-1]
     co = [me.vertices[v].co for v in torso_verts]
     body_pair = forward_pair(co, [lo + (hi - lo) * 0.4 < c.z < lo + (hi - lo) * 0.85 and abs(c.x) < 0.15 for c in co])
+    on_covered = (lambda i: True) if whole else (lambda i: segment[i] == torso_segment)
 
-    high = load_torso(torso_folder, torso_name)
-    report = {"fade_cm": FADE * 100, "waist_cm": WAIST * 100, "fit": fit(high, body_bvh, body_pair)}
+    report = {"fade_cm": FADE * 100, "waist_cm": WAIST * 100, "whole": whole,
+              "model_height_over_body": round(model_height / body_height, 3), "fit": fit(high, body_bvh, body_pair)}
     # The torso's own cuts (the hips all round, the elbows, under the jaw), which Tripo closed with flat caps: a cap is
     # the faces in its lowest or highest CAP_BAND turned out of that end (steeper than CAP_FACING), taken away, so
     # nothing of the body lands on one (her crotch faces down as the hips' cap does) and their rims are its open edges.
@@ -167,7 +178,7 @@ def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_
     hbm.to_mesh(high.data); hbm.free()
     high.data.update()
     report["cap_faces"] = len(caps)
-    if not rim:
+    if not rim and not whole:
         raise SystemExit(f"TORSO {torso_name}: no cut found at its ends")
     high_bvh = BVHTree.FromObject(high, bpy.context.evaluated_depsgraph_get())
     rim_tree = KDTree(len(rim))
@@ -175,20 +186,20 @@ def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_
         rim_tree.insert(c, k)
     rim_tree.balance()
     # Clear: the nearest point of the torso is WAIST from a rim (its cuts are ragged: the hips' runs higher at the back
-    # than its lowest point) and faces the way the body does there.
+    # than its lowest point; a whole body has none) and faces the way the body does there.
     clear = {}
     for i in on_body:
-        if segment[i] == torso_segment:
+        if on_covered(i):
             for v in me.polygons[i].vertices:
                 if v not in clear:
                     vert = me.vertices[v]
                     at, facing, _, _ = high_bvh.find_nearest(vert.co)
-                    clear[v] = rim_tree.find(at)[2] > WAIST and facing.dot(vert.normal) > FACING
+                    clear[v] = (not rim or rim_tree.find(at)[2] > WAIST) and facing.dot(vert.normal) > FACING
 
-    # What the torso covers: the Body's torso part clear of the torso's open edges. Its edge is where it meets any
-    # other face (a limb's line, the neck seam, what isn't clear) or lies on a seam or line.
-    covered = [i for i in on_body if segment[i] == torso_segment and all(clear[v] for v in me.polygons[i].vertices)
-               and (shoulder_x is None or all(abs(me.vertices[v].co.x) <= shoulder_x for v in me.polygons[i].vertices))]
+    # What the torso covers: the Body's torso part (a whole body: the whole piece) clear of the torso's open edges. Its
+    # edge is where it meets any other face (a limb's line, the neck seam, what isn't clear) or lies on a seam or line.
+    covered = [i for i in on_body if on_covered(i) and all(clear[v] for v in me.polygons[i].vertices)
+               and (whole or shoulder_x is None or all(abs(me.vertices[v].co.x) <= shoulder_x for v in me.polygons[i].vertices))]
     covered_set = set(covered)
     inside = {v for i in covered for v in me.polygons[i].vertices}
     edge = {v.index for v in bm.verts if v.index in inside
