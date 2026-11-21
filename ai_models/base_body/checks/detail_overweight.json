@@ -1,10 +1,15 @@
 {
  "type": "overweight",
- "pose_fit_cost": 0.000369007578274951,
+ "pose_fit_cost": 0.00037638547157274117,
  "pose": {
+  "mixamorig:Spine2": [
+   -1.0,
+   -0.0,
+   0.0
+  ],
   "mixamorig:LeftShoulder": [
    -2.0,
-   8.0,
+   6.0,
    -16.0
   ],
   "mixamorig:LeftArm": [
@@ -13,42 +18,42 @@
    8.0
   ],
   "mixamorig:LeftForeArm": [
-   -14.0,
+   -18.0,
    -0.0,
    2.0
   ],
   "mixamorig:LeftHand": [
-   -16.0,
-   2.0,
-   6.0
+   -13.0,
+   4.0,
+   7.0
   ],
   "mixamorig:RightShoulder": [
-   1.0,
-   -14.0,
-   13.0
+   0.0,
+   -10.0,
+   14.0
   ],
   "mixamorig:RightArm": [
-   0.0,
+   -1.0,
    -0.0,
-   -5.0
+   -6.0
   ],
   "mixamorig:RightForeArm": [
-   -13.0,
+   -14.0,
    -0.0,
-   -4.0
+   -2.0
   ],
   "mixamorig:RightHand": [
+   -15.0,
    -10.0,
-   -11.0,
-   -8.0
+   -5.0
   ],
   "mixamorig:Neck": [
-   8.0,
+   11.0,
    -0.0,
    0.0
   ],
   "mixamorig:Head": [
-   -10.0,
+   -12.0,
    -0.0,
    1.0
   ],
@@ -58,35 +63,35 @@
    -1.0
   ],
   "mixamorig:LeftLeg": [
-   1.0,
+   2.0,
    -0.0,
    1.0
   ],
   "mixamorig:LeftFoot": [
-   -8.0,
+   -9.0,
    -2.0,
    -13.0
   ],
   "mixamorig:RightUpLeg": [
-   2.0,
+   3.0,
    -0.0,
-   0.0
+   1.0
   ],
   "mixamorig:RightLeg": [
-   4.0,
+   1.0,
    -0.0,
-   -0.0
+   -1.0
   ],
   "mixamorig:RightFoot": [
-   -9.0,
-   3.0,
-   12.0
+   -8.0,
+   1.0,
+   13.0
   ]
  },
  "map": "overweight_normal.png",
  "gap_mm": {
-  "median": 6.0,
-  "p90": 18.2,
-  "max": 69.2
+  "median": 5.7,
+  "p90": 16.7,
+  "max": 68.7
  }
 }

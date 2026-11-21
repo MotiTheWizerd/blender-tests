@@ -6,8 +6,9 @@ Both bodies at 1.70 m, feet on the ground. Each is measured as a profile: the tr
 levels from the crotch to under the armpits, each leg's from the ankle to the crotch, each arm's depth from the
 forearm to the armpit, and how far the breasts stand forward of the breastbone level by level (BREAST_WEIGHT).
 MPFB's female (gender 0) is then fitted by damped Gauss-Newton over its macro sliders (weight, muscle,
-proportions, cupsize, firmness, 0 to 1) and the detail sliders in DETAIL (-1 to 1, left and right as one), the
-profile's squared differences the loss, the detail sliders held near 0 by RIDGE. Each is one of MPFB's own
+proportions, 0 to 1; the chest held at CHEST, since the breasts are their own kind) and the detail sliders in
+DETAIL (-1 to 1, left and right as one), the profile's squared differences the loss (the breasts and the trunk's
+depth at chest height weighed nothing), the detail sliders held near 0 by RIDGE. Each is one of MPFB's own
 targets, so the rig refits to the result.
 
 Writes checks/fit_<type>.json (the values, the profile before and after) and checks/fit_<type>_front/side.png
@@ -24,10 +25,14 @@ ARGS = sys.argv[sys.argv.index("--") + 1:]
 SOURCE, TYPE = ARGS[0], ARGS[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
 HEIGHT = 1.70
-MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
+MACRO = ["weight", "muscle", "proportions"]
+# the chest is not the body's to fit: the breasts are their own kind (Moti: "they all have replacable breasts"), so
+# every type is fitted with one chest, MPFB's middle, the breast measurements and the trunk's depth at chest height
+# weighed nothing; the sliders are written out with the fit so the build reads one set
+CHEST = {"cupsize": 0.5, "firmness": 0.5}  # and no measure-bust-circ among DETAIL: it girths the breasts
 # detail sliders: a target pair <name>-decr / -incr (or the ends given) under data/targets/<folder>; "l-" and "r-"
 # both when sided
-DETAIL = [("torso", "measure-bust-circ"), ("torso", "measure-underbust-circ"), ("torso", "measure-waist-circ"),
+DETAIL = [("torso", "measure-underbust-circ"), ("torso", "measure-waist-circ"),
           ("torso", "measure-hips-circ"), ("torso", "torso-scale-depth"), ("torso", "torso-scale-horiz"),
           ("torso", "torso-vshape"), ("hip", "hip-scale-depth"), ("hip", "hip-scale-horiz"),
           ("stomach", "stomach-pregnant"), ("buttocks", "buttocks-volume"),
@@ -35,7 +40,7 @@ DETAIL = [("torso", "measure-bust-circ"), ("torso", "measure-underbust-circ"), (
           ("legs", "upperleg-scale-horiz"), ("legs", "lowerleg-fat"), ("legs", "lowerleg-muscle"),
           ("legs", "lowerleg-scale-depth"), ("legs", "lowerleg-scale-horiz"), ("legs", "measure-knee-circ"),
           ("arms", "upperarm-fat"), ("arms", "upperarm-muscle"), ("arms", "lowerarm-fat"),
-          ("arms", "lowerarm-muscle"), ("breast", "breast-volume-vert", ("down", "up"))]
+          ("arms", "lowerarm-muscle")]
 BREAST_LEVELS = 12
 BREAST_WEIGHT = 3.0  # the breasts' entries count this much more: few, small numbers that make the figure
 RIDGE = 0.004  # m of profile error a detail slider at 1 is worth: keeps them from fighting each other
@@ -192,6 +197,7 @@ log("tripo", len(T), "vertices, crotch", round(tc, 3))
 # --- MPFB ----------------------------------------------------------------------------------------------------------
 macro = TargetService.get_default_macro_info_dict()
 macro.update({"gender": 0.0, "age": 0.5})
+macro.update(CHEST)
 macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
 base = HumanService.create_human(mask_helpers=True, macro_detail_dict=macro)
 base.name = "mpfb"
@@ -257,7 +263,13 @@ def mpfb_points(x):
 
 
 WEIGHTS = np.ones(len(TP))
-WEIGHTS[-BREAST_LEVELS:] = BREAST_WEIGHT
+WEIGHTS[-BREAST_LEVELS:] = 0.0  # the breasts: not the body's
+# nor the trunk's depth from the underbust up (the chest's reach is in it): the levels at f >= CHEST_FROM of the
+# twenty, their depth the odd entries
+CHEST_FROM = 0.70
+for k, f in enumerate(np.arange(0.02, 1.0001, 0.05)):
+    if f >= CHEST_FROM:
+        WEIGHTS[2 * k + 1] = 0.0
 
 
 def residual(x):
@@ -296,6 +308,7 @@ for it in range(8):
         break
 
 values = {k: round(float(v), 3) for k, v in zip(MACRO, x[:NM])}
+values.update(CHEST)
 values.update({name: round(float(v), 3) for (_, name, *_e), v in zip(DETAIL, x[NM:])})
 best = rms_mm(x)
 log("fit", values)

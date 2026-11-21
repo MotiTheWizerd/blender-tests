@@ -9,7 +9,7 @@
 4. Cycles bakes the Tripo surface's normals, tangent space, onto a posed copy of her (same mesh, same UVs);
    the map then shows on her in rest pose. The Tripo hands are cut off the copy baked from (they hang before
    the hips and their fingers are fused); the map starts flat, and is blended back to flat over her hands and
-   wrists (a mask baked on the same UVs) and wherever the Tripo surface a ray found faces more than STRAY_FROM
+   wrists and her breasts (a mask baked on the same UVs; the breasts are their own kind) and wherever the Tripo surface a ray found faces more than STRAY_FROM
    degrees away from hers (an upper arm hit from the armpit, a thigh from the crotch), so there she keeps her
    own relief.
 
@@ -40,6 +40,8 @@ ENDS = {"breast-volume-vert": ("down", "up")}
 MAP = 4096
 HAND_CUT = 0.04  # m around her posed hands the Tripo body is cut away before the bake
 HAND_FADE = 0.05  # m beyond HAND_CUT over which the map fades from her own relief back to the Tripo one
+BREAST_CUT = 0.06  # m around the breasts (the vertices on their bones) that keep her own relief wholly: their own kind
+BREAST_FADE = 0.05  # m beyond BREAST_CUT over which the map fades back to the Tripo relief
 # a ray that lands on a Tripo surface facing more than STRAY_FROM degrees away from hers hit the wrong surface (an
 # upper arm from the armpit, a thigh from the crotch); the map goes flat there, fading in from STRAY_FROM
 STRAY_FROM, STRAY_FULL = 35.0, 55.0
@@ -258,6 +260,16 @@ log("stray hits: %.1f%% of the map flattened" % (100 * stray.mean()))
 # HAND_FADE beyond, and the map blended to flat there (the rays there graze the cut and read it as a dark ring)
 reach = np.array([hand_tree.find(Vector(p))[2] for p in P_posed])
 weight = np.clip(1 - (reach - HAND_CUT) / HAND_FADE, 0, 1)
+# and her breasts: their own kind, with maps of their own; the body's map leaves them her own relief, and the zone
+# around them too (the Tripo chest's underside lies just outside the breast bones' reach), fading out beyond
+breast_groups = {g.index for g in base.vertex_groups if g.name.startswith(("mixamorig:LeftBreast", "mixamorig:RightBreast"))}
+breast_weight = np.array([sum(g.weight for g in v.groups if g.group in breast_groups) for v in base.data.vertices])
+breast_tree = KDTree(int((breast_weight > 0.05).sum()))
+for i in np.where(breast_weight > 0.05)[0]:
+    breast_tree.insert(Vector(P_posed[i]), int(i))
+breast_tree.balance()
+near_breast = np.array([breast_tree.find(Vector(p))[2] for p in P_posed])
+weight = np.maximum(weight, np.clip(1 - (near_breast - BREAST_CUT) / BREAST_FADE, 0, 1))
 colour = posed_mesh.color_attributes.new("hand", "FLOAT_COLOR", "POINT")
 colour.data.foreach_set("color", np.repeat(weight, 4).astype(np.float32).ravel())
 mask_image = bpy.data.images.new("%s_hand_mask" % TYPE, MAP, MAP, alpha=False, float_buffer=False)
