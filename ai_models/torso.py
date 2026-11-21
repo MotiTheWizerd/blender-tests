@@ -28,7 +28,6 @@ WAIST = 0.04      # what the torso covers keeps this far (metres) from its open 
 CAP_BAND = 0.15               # the torso's ends: this share of its height at the bottom and the top
 CAP_FACING = 0.7              # a face there turned out of the end steeper than this (its normal's z) is a cap's
 FACING = 0.5                  # the torso's surface and the body's turned less than 60 degrees apart
-WHOLE_OVER = 0.75             # a model standing this share of the body's height is a whole body, laid over the whole Body piece
 FIT_STEPS = 40
 FIT_KEEP = 0.8    # each fitting step weighs the torso's points nearest the body, this share of them
 TEXTURE = 4096
@@ -131,8 +130,8 @@ def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_
     its vertices' "seam" attributes as pieces.py set them) and the Body piece's torso part laid onto it, each covered
     vertex to the torso's surface, wholly from FADE inside and not at all at the edge of what it covers. With
     shoulder_x the covered faces end at the shoulders (|x| within it): a body type's torso made from a picture whose
-    arms hang otherwise than the body's would pull its upper arms after them. A WHOLE body (whole; None: so when the
-    model stands WHOLE_OVER of the body's height, Iris's edit of the body's whole sheet) is laid over the whole Body
+    arms hang otherwise than the body's would pull its upper arms after them. A WHOLE body (whole: the model's
+    model.json says so; Iris's edit of the body's whole sheet) is laid over the whole Body
     piece, trunk, arms and legs, fitted to the whole cut body (its head, hands and feet too), its edges the neck, wrist
     and ankle seams alone, so every head, hand and foot still fits. Returns the report, the torso (for graft's bake;
     the caller removes it), the covered faces (list and set), the covered vertices, the edge's among them and how much
@@ -148,8 +147,7 @@ def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_
     high = load_torso(torso_folder, torso_name)
     body_height = max(v.co.z for v in me.vertices) - min(v.co.z for v in me.vertices)
     model_height = max(v.co.z for v in high.data.vertices) - min(v.co.z for v in high.data.vertices)
-    if whole is None:
-        whole = model_height > WHOLE_OVER * body_height
+    whole = bool(whole)     # said by the model (model.json "whole"): Tripo's scale is its own, so its height says nothing
     bm = bmesh.new(); bm.from_mesh(me)
     bm.faces.ensure_lookup_table(); bm.verts.ensure_lookup_table()
     fit_faces = range(len(me.polygons)) if whole else on_body
@@ -230,11 +228,11 @@ def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_
     return report, high, covered, covered_set, inside, edge, shows
 
 
-def shape(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_x=None):
+def shape(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_x=None, whole=False):
     """A whole body type: body (a copy of the body, pieces.py's) laid onto the torso and nothing more. No maps: the
     type is a shape key of the one Body in Forge and the body's own skin rides it, its areolas with its breasts, since
     the UVs are the vertices'. Returns the report."""
-    report, high, *_ = lay(body, torso_folder, torso_name, body_piece, torso_segment, shoulder_x)
+    report, high, *_ = lay(body, torso_folder, torso_name, body_piece, torso_segment, shoulder_x, whole)
     high_data = high.data
     bpy.data.objects.remove(high, do_unlink=True)
     bpy.data.meshes.remove(high_data)

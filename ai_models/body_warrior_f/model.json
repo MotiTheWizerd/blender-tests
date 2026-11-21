@@ -27,6 +27,8 @@
   "chest_warrior_f5"
  ],
  "bodies": [
-  "torso_warrior_f_soft"
+  "torso_warrior_f_soft",
+  "torso_warrior_f_built",
+  "torso_warrior_f_average"
  ]
 }

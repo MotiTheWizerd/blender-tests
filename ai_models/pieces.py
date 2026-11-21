@@ -381,7 +381,8 @@ if BODY_TYPES:
     for type_name, copy in body_copies.items():
         type_title = "".join(part.capitalize() for part in type_name.split("_"))
         type_report = torso_shape(copy, os.path.join(os.path.dirname(C.root), type_name), type_name,
-                                  PIECES.index("Body"), SEGMENTS.index("Torso"), shoulder_x)
+                                  PIECES.index("Body"), SEGMENTS.index("Torso"), shoulder_x,
+                                  whole=bool(Creature(type_name).spec.get("whole", False)))
         type_report["shoulder_x_m"] = round(shoulder_x, 4)
         if C.spec.get("breasts"):
             type_report["breasts"], body_type_weights = breast_weights(copy, prefix, on_trunk, breast_wall, breast_normals, breast_sides)

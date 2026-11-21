@@ -1,4 +1,5 @@
 {
  "kind": "part",
- "about": "A body type for BodyWarriorF, natural and soft (Moti, 2026-11-21 02:26: 'a natrual looking body of a woman, a bit more fat, less mucsles'): Iris's edit of her own torso sheet (BodyWarriorF_torso_front.png and _side.png, flat light, one tone; the arms came down beside the thighs) through Tripo as a GLB; pieces.py lays it onto a copy of her as a shape of her one Body, keeping her skin."
+ "about": "A body type for BodyWarriorF, natural and soft (Moti, 2026-11-21 02:26: 'a natrual looking body of a woman, a bit more fat, less mucsles'; 03:33: 'we will need to make arms and legs for each body shape'): Iris's edit of her whole-body sheet (BodyWarriorF_body_front.png and _side.png: crown to feet, A-pose, flat light, one tone, the arms and legs kept where they were) through Tripo as a GLB with no texture (a type carries shape only; her skin rides it). pieces.py lays it onto a copy of her over the whole Body piece, trunk, arms and legs, as a shape of her one Body. The first, torso-only edit (02:39, the arms brought down, laid up to the shoulders) it replaces.",
+ "whole": true
 }
