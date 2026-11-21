@@ -823,10 +823,10 @@ if type_copies:
             save(type_normal, os.path.join(BODIES_OUT, f"{chest_title}{suffix}_Normal.png"), "Non-Color")
             del type_normal
             slots.append({"slot": under_name, "map": f"{chest_title}{suffix}", "faces": len(on_slot)})
-        body_types.append({"name": chest_title, "shape": chest_title, "slots": slots,
+        body_types.append({"name": chest_title, "shape": chest_title, "kind": "breasts", "slots": slots,
                            "softTissue": round(depth_of(report["chests"][chest_title].get("breasts")) / deepest, 3)})
     for type_title in type_bodies:
-        body_types.append({"name": type_title, "shape": type_title, "slots": [],
+        body_types.append({"name": type_title, "shape": type_title, "kind": "body", "slots": [],
                            "softTissue": round(depth_of(report["bodies"][type_title].get("breasts")) / deepest, 3)})
     json.dump({"types": body_types}, open(os.path.join(BODIES_OUT, "types.json"), "w"), indent=1)
     report["body_types"] = body_types
