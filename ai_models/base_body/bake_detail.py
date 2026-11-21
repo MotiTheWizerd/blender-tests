@@ -9,7 +9,9 @@
 4. Cycles bakes the Tripo surface's normals, tangent space, onto a posed copy of her (same mesh, same UVs);
    the map then shows on her in rest pose. The Tripo hands are cut off the copy baked from (they hang before
    the hips and their fingers are fused); the map starts flat, and is blended back to flat over her hands and
-   wrists (a mask baked on the same UVs), so there she keeps her own relief.
+   wrists (a mask baked on the same UVs) and wherever the Tripo surface a ray found faces more than STRAY_FROM
+   degrees away from hers (an upper arm hit from the armpit, a thigh from the crotch), so there she keeps her
+   own relief.
 
 Writes build/<type>_normal.png (4096 square), build/detail_<type>.blend (her at rest with the map, the Tripo body
 beside her), checks/detail_<type>.json (pose, fit cost), checks/detail_<type>_*.png.
@@ -38,6 +40,9 @@ ENDS = {"breast-volume-vert": ("down", "up")}
 MAP = 4096
 HAND_CUT = 0.04  # m around her posed hands the Tripo body is cut away before the bake
 HAND_FADE = 0.05  # m beyond HAND_CUT over which the map fades from her own relief back to the Tripo one
+# a ray that lands on a Tripo surface facing more than STRAY_FROM degrees away from hers hit the wrong surface (an
+# upper arm from the armpit, a thigh from the crotch); the map goes flat there, fading in from STRAY_FROM
+STRAY_FROM, STRAY_FULL = 35.0, 55.0
 CAGE, REACH = 0.05, 0.12  # the bake rays start CAGE outside her and run REACH inward
 T0 = time.time()
 
@@ -239,6 +244,16 @@ posed_obj.select_set(True)
 bpy.context.view_layer.objects.active = posed_obj
 log("baking %d x %d" % (MAP, MAP))
 bpy.ops.object.bake(type="NORMAL")
+
+
+# where the Tripo surface the ray found faces away from hers, it was the wrong surface: the baked normal's z (its
+# blue) is the cosine of the angle between the two
+pixels = np.empty(MAP * MAP * 4, dtype=np.float32)
+image.pixels.foreach_get(pixels)
+pixels = pixels.reshape(-1, 4)
+angle = np.degrees(np.arccos(np.clip(pixels[:, 2] * 2 - 1, -1, 1)))
+stray = np.clip((angle - STRAY_FROM) / (STRAY_FULL - STRAY_FROM), 0, 1)[:, None]
+log("stray hits: %.1f%% of the map flattened" % (100 * stray.mean()))
 # her hands and wrists: a mask baked on the same UV layout, 1 within HAND_CUT of her hands and fading out over
 # HAND_FADE beyond, and the map blended to flat there (the rays there graze the cut and read it as a dark ring)
 reach = np.array([hand_tree.find(Vector(p))[2] for p in P_posed])
@@ -263,15 +278,12 @@ scene.render.bake.use_selected_to_active = False
 bpy.ops.object.select_all(action="DESELECT")
 posed_obj.select_set(True)
 bpy.ops.object.bake(type="EMIT")
-pixels = np.empty(MAP * MAP * 4, dtype=np.float32)
-image.pixels.foreach_get(pixels)
-pixels = pixels.reshape(-1, 4)
 mask = np.empty(MAP * MAP * 4, dtype=np.float32)
 mask_image.pixels.foreach_get(mask)
-mask = mask.reshape(-1, 4)[:, :1]
+mask = np.maximum(mask.reshape(-1, 4)[:, :1], stray)
 pixels[:, :3] = pixels[:, :3] * (1 - mask) + np.array([0.5, 0.5, 1.0], dtype=np.float32) * mask
 image.pixels.foreach_set(pixels.ravel())
-log("hands masked: %.1f%% of the map" % (100 * mask.mean()))
+log("hands and stray hits masked: %.1f%% of the map" % (100 * mask.mean()))
 image_path = os.path.join(BUILD, "%s_normal.png" % TYPE)
 image.filepath_raw = image_path
 image.file_format = "PNG"
@@ -313,9 +325,12 @@ scene.collection.objects.link(cam)
 scene.camera = cam
 scene.render.resolution_x, scene.render.resolution_y = 1600, 1000
 cam.rotation_euler = (1.5708, 0, 0)
-for name, scale, z in (("torso", 1.0, ground + 0.65 * height), ("whole", 2.0, ground + height / 2)):
+for name, scale, z in (("torso", 1.0, ground + 0.65 * height), ("whole", 2.0, ground + height / 2), ("side", 1.0, ground + 0.65 * height)):
     cam.data.ortho_scale = scale
     cam.location = (0.4, -10, z)
+    if name == "side":  # her right side, the Tripo body hidden behind her
+        cam.location = (10, 0, z)
+        cam.rotation_euler = (1.5708, 0, 1.5708)
     scene.render.filepath = os.path.join(HERE, "checks", "detail_%s_%s.png" % (TYPE, name))
     bpy.ops.render.render(write_still=True)
 log("done")
