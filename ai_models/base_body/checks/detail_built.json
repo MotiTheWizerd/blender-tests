@@ -1,0 +1,97 @@
+{
+ "type": "built",
+ "pose_fit_cost": 0.0005692201240367753,
+ "pose": {
+  "mixamorig:Spine": [
+   6.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:Spine1": [
+   -2.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:Spine2": [
+   3.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:LeftShoulder": [
+   -3.0,
+   6.0,
+   -13.0
+  ],
+  "mixamorig:LeftArm": [
+   0.0,
+   -0.0,
+   13.0
+  ],
+  "mixamorig:LeftForeArm": [
+   -10.0,
+   -0.0,
+   -8.0
+  ],
+  "mixamorig:LeftHand": [
+   -15.0,
+   2.0,
+   9.0
+  ],
+  "mixamorig:RightShoulder": [
+   -4.0,
+   -4.0,
+   13.0
+  ],
+  "mixamorig:RightArm": [
+   0.0,
+   -0.0,
+   -13.0
+  ],
+  "mixamorig:RightForeArm": [
+   -10.0,
+   -0.0,
+   7.0
+  ],
+  "mixamorig:RightHand": [
+   -13.0,
+   -4.0,
+   -6.0
+  ],
+  "mixamorig:Neck": [
+   -9.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:Head": [
+   3.0,
+   -3.0,
+   3.0
+  ],
+  "mixamorig:LeftLeg": [
+   4.0,
+   -0.0,
+   2.0
+  ],
+  "mixamorig:LeftFoot": [
+   -5.0,
+   -9.0,
+   -16.0
+  ],
+  "mixamorig:RightLeg": [
+   4.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:RightFoot": [
+   -7.0,
+   7.0,
+   9.0
+  ]
+ },
+ "map": "built_normal.png",
+ "gap_mm": {
+  "median": 6.5,
+  "p90": 21.2,
+  "max": 71.0
+ }
+}
