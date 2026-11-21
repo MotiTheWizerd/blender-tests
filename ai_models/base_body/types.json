@@ -1,0 +1,11 @@
+{
+  "title": "BodyBaseF",
+  "base": "skinny",
+  "sources": "~/Downloads",
+  "types": [
+    { "name": "skinny", "source": "5ab2e08e-3991-416c-8b42-f0e1196ab270.fbx" },
+    { "name": "fit", "source": "c6966c04-6702-4554-b5d2-b20849af1d24.glb" },
+    { "name": "built", "source": "b7f39db5-cd1d-43bb-b2c5-0e768aa5a3db.fbx" },
+    { "name": "overweight", "source": "2d2dda91-5b56-42c5-a992-6c2a4d8e24be.fbx" }
+  ]
+}
