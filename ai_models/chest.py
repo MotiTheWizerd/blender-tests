@@ -1,7 +1,7 @@
 """A chest of another shape laid onto a replaceable body, as one of its body types: pieces.py calls lay() for each
 chest_* folder the body's model.json lists under "chests" (Tripo's source_tripo.glb: a woman's chest from the neck to
-under the breasts, made from a picture), on a copy of the body after its torso and its breasts' bones, so the type keeps
-the body's skeleton, weights and topology: only where her breasts stand and what they draw change.
+under the breasts, made from a picture), on a copy of the body after its torso, so the type keeps the body's skeleton,
+weights and topology: only where her breasts stand and what they draw change.
 
 Unlike torso.py's torso (her own shape, edited), a chest of another shape cannot be laid on vertex by vertex onto the
 nearest point (s1023, measured: her sparse skin under a rounder breast lands on the ribs below and folds; along her
@@ -15,9 +15,11 @@ normals it spikes at the nipple). So:
   line through her nipple meets the chest's nipple; every other vertex takes its neighbours' mean move (a harmonic fill),
   so the move eases to the held edge with no step. The surface aimed at is the chest reduced to about her density:
   finer detail (the nipple's tip, the areola's bumps) comes through the normal map.
-  The maps: the region's faces get their own material (<Title>, the chest's) and UVs, baked from the full chest
-  (selected to active, near then far as torso.py does); the faces near the held edge fade into what was under them
-  (pieces.py paints it, as for a head's neck), so the skin has no line.
+  The maps: the region's faces keep their material and UVs (the torso's, made apart with maps of its own); the chest
+  is baked into that map's space from the full chest (selected to active, near then far as torso.py does), and
+  pieces.py paints it into a map of the type's for the same slot, the faces near the held edge fading into what was
+  under them, so the skin has no line. One body, one UV layout, one set of weights: a type is a shape key of the Body
+  (pieces.py takes the laid copy's vertices as one) wearing its own torso map, so armour made once follows every type.
   The size (the chest's model.json "size"; 1: as the picture): a picture carries a breast only in proportion to its
   frame, and every woman's breast is about three quarters of her nipples' spacing wide (measured s1024: her own 0.70,
   two chests 0.73 and 0.75, laid on her 0.79 and 0.75), so from the front every type has the same footprint and only
@@ -86,10 +88,15 @@ REDUCED = "reduced.blend"
 
 
 def prepare(folder, name):
-    """Tripo's GLB as lay() reads it: one mesh in the world's frame, its UV-seam splits welded (a glTF splits its
-    vertices along every seam), reduced to SOURCE_FACES, saved with its maps packed as build/reduced.blend."""
+    """Tripo's GLB, or its FBX export with the maps in source_tripo.fbm beside it (chest_warrior_f5; as head.py takes
+    a head), as lay() reads it: one mesh in the world's frame, its UV-seam splits welded (a glTF splits its vertices
+    along every seam), reduced to SOURCE_FACES, saved with its maps packed as build/reduced.blend."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=os.path.abspath(os.path.join(folder, "source_tripo.glb")))
+    fbx = os.path.abspath(os.path.join(folder, "source_tripo.fbx"))
+    if os.path.exists(fbx):
+        bpy.ops.import_scene.fbx(filepath=fbx)
+    else:
+        bpy.ops.import_scene.gltf(filepath=os.path.abspath(os.path.join(folder, "source_tripo.glb")))
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
     if len(meshes) != 1:
         raise SystemExit(f"CHEST {name} has {len(meshes)} meshes")
@@ -112,7 +119,9 @@ def prepare(folder, name):
     os.makedirs(os.path.join(folder, "build"), exist_ok=True)
     path = os.path.join(folder, "build", REDUCED)
     bpy.ops.wm.save_as_mainfile(filepath=path, compress=True)
-    print(f"CHEST {name}: {faces} faces -> {len(high.data.polygons)}, saved {path}")
+    maps = [n.image.name for m in high.data.materials if m and m.node_tree for n in m.node_tree.nodes
+            if n.type == "TEX_IMAGE" and n.image]
+    print(f"CHEST {name}: {faces} faces -> {len(high.data.polygons)}, maps {maps}, saved {path}")
 
 
 def load_chest(folder, name):
@@ -316,7 +325,9 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0, size=1.0):
                           "nipple_grown_cm": [round(growth[v].length * 100, 2) if v in growth else 0.0 for v in nipple_verts],
                           "grown_mm_max": round(max(g.length for g in growth.values()) * 1000, 2) if growth else 0.0}
 
-    # The maps' share: the region's faces, the chest showing by how far each corner is in from the held edge.
+    # The maps' share: the region's faces, the chest showing by how far each corner is in from the held edge. They keep
+    # their UVs and their material (the torso's, made apart with maps of its own), so the chest is baked into that map's
+    # space and pieces.py paints it into a map of the type's for the same slot: one body, one UV layout, a map per type.
     covered = [p.index for p in me.polygons if piece[p.index] == body_piece and all(v in region for v in p.vertices)]
     covered_set = set(covered)
     tree = KDTree(len(held))
@@ -327,47 +338,14 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0, size=1.0):
              for p in covered for v in me.polygons[p].vertices}
     bm.free()
     uv = me.uv_layers[0]
-    under_uv = {l: tuple(uv.data[l].uv) for i in covered for l in me.polygons[i].loop_indices}
     under_material = {i: me.materials[me.polygons[i].material_index].name for i in covered}
-    material = bpy.data.materials.new(title)
-    me.materials.append(material)
-    slot = len(me.materials) - 1
-    for i in covered:
-        me.polygons[i].material_index = slot
-    bpy.ops.object.select_all(action="DESELECT")
-    bpy.context.view_layer.objects.active = body
-    body.select_set(True)
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_mode(type="FACE")
-    bpy.ops.mesh.select_all(action="DESELECT")
-    ebm = bmesh.from_edit_mesh(me)
-    ebm.faces.ensure_lookup_table()
-    for i in covered:
-        ebm.faces[i].select_set(True)
-    bmesh.update_edit_mesh(me)
-    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003, scale_to_bounds=False)
-    bpy.ops.uv.pack_islands(rotate=True, margin=0.003)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    uv = me.uv_layers[0]
+    materials_under = sorted({m for m in under_material.values()})
     report["covered_faces"] = len(covered)
+    report["under_materials"] = {m: sum(1 for i in covered if under_material[i] == m) for m in materials_under}
 
-    # The bake, onto a copy of the covered faces alone, from the full chest (its glTF material: colour and normal map).
-    low = body.copy(); low.data = me.copy()
-    for c in body.users_collection:
-        c.objects.link(low)
-    low.modifiers.clear()
-    lbm = bmesh.new(); lbm.from_mesh(low.data)
-    lbm.faces.ensure_lookup_table()
-    bmesh.ops.delete(lbm, geom=[f for f in lbm.faces if f.index not in covered_set], context="FACES")
-    lbm.to_mesh(low.data); lbm.free()
-    for f in low.data.polygons:
-        f.use_smooth = True
-    low.data.materials.clear()
-    bake_material = bpy.data.materials.new(f"{title}_bake")
-    bake_material.use_nodes = True
-    low.data.materials.append(bake_material)
-    target = bake_material.node_tree.nodes.new("ShaderNodeTexImage")
-    bake_material.node_tree.nodes.active = target
+    # The bake, per map under the chest (the torso's, and the body's own under the breasts, where the torso's coverage
+    # ended): onto a copy of that map's covered faces alone with their UVs as they are, from the full chest (its glTF
+    # material: colour and normal map). Each map's bake shares its UV space, so pieces.py paints it into a copy of it.
     scene = bpy.context.scene
     engine = scene.render.engine
     scene.render.engine = "CYCLES"
@@ -383,54 +361,79 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0, size=1.0):
     bake.margin = 16
     bake.use_pass_direct = bake.use_pass_indirect = False
     bake.use_pass_color = True
-    bpy.ops.object.select_all(action="DESELECT")
-    high.select_set(True); low.select_set(True)
-    bpy.context.view_layer.objects.active = low
-    out, missed_texels = {}, {}
     os.makedirs(os.path.join(folder, "build"), exist_ok=True)
-    for kind, space in (("Color", "sRGB"), ("Normal", "Non-Color")):
-        layers = []
-        for cage in (NEAR, FAR):
-            image = bpy.data.images.new(f"{title}_{kind}", TEXTURE, TEXTURE, alpha=False)
-            image.colorspace_settings.name = space
-            image.generated_color = MISS
-            bake.cage_extrusion, bake.max_ray_distance = cage, 3 * cage
-            target.image = image
-            bpy.ops.object.bake(type="DIFFUSE" if kind == "Color" else "NORMAL")
-            array = np.empty(TEXTURE * TEXTURE * 4, dtype=np.float32)
-            image.pixels.foreach_get(array)
-            layers.append(array.reshape(-1, 4))
-            if cage == NEAR:
-                near_image = image
-            else:
-                bpy.data.images.remove(image)
-        near, far = layers
-        miss = (np.abs(near[:, :3] - np.array(MISS[:3])).max(1) < 1e-3) | (near[:, :3].max(1) < 1e-4)
-        far_hit = (np.abs(far[:, :3] - np.array(MISS[:3])).max(1) >= 1e-3) & (far[:, :3].max(1) >= 1e-4)
-        near[miss] = far[miss]
-        unwritten = np.abs(near[:, :3] - np.array(MISS[:3])).max(1) < 1e-3
-        near[unwritten] = (0.0, 0.0, 0.0, 1.0) if kind == "Color" else (0.5, 0.5, 1.0, 1.0)
-        missed_texels[kind] = int((miss & far_hit).sum())
-        near_image.pixels.foreach_set(near.ravel())
-        path = os.path.join(folder, "build", f"{title}_{kind}.png")
-        near_image.filepath_raw = path
-        near_image.file_format = "PNG"
-        near_image.save()
-        out[kind] = path
+    out, missed_texels = {}, {}
+    for under_name in materials_under:
+        mine = {i for i in covered if under_material[i] == under_name}
+        low = body.copy(); low.data = me.copy()
+        for c in body.users_collection:
+            c.objects.link(low)
+        low.modifiers.clear()
+        lbm = bmesh.new(); lbm.from_mesh(low.data)
+        lbm.faces.ensure_lookup_table()
+        bmesh.ops.delete(lbm, geom=[f for f in lbm.faces if f.index not in mine], context="FACES")
+        lbm.to_mesh(low.data); lbm.free()
+        for f in low.data.polygons:
+            f.use_smooth = True
+        low.data.materials.clear()
+        bake_material = bpy.data.materials.new(f"{title}_bake")
+        bake_material.use_nodes = True
+        low.data.materials.append(bake_material)
+        target = bake_material.node_tree.nodes.new("ShaderNodeTexImage")
+        bake_material.node_tree.nodes.active = target
+        bpy.ops.object.select_all(action="DESELECT")
+        high.select_set(True); low.select_set(True)
+        bpy.context.view_layer.objects.active = low
+        out[under_name], missed_texels[under_name] = {}, {}
+        for kind, space in (("Color", "sRGB"), ("Normal", "Non-Color")):
+            layers = []
+            for cage in (NEAR, FAR):
+                image = bpy.data.images.new(f"{title}_{kind}", TEXTURE, TEXTURE, alpha=True)
+                image.colorspace_settings.name = space
+                image.generated_color = MISS
+                bake.cage_extrusion, bake.max_ray_distance = cage, 3 * cage
+                target.image = image
+                bpy.ops.object.bake(type="DIFFUSE" if kind == "Color" else "NORMAL")
+                array = np.empty(TEXTURE * TEXTURE * 4, dtype=np.float32)
+                image.pixels.foreach_get(array)
+                layers.append(array.reshape(-1, 4))
+                if cage == NEAR:
+                    near_image = image
+                else:
+                    bpy.data.images.remove(image)
+            near, far = layers
+            miss = (np.abs(near[:, :3] - np.array(MISS[:3])).max(1) < 1e-3) | (near[:, :3].max(1) < 1e-4)
+            far_hit = (np.abs(far[:, :3] - np.array(MISS[:3])).max(1) >= 1e-3) & (far[:, :3].max(1) >= 1e-4)
+            near[miss] = far[miss]
+            # A texel neither cage reaches has no chest over it (the chest's surface further from hers than FAR's
+            # reach: chest_warrior_f4's breasts hang 6 cm lower on her frame than hers, so over her upper breast there
+            # is none): its alpha says so, and pieces.py keeps the map under it there, her own skin, rather than the
+            # black these texels were painted (a black cap on each of F4's breasts, seen in Forge 2026-11-21).
+            unwritten = np.abs(near[:, :3] - np.array(MISS[:3])).max(1) < 1e-3
+            near[unwritten] = (0.0, 0.0, 0.0, 0.0) if kind == "Color" else (0.5, 0.5, 1.0, 0.0)
+            missed_texels[under_name][kind] = int((miss & far_hit).sum())
+            near_image.pixels.foreach_set(near.ravel())
+            path = os.path.join(folder, "build", f"{title}_on_{under_name}_{kind}.png")
+            near_image.filepath_raw = path
+            near_image.file_format = "PNG"
+            near_image.save()
+            bpy.data.images.remove(near_image)
+            out[under_name][kind] = path
+        low_data = low.data
+        bpy.data.objects.remove(low, do_unlink=True)
+        bpy.data.meshes.remove(low_data)
+        bpy.data.materials.remove(bake_material)
     scene.render.engine = engine
     # The size's growth, now that the maps are baked on the surface as the chest has it.
     for v, grow in growth.items():
         me.vertices[v].co += grow
     if growth:
         me.update()
-    # Gone with what they hold: removing an object leaves its mesh, and its material its images (an 8K map).
-    low_data, high_data = low.data, high.data
+    # Gone with what it holds: removing an object leaves its mesh, and its material its images (an 8K map).
+    high_data = high.data
     images = {n.image for m in high_data.materials if m and m.node_tree for n in m.node_tree.nodes
               if n.type == "TEX_IMAGE" and n.image}
-    images |= {target.image} if target.image else set()
-    bpy.data.objects.remove(low, do_unlink=True)
     bpy.data.objects.remove(high, do_unlink=True)
-    bpy.data.meshes.remove(low_data)
     bpy.data.meshes.remove(high_data)
     for image in images:
         if image.name in bpy.data.images:
@@ -439,16 +442,16 @@ def lay(body, folder, name, title, body_piece=0, torso_segment=0, size=1.0):
         bpy.data.images.remove(image)
     report["texels_missed_near_filled_far"] = missed_texels
 
-    # Every covered triangle: its corners on the chest's map and under it, how much of the chest shows at each, the
-    # material under, its vertices; and the covered vertices' edges (pieces.py colours the chest by her skin under it,
-    # smoothed over the mesh, and paints what lay under it where it fades out).
+    # Every covered triangle: its corners' UVs (on the chest's bake and on the map under it alike: the same space), how
+    # much of the chest shows at each, the material under, its vertices; and the covered vertices' edges (pieces.py
+    # colours the chest by her skin under it, smoothed over the mesh, and paints it into the type's map where it shows).
     triangles = []
     for i in covered:
         p = me.polygons[i]
         loops = list(p.loop_indices)
         for tri in ([loops[0], loops[k], loops[k + 1]] for k in range(1, len(loops) - 1)):
-            triangles.append(([tuple(uv.data[l].uv) for l in tri], [under_uv[l] for l in tri],
-                              [shows[me.loops[l].vertex_index] for l in tri], under_material[i],
+            corners = [tuple(uv.data[l].uv) for l in tri]
+            triangles.append((corners, list(corners), [shows[me.loops[l].vertex_index] for l in tri], under_material[i],
                               [me.loops[l].vertex_index for l in tri]))
     inside = {v for t in triangles for v in t[4]}
     edges = [tuple(e.vertices) for e in me.edges if e.vertices[0] in inside and e.vertices[1] in inside]

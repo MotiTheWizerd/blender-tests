@@ -1,0 +1,62 @@
+{
+ "objects": [
+  {
+   "name": "tripo_node_379c8023-b656-400f-a80d-7c4443a149e5",
+   "vertices": 1012041,
+   "welded_vertices": 989141,
+   "faces": 1978286,
+   "triangles": 1978286,
+   "uv_layers": [
+    "UVMap"
+   ],
+   "materials": [
+    "tripo_node_379c8023-b656-400f-a80d-7c4443a149e5_material.001"
+   ],
+   "shells": 1,
+   "biggest_shells": [
+    989141
+   ],
+   "open_edges": 0,
+   "non_manifold_edges": 0
+  }
+ ],
+ "materials": [
+  {
+   "name": "tripo_node_379c8023-b656-400f-a80d-7c4443a149e5_material.001",
+   "maps": {
+    "Base Color": "3967073f-09b5-4e91-a70d-ddb60deedf32_basecolor.jpg",
+    "Color": "3967073f-09b5-4e91-a70d-ddb60deedf32_normal.png"
+   }
+  }
+ ],
+ "images": [
+  {
+   "name": "3967073f-09b5-4e91-a70d-ddb60deedf32_basecolor.jpg",
+   "size": [
+    8192,
+    8192
+   ],
+   "colorspace": "sRGB"
+  },
+  {
+   "name": "3967073f-09b5-4e91-a70d-ddb60deedf32_normal.png",
+   "size": [
+    4096,
+    4096
+   ],
+   "colorspace": "Non-Color"
+  }
+ ],
+ "size_m": [
+  0.98,
+  0.812,
+  0.804
+ ],
+ "min": [
+  -0.49,
+  -0.406,
+  0.0
+ ],
+ "armatures": [],
+ "animations": []
+}

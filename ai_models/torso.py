@@ -42,7 +42,14 @@ def smoothstep(t):
 
 
 def load_torso(folder, name):
-    """The torso's mesh in the world's frame, its material drawing its own colour and normal maps."""
+    """The torso's mesh in the world's frame, its material drawing its own colour and normal maps: Tripo's FBX with
+    its .fbm maps, or its GLB once chest.py's prepare step has welded and reduced it to build/reduced.blend (a body
+    type's torso, torso_warrior_f_soft: 2M triangles that pieces.py cannot hold beside everything else)."""
+    if os.path.exists(os.path.join(folder, "build", "reduced.blend")):
+        from chest import load_chest
+        high = load_chest(folder, name)
+        high.name = f"{name}_torso"
+        return high
     before = set(bpy.data.objects)
     bpy.ops.import_scene.fbx(filepath=os.path.abspath(os.path.join(folder, "source_tripo.fbx")))
     new = [o for o in bpy.data.objects if o not in before]
@@ -118,10 +125,14 @@ def fit(high, body_bvh, body_pair):
             "median_off_mm_first_last": [round(steps[0] * 1000, 2), round(steps[-1] * 1000, 2)]}
 
 
-def graft(body, torso_folder, torso_name, title, body_piece=0, torso_segment=0):
-    """Lays the torso of torso_folder onto body (the whole cut body: its faces' "piece" and "segment" and its
-    vertices' "seam" attributes as pieces.py set them), on the faces of the Body piece's torso part. Returns the
-    report, the baked maps (paths: colour, normal) and the fade's triangles."""
+def lay(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_x=None):
+    """The shape: the torso of torso_folder fitted to body (the whole cut body: its faces' "piece" and "segment" and
+    its vertices' "seam" attributes as pieces.py set them) and the Body piece's torso part laid onto it, each covered
+    vertex to the torso's surface, wholly from FADE inside and not at all at the edge of what it covers. With
+    shoulder_x the covered faces end at the shoulders (|x| within it): a body type's torso made from a picture whose
+    arms hang otherwise than the body's would pull its upper arms after them. Returns the report, the torso (for
+    graft's bake; the caller removes it), the covered faces (list and set), the covered vertices, the edge's among
+    them and how much of the torso shows at each."""
     if any(abs(a - b) > 1e-5 for row_a, row_b in zip(body.matrix_world, Matrix.Identity(4)) for a, b in zip(row_a, row_b)):
         raise SystemExit("TORSO the body's mesh is not in the world's frame")
     me = body.data
@@ -176,7 +187,8 @@ def graft(body, torso_folder, torso_name, title, body_piece=0, torso_segment=0):
 
     # What the torso covers: the Body's torso part clear of the torso's open edges. Its edge is where it meets any
     # other face (a limb's line, the neck seam, what isn't clear) or lies on a seam or line.
-    covered = [i for i in on_body if segment[i] == torso_segment and all(clear[v] for v in me.polygons[i].vertices)]
+    covered = [i for i in on_body if segment[i] == torso_segment and all(clear[v] for v in me.polygons[i].vertices)
+               and (shoulder_x is None or all(abs(me.vertices[v].co.x) <= shoulder_x for v in me.polygons[i].vertices))]
     covered_set = set(covered)
     inside = {v for i in covered for v in me.polygons[i].vertices}
     edge = {v.index for v in bm.verts if v.index in inside
@@ -204,6 +216,26 @@ def graft(body, torso_folder, torso_name, title, body_piece=0, torso_segment=0):
     report.update({"covered_faces": len(covered), "covered_vertices": len(inside), "edge_vertices": len(edge),
                    "unreached": unreached, "moved_mm_median_max": [round(float(np.median(moves)) * 1000, 2),
                                                                    round(float(max(moves)) * 1000, 2)]})
+    return report, high, covered, covered_set, inside, edge, shows
+
+
+def shape(body, torso_folder, torso_name, body_piece=0, torso_segment=0, shoulder_x=None):
+    """A whole body type: body (a copy of the body, pieces.py's) laid onto the torso and nothing more. No maps: the
+    type is a shape key of the one Body in Forge and the body's own skin rides it, its areolas with its breasts, since
+    the UVs are the vertices'. Returns the report."""
+    report, high, *_ = lay(body, torso_folder, torso_name, body_piece, torso_segment, shoulder_x)
+    high_data = high.data
+    bpy.data.objects.remove(high, do_unlink=True)
+    bpy.data.meshes.remove(high_data)
+    return report
+
+
+def graft(body, torso_folder, torso_name, title, body_piece=0, torso_segment=0):
+    """Lays the torso of torso_folder onto body (lay()), on the faces of the Body piece's torso part, which then draw
+    maps of their own baked from the torso. Returns the report, the baked maps (paths: colour, normal) and the fade's
+    triangles."""
+    me = body.data
+    report, high, covered, covered_set, inside, edge, shows = lay(body, torso_folder, torso_name, body_piece, torso_segment)
 
     # Its own material and UVs: the covered faces' corners in the first UV layer, unwrapped afresh (the body's UVs
     # under them kept for the fade).

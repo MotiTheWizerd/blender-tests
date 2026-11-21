@@ -193,7 +193,7 @@
  },
  "breasts": {
   "spacing_cm": 24.02,
-  "reach_cm": 12.01,
+  "wall_m": -0.11,
   "Left": {
    "root_m": [
     0.1206,
@@ -206,8 +206,10 @@
     1.2193
    ],
    "depth_cm": 3.9,
-   "vertices": 641,
-   "most": 0.882
+   "stand_cm_max": 9.12,
+   "weighed": 635,
+   "vertices": 657,
+   "most": 0.996
   },
   "Right": {
    "root_m": [
@@ -221,8 +223,10 @@
     1.2177
    ],
    "depth_cm": 3.91,
-   "vertices": 689,
-   "most": 0.867
+   "stand_cm_max": 8.85,
+   "weighed": 681,
+   "vertices": 695,
+   "most": 0.99
   }
  },
  "chests": {
@@ -269,106 +273,603 @@
    },
    "cap_faces": 20372,
    "shape_faces": 90000,
-   "region_vertices": 1381,
-   "held": 129,
-   "aimed": 914,
-   "filled": 338,
+   "region_vertices": 1355,
+   "held": 131,
+   "aimed": 905,
+   "filled": 319,
    "missed": 0,
    "near_cut": 19,
    "moved_mm_median_max": [
-    14.44,
+    14.71,
     41.66
    ],
-   "covered_faces": 2631,
-   "texels_missed_near_filled_far": {
-    "Color": 1793719,
-    "Normal": 0
+   "covered_faces": 2577,
+   "under_materials": {
+    "BodyWarriorF": 101,
+    "BodyWarriorFTorso": 2476
    },
-   "fade_triangles": 1160,
-   "skin_gain_rgb_p5_median_p95": [
-    [
-     0.67,
-     0.749,
-     0.73
-    ],
-    [
-     0.715,
-     0.862,
-     0.871
-    ],
-    [
-     0.774,
-     1.019,
-     1.06
-    ]
-   ],
-   "seams_in_fbx": {
-    "neck": {
-     "Head": 127,
-     "Body": 127,
-     "apart_mm": 0.0,
-     "turn_deg": 0.02
+   "texels_missed_near_filled_far": {
+    "BodyWarriorF": {
+     "Color": 2842,
+     "Normal": 0
     },
-    "wrist.L": {
-     "Hands": 86,
-     "Body": 86,
-     "apart_mm": 0.0,
-     "turn_deg": 0.02
-    },
-    "ankle.L": {
-     "Feet": 117,
-     "Body": 117,
-     "apart_mm": 0.0,
-     "turn_deg": 0.0
-    },
-    "wrist.R": {
-     "Hands": 79,
-     "Body": 79,
-     "apart_mm": 0.0,
-     "turn_deg": 0.034
-    },
-    "ankle.R": {
-     "Feet": 112,
-     "Body": 112,
-     "apart_mm": 0.0,
-     "turn_deg": 0.02
-    },
-    "arm.L": {
-     "ArmL": 83,
-     "Torso": 83,
-     "apart_mm": 0.0,
-     "turn_deg": 0.0
-    },
-    "thigh.L": {
-     "LegL": 131,
-     "Torso": 131,
-     "apart_mm": 0.0,
-     "turn_deg": 0.034
-    },
-    "arm.R": {
-     "ArmR": 86,
-     "Torso": 86,
-     "apart_mm": 0.0,
-     "turn_deg": 0.02
-    },
-    "thigh.R": {
-     "LegR": 129,
-     "Torso": 129,
-     "apart_mm": 0.0,
-     "turn_deg": 0.034
-    },
-    "open_edge_vertices_on_no_seam": {
-     "Body": 0,
-     "Feet": 0,
-     "Hands": 0,
-     "Head": 0
+    "BodyWarriorFTorso": {
+     "Color": 417618,
+     "Normal": 0
     }
    },
-   "materials_in_fbx": [
-    "BodyWarriorF.011",
-    "BodyWarriorFTorso.002",
-    "ChestWarriorF2"
-   ]
+   "fade_triangles": 1161,
+   "breasts": {
+    "spacing_cm": 21.3,
+    "wall_m": -0.1225,
+    "Left": {
+     "root_m": [
+      0.1003,
+      -0.1225,
+      1.1806
+     ],
+     "nipple_m": [
+      0.1003,
+      -0.1529,
+      1.1806
+     ],
+     "depth_cm": 3.04,
+     "stand_cm_max": 10.15,
+     "weighed": 635
+    },
+    "Right": {
+     "root_m": [
+      -0.1126,
+      -0.1225,
+      1.1809
+     ],
+     "nipple_m": [
+      -0.1126,
+      -0.1587,
+      1.1809
+     ],
+     "depth_cm": 3.61,
+     "stand_cm_max": 10.38,
+     "weighed": 681
+    }
+   },
+   "shape_key": {
+    "name": "ChestWarriorF2",
+    "moved_vertices": 1224,
+    "delta_mm_max": 41.66
+   },
+   "skin_gain_rgb_p5_median_p95": {
+    "BodyWarriorFTorso": [
+     [
+      0.67,
+      0.75,
+      0.73
+     ],
+     [
+      0.712,
+      0.857,
+      0.866
+     ],
+     [
+      0.776,
+      1.021,
+      1.053
+     ]
+    ]
+   },
+   "texels_unreached_under_shows": {
+    "BodyWarriorFTorso": 2846,
+    "BodyWarriorF": 70
+   },
+   "in_fbx": {
+    "shape_key": "ChestWarriorF2",
+    "moved_vertices": 1224,
+    "delta_mm_max": 41.66,
+    "seam_delta_mm_max": 0.0
+   }
+  },
+  "ChestWarriorF3": {
+   "fit": {
+    "scale": 0.4476,
+    "shift_m": [
+     -0.0066,
+     -0.0199,
+     1.0278
+    ],
+    "median_off_mm_first_last": [
+     31.35,
+     6.99
+    ],
+    "nipples_body_m": [
+     [
+      -0.12,
+      -0.149,
+      1.218
+     ],
+     [
+      0.121,
+      -0.149,
+      1.219
+     ]
+    ],
+    "nipples_chest_m": [
+     [
+      -0.124,
+      -0.189,
+      1.186
+     ],
+     [
+      0.11,
+      -0.19,
+      1.185
+     ]
+    ],
+    "nipples_apart_mm": [
+     51.3,
+     54.1
+    ]
+   },
+   "cap_faces": 18093,
+   "shape_faces": 90000,
+   "region_vertices": 1355,
+   "held": 131,
+   "aimed": 924,
+   "filled": 300,
+   "missed": 0,
+   "near_cut": 0,
+   "moved_mm_median_max": [
+    18.76,
+    63.61
+   ],
+   "covered_faces": 2577,
+   "under_materials": {
+    "BodyWarriorF": 101,
+    "BodyWarriorFTorso": 2476
+   },
+   "texels_missed_near_filled_far": {
+    "BodyWarriorF": {
+     "Color": 2263,
+     "Normal": 0
+    },
+    "BodyWarriorFTorso": {
+     "Color": 314775,
+     "Normal": 0
+    }
+   },
+   "fade_triangles": 1239,
+   "breasts": {
+    "spacing_cm": 23.53,
+    "wall_m": -0.154,
+    "Left": {
+     "root_m": [
+      0.1105,
+      -0.154,
+      1.1861
+     ],
+     "nipple_m": [
+      0.1105,
+      -0.186,
+      1.1861
+     ],
+     "depth_cm": 3.19,
+     "stand_cm_max": 12.9,
+     "weighed": 635
+    },
+    "Right": {
+     "root_m": [
+      -0.1248,
+      -0.154,
+      1.1834
+     ],
+     "nipple_m": [
+      -0.1248,
+      -0.1849,
+      1.1834
+     ],
+     "depth_cm": 3.08,
+     "stand_cm_max": 12.77,
+     "weighed": 681
+    }
+   },
+   "shape_key": {
+    "name": "ChestWarriorF3",
+    "moved_vertices": 1224,
+    "delta_mm_max": 63.61
+   },
+   "skin_gain_rgb_p5_median_p95": {
+    "BodyWarriorFTorso": [
+     [
+      0.729,
+      0.705,
+      0.782
+     ],
+     [
+      0.761,
+      0.757,
+      0.881
+     ],
+     [
+      0.876,
+      0.971,
+      1.131
+     ]
+    ]
+   },
+   "texels_unreached_under_shows": {
+    "BodyWarriorFTorso": 2819,
+    "BodyWarriorF": 16
+   },
+   "in_fbx": {
+    "shape_key": "ChestWarriorF3",
+    "moved_vertices": 1224,
+    "delta_mm_max": 63.61,
+    "seam_delta_mm_max": 0.0
+   }
+  },
+  "ChestWarriorF4": {
+   "fit": {
+    "scale": 0.459,
+    "shift_m": [
+     0.0091,
+     -0.0226,
+     0.9673
+    ],
+    "median_off_mm_first_last": [
+     39.97,
+     9.62
+    ],
+    "nipples_body_m": [
+     [
+      -0.12,
+      -0.149,
+      1.218
+     ],
+     [
+      0.121,
+      -0.149,
+      1.219
+     ]
+    ],
+    "nipples_chest_m": [
+     [
+      -0.126,
+      -0.204,
+      1.153
+     ],
+     [
+      0.144,
+      -0.204,
+      1.152
+     ]
+    ],
+    "nipples_apart_mm": [
+     85.6,
+     90.2
+    ]
+   },
+   "cap_faces": 23902,
+   "shape_faces": 89999,
+   "region_vertices": 1355,
+   "held": 131,
+   "aimed": 871,
+   "filled": 353,
+   "missed": 25,
+   "near_cut": 28,
+   "moved_mm_median_max": [
+    30.0,
+    92.03
+   ],
+   "covered_faces": 2577,
+   "under_materials": {
+    "BodyWarriorF": 101,
+    "BodyWarriorFTorso": 2476
+   },
+   "texels_missed_near_filled_far": {
+    "BodyWarriorF": {
+     "Color": 2278,
+     "Normal": 0
+    },
+    "BodyWarriorFTorso": {
+     "Color": 378913,
+     "Normal": 0
+    }
+   },
+   "fade_triangles": 1250,
+   "breasts": {
+    "spacing_cm": 27.47,
+    "wall_m": -0.1718,
+    "Left": {
+     "root_m": [
+      0.149,
+      -0.1718,
+      1.1525
+     ],
+     "nipple_m": [
+      0.149,
+      -0.2046,
+      1.1525
+     ],
+     "depth_cm": 3.28,
+     "stand_cm_max": 16.51,
+     "weighed": 635
+    },
+    "Right": {
+     "root_m": [
+      -0.1257,
+      -0.1718,
+      1.1535
+     ],
+     "nipple_m": [
+      -0.1257,
+      -0.2046,
+      1.1535
+     ],
+     "depth_cm": 3.28,
+     "stand_cm_max": 15.95,
+     "weighed": 681
+    }
+   },
+   "shape_key": {
+    "name": "ChestWarriorF4",
+    "moved_vertices": 1224,
+    "delta_mm_max": 92.03
+   },
+   "skin_gain_rgb_p5_median_p95": {
+    "BodyWarriorFTorso": [
+     [
+      0.719,
+      0.638,
+      0.729
+     ],
+     [
+      0.937,
+      0.962,
+      1.164
+     ],
+     [
+      1.304,
+      1.467,
+      2.012
+     ]
+    ]
+   },
+   "texels_unreached_under_shows": {
+    "BodyWarriorFTorso": 199799,
+    "BodyWarriorF": 37
+   },
+   "in_fbx": {
+    "shape_key": "ChestWarriorF4",
+    "moved_vertices": 1224,
+    "delta_mm_max": 92.03,
+    "seam_delta_mm_max": 0.0
+   }
+  },
+  "ChestWarriorF5": {
+   "fit": {
+    "scale": 0.5881,
+    "shift_m": [
+     0.0007,
+     -0.0053,
+     1.0749
+    ],
+    "median_off_mm_first_last": [
+     47.43,
+     10.1
+    ],
+    "nipples_body_m": [
+     [
+      -0.12,
+      -0.149,
+      1.218
+     ],
+     [
+      0.121,
+      -0.149,
+      1.219
+     ]
+    ],
+    "nipples_chest_m": [
+     [
+      -0.098,
+      -0.187,
+      1.177
+     ],
+     [
+      0.094,
+      -0.187,
+      1.166
+     ]
+    ],
+    "nipples_apart_mm": [
+     59.9,
+     71.0
+    ]
+   },
+   "cap_faces": 5224,
+   "shape_faces": 17426,
+   "region_vertices": 1355,
+   "held": 131,
+   "aimed": 675,
+   "filled": 549,
+   "missed": 175,
+   "near_cut": 74,
+   "moved_mm_median_max": [
+    22.96,
+    91.08
+   ],
+   "covered_faces": 2577,
+   "under_materials": {
+    "BodyWarriorF": 101,
+    "BodyWarriorFTorso": 2476
+   },
+   "texels_missed_near_filled_far": {
+    "BodyWarriorF": {
+     "Color": 15942,
+     "Normal": 0
+    },
+    "BodyWarriorFTorso": {
+     "Color": 584240,
+     "Normal": 0
+    }
+   },
+   "fade_triangles": 1245,
+   "breasts": {
+    "spacing_cm": 19.22,
+    "wall_m": -0.1379,
+    "Left": {
+     "root_m": [
+      0.0939,
+      -0.1379,
+      1.1665
+     ],
+     "nipple_m": [
+      0.0939,
+      -0.187,
+      1.1665
+     ],
+     "depth_cm": 4.91,
+     "stand_cm_max": 13.45,
+     "weighed": 635
+    },
+    "Right": {
+     "root_m": [
+      -0.098,
+      -0.1379,
+      1.1778
+     ],
+     "nipple_m": [
+      -0.098,
+      -0.1875,
+      1.1778
+     ],
+     "depth_cm": 4.96,
+     "stand_cm_max": 12.92,
+     "weighed": 681
+    }
+   },
+   "shape_key": {
+    "name": "ChestWarriorF5",
+    "moved_vertices": 1224,
+    "delta_mm_max": 91.08
+   },
+   "skin_gain_rgb_p5_median_p95": {
+    "BodyWarriorFTorso": [
+     [
+      0.674,
+      0.619,
+      0.714
+     ],
+     [
+      0.715,
+      0.692,
+      0.806
+     ],
+     [
+      0.803,
+      0.821,
+      1.028
+     ]
+    ]
+   },
+   "texels_unreached_under_shows": {
+    "BodyWarriorFTorso": 259202,
+    "BodyWarriorF": 1192
+   },
+   "in_fbx": {
+    "shape_key": "ChestWarriorF5",
+    "moved_vertices": 1224,
+    "delta_mm_max": 91.08,
+    "seam_delta_mm_max": 0.0
+   }
+  }
+ },
+ "bodies": {
+  "TorsoWarriorFSoft": {
+   "fade_cm": 4.0,
+   "waist_cm": 4.0,
+   "fit": {
+    "nipples_body_m": [
+     [
+      -0.12,
+      -0.149,
+      1.218
+     ],
+     [
+      0.121,
+      -0.149,
+      1.219
+     ]
+    ],
+    "scale_xyz": [
+     0.9674,
+     0.8779,
+     0.8398
+    ],
+    "shift_m": [
+     -0.0041,
+     0.0066,
+     0.6517
+    ],
+    "median_off_mm_first_last": [
+     15.23,
+     14.1
+    ]
+   },
+   "cap_faces": 12107,
+   "covered_faces": 10845,
+   "covered_vertices": 5790,
+   "edge_vertices": 742,
+   "unreached": 0,
+   "moved_mm_median_max": [
+    5.59,
+    25.43
+   ],
+   "shoulder_x_m": 0.176,
+   "breasts": {
+    "spacing_cm": 24.01,
+    "wall_m": -0.1045,
+    "Left": {
+     "root_m": [
+      0.1206,
+      -0.1045,
+      1.2191
+     ],
+     "nipple_m": [
+      0.1206,
+      -0.1488,
+      1.2191
+     ],
+     "depth_cm": 4.43,
+     "stand_cm_max": 9.12,
+     "weighed": 637
+    },
+    "Right": {
+     "root_m": [
+      -0.1196,
+      -0.1045,
+      1.2177
+     ],
+     "nipple_m": [
+      -0.1196,
+      -0.1491,
+      1.2177
+     ],
+     "depth_cm": 4.46,
+     "stand_cm_max": 8.85,
+     "weighed": 675
+    }
+   },
+   "shape_key": {
+    "name": "TorsoWarriorFSoft",
+    "moved_vertices": 5046,
+    "delta_mm_max": 25.43
+   },
+   "in_fbx": {
+    "shape_key": "TorsoWarriorFSoft",
+    "moved_vertices": 5040,
+    "delta_mm_max": 25.43,
+    "seam_delta_mm_max": 0.0
+   }
   }
  },
  "heads": {
@@ -1359,6 +1860,88 @@
    1.175
   ]
  },
+ "body_types": [
+  {
+   "name": "BodyWarriorF",
+   "shape": "",
+   "slots": [],
+   "softTissue": 0.554
+  },
+  {
+   "name": "ChestWarriorF2",
+   "shape": "ChestWarriorF2",
+   "slots": [
+    {
+     "slot": "BodyWarriorFTorso",
+     "map": "ChestWarriorF2Torso",
+     "faces": 2476
+    },
+    {
+     "slot": "BodyWarriorF",
+     "map": "ChestWarriorF2Skin",
+     "faces": 101
+    }
+   ],
+   "softTissue": 0.632
+  },
+  {
+   "name": "ChestWarriorF3",
+   "shape": "ChestWarriorF3",
+   "slots": [
+    {
+     "slot": "BodyWarriorFTorso",
+     "map": "ChestWarriorF3Torso",
+     "faces": 2476
+    },
+    {
+     "slot": "BodyWarriorF",
+     "map": "ChestWarriorF3Skin",
+     "faces": 101
+    }
+   ],
+   "softTissue": 0.791
+  },
+  {
+   "name": "ChestWarriorF4",
+   "shape": "ChestWarriorF4",
+   "slots": [
+    {
+     "slot": "BodyWarriorFTorso",
+     "map": "ChestWarriorF4Torso",
+     "faces": 2476
+    },
+    {
+     "slot": "BodyWarriorF",
+     "map": "ChestWarriorF4Skin",
+     "faces": 101
+    }
+   ],
+   "softTissue": 1.0
+  },
+  {
+   "name": "ChestWarriorF5",
+   "shape": "ChestWarriorF5",
+   "slots": [
+    {
+     "slot": "BodyWarriorFTorso",
+     "map": "ChestWarriorF5Torso",
+     "faces": 2476
+    },
+    {
+     "slot": "BodyWarriorF",
+     "map": "ChestWarriorF5Skin",
+     "faces": 101
+    }
+   ],
+   "softTissue": 0.812
+  },
+  {
+   "name": "TorsoWarriorFSoft",
+   "shape": "TorsoWarriorFSoft",
+   "slots": [],
+   "softTissue": 0.554
+  }
+ ],
  "bones_in_fbx": 67,
  "meshes_in_fbx": [
   "Body",
@@ -1426,5 +2009,12 @@
    "Hands": 0,
    "Head": 0
   }
- }
+ },
+ "shape_keys_in_fbx": [
+  "ChestWarriorF2",
+  "ChestWarriorF3",
+  "ChestWarriorF4",
+  "ChestWarriorF5",
+  "TorsoWarriorFSoft"
+ ]
 }
