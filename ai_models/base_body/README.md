@@ -60,6 +60,12 @@ are hers; the bust gives it its shape, paint and relief:
    light (a gain on the encoded values went green), so the face slot and the body meet at the neck in one skin.
    Overwrites `build/body_<face>_color.png`, so it runs after step 7. `skin_step1.py <skin>` puts her with the skin
    through MPFB's skin shader beside the built body, to look at in Blender (`build/skin_step1.blend`).
+7c. `skin_pores.py [size] [cells]`: a tileable height tile of skin's micro relief (periodic Worley cells: grooves
+   where the second point is as near as the first, a pore at each point, three scales of periodic noise), 1024 px,
+   48 cells. At 4K over her whole UV a millimetre is two pixels, so pores cannot live in the baked map: the tile
+   repeats in the shader, PORE_TILES (36) across her UV, a bump over the baked normals (skin_step1.py wires it; the
+   face's square takes fewer tiles, its island 1.465 times larger, so the pores keep one size). Unity's URP Lit
+   carries it later as the detail normal.
 8. `build_body.py` reads the face: every type worn with it; the head's faces on a second slot `<Title>Face` with the
    square's UVs; Forge's face controls (`CONTROLS`: FaceEditorScreen's parts and controls, each an MPFB target pair,
    the shape named `PartControl`, the positive end at 100) as shape keys, the eyeballs carried with their sockets;
@@ -74,8 +80,8 @@ the rims of the eye cups and the mouth pocket).
 
 ## What is not done
 
-- Her skin is MPFB's 2K paint in the face's tone: no pores (a tileable micro normal to come), one roughness, no
-  subsurface in the game (URP Lit has none).
+- Her skin is MPFB's 2K paint in the face's tone with the pore tile over it: one roughness still, no subsurface in
+  the game (URP Lit has none), and the pore tile is not in the Forge build yet.
 - Her head's size against the body is MPFB's, not the Tripo body's (the head is not in fit_macros' profile), and the
   face is what MPFB's sliders can say: a residual pass onto the bust, as a shape key of her own, is the next step.
 - No blink, no eyes' colour choice, no brow thickness (MPFB has no target for it: the brows are paint on her).

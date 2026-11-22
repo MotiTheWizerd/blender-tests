@@ -18,6 +18,8 @@ from her import create, settle  # noqa: E402
 
 TYPES = json.load(open(os.path.join(HERE, "types.json")))
 BASE, FACE, TITLE = TYPES["base"], TYPES["face"], TYPES["title"]
+PORE_TILES = 36  # the pore tile repeats this often across her UV: 48 cells a tile, 1 UV about 1.8 m, so a cell is about 1 mm
+PORE_STRENGTH, PORE_DEPTH = 0.35, 0.0003  # the bump's strength and its height (m)
 OUT = os.path.join(HERE, "build", "forge", TITLE)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -51,7 +53,26 @@ for m in built.data.materials:
     if os.path.exists(npath):
         n = nodes.new("ShaderNodeTexImage"); n.image = bpy.data.images.load(npath); n.image.colorspace_settings.name = "Non-Color"; n.location = (-500, -100)
         nm = nodes.new("ShaderNodeNormalMap"); nm.location = (-200, -100)
-        links.new(n.outputs["Color"], nm.inputs["Color"]); links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
+        links.new(n.outputs["Color"], nm.inputs["Color"])
+        # the pores: the tileable height tile (skin_pores.py) as a bump over the baked normals, PORE_TILES across her
+        # UV (the face's square holds its island 1.465 times larger, so fewer tiles there keep the pores one size)
+        pores = os.path.join(HERE, "build", "skin_pores_height.png")
+        if os.path.exists(pores) and m.name.endswith(("Face", TITLE)):
+            tiles = PORE_TILES / (face["uv"]["scale"] if m.name.endswith("Face") else 1.0)
+            coord = nodes.new("ShaderNodeTexCoord"); coord.location = (-1100, -400)
+            mapping = nodes.new("ShaderNodeMapping"); mapping.location = (-900, -400)
+            mapping.inputs["Scale"].default_value = (tiles, tiles, 1.0)
+            links.new(coord.outputs["UV"], mapping.inputs["Vector"])
+            h = nodes.new("ShaderNodeTexImage"); h.image = bpy.data.images.load(pores); h.image.colorspace_settings.name = "Non-Color"; h.location = (-700, -400)
+            links.new(mapping.outputs["Vector"], h.inputs["Vector"])
+            bump = nodes.new("ShaderNodeBump"); bump.location = (0, -200)
+            bump.inputs["Strength"].default_value = PORE_STRENGTH
+            bump.inputs["Distance"].default_value = PORE_DEPTH
+            links.new(h.outputs["Color"], bump.inputs["Height"])
+            links.new(nm.outputs["Normal"], bump.inputs["Normal"])
+            links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+        else:
+            links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
 for o in scene.objects:
     if o not in before and o.type == "ARMATURE":
         o.location.x += 0.7
@@ -72,9 +93,10 @@ for area in bpy.context.screen.areas:
         for space in area.spaces:
             if space.type == "VIEW_3D":
                 space.shading.type = "MATERIAL"
-for name, loc in (("face", (0.35, -1.9, 1.45)), ("whole", (0.35, -4.8, 0.85))):
+for name, loc in (("face", (0.35, -1.9, 1.45)), ("whole", (0.35, -4.8, 0.85)), ("closeup", (0.78, -0.42, 1.47))):
     cam.location = loc
     cam.rotation_euler = (np.radians(90), 0, 0)
+    cam.data.lens = 85 if name == "closeup" else 50
     scene.render.filepath = os.path.join(HERE, "checks", "skin_step1_%s.png" % name)
     bpy.ops.render.render(write_still=True)
 cam.location = (0.35, -1.9, 1.45)
