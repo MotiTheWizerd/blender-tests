@@ -84,11 +84,12 @@ are hers; the bust gives it its shape, paint and relief:
    wherever it reaches (its cut base taken off the source; a miss paints black, read as a miss), fading to its own skin
    tone. Writes `build/face_<name>_{color,normal}.png`, `build/body_<name>_color.png`, the UV fit and the tone into the
    face's json, `checks/bake_face_<name>_{face,quarter,whole}.png`. 2 min.
-7b. `skin_body.py <skin> <face>`: the body's colour. The skin is a painted Tripo body of the same woman (`"skin"` in
-   `types.json`, one of `"skins"`: `probe_body.py <file> <name>` looks a candidate over first, the mesh, the maps, the
-   head to the height, and how even the paint is, a lit render baked into it showing as a darker back and
-   underside; then steps 1, 1b and 2 on it, which bake its 8K paint and roughness onto her UV; the four types share
-   one UV, so one skin dresses them all), or else MPFB's own skin (a MakeHuman system asset, CC0: the pack
+7b. `skin_body.py <skin> <face>`: the body's colour. The skin is a painted type's paint (`"skin"` in `types.json`
+   names the type, the base; a type's Tripo body may come painted: `probe_body.py <file> <name>` looks a candidate
+   over first, the mesh, the maps, the head to the height, and how even the paint is, a lit render baked into it
+   showing as a darker back and underside; step 2 bakes its 8K paint and roughness onto her UV; every type lies on
+   the one UV, so the skin type's roughness serves all, and another painted type's paint is toned to the skin's in
+   the build), or else MPFB's own skin (a MakeHuman system asset, CC0: the pack
    `makehuman_system_assets_cc0.zip` from static.makehumancommunity.org, unzipped into MPFB's user data folder,
    `LocationService.get_user_data()`; 2K on her UV). The tone is matched median over median in linear light (a gain
    on the encoded values went green): a painted body sets the tone and the face follows it (`build/face_<face>_skin.png`,

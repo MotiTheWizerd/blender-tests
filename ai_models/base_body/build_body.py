@@ -298,22 +298,64 @@ else:
     colour.file_format = "PNG"
     colour.save()
 shutil.copyfile(os.path.join(HERE, "build", "%s_normal.png" % BASE), os.path.join(OUT, TITLE + "_Normal.png"))
-if SKIN and os.path.exists(os.path.join(HERE, "build", "%s_roughness.png" % SKIN)):
-    # the skin's roughness (bake_detail.py, the painted Tripo body's) as URP Lit reads it: smoothness in the alpha, no metal
-    rough_img = bpy.data.images.load(os.path.join(HERE, "build", "%s_roughness.png" % SKIN))
-    rough_img.colorspace_settings.name = "Non-Color"
-    rough = np.empty(rough_img.size[0] * rough_img.size[1] * 4, dtype=np.float32)
-    rough_img.pixels.foreach_get(rough)
-    ms = np.zeros((rough_img.size[1], rough_img.size[0], 4), np.float32)
-    ms[..., 3] = 1.0 - rough.reshape(-1, 4)[:, 0].reshape(rough_img.size[1], rough_img.size[0])
+
+
+def pixels_of(path, space):
+    img = bpy.data.images.load(path)
+    img.colorspace_settings.name = space
+    px = np.empty(img.size[0] * img.size[1] * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(img.size[1], img.size[0], 4)
+    bpy.data.images.remove(img)
+    return px
+
+
+# the roughness (bake_detail.py, a painted Tripo body's; every type's lies on the one UV, so the skin's serves all,
+# or the first type's that has one) as URP Lit reads it: smoothness in the alpha, no metal
+rough_of = [n for n in ([SKIN] if SKIN else []) + [t["name"] for t in TYPES["types"]]
+            if n and os.path.exists(os.path.join(HERE, "build", "%s_roughness.png" % n))]
+if rough_of:
+    rough = pixels_of(os.path.join(HERE, "build", "%s_roughness.png" % rough_of[0]), "Non-Color")
+    ms = np.zeros_like(rough)
+    ms[..., 3] = 1.0 - rough[..., 0]
+    del rough
     bpy.data.images.remove(save_map(ms, os.path.join(OUT, TITLE + "_MetallicSmoothness.png"), "Non-Color"))
-    bpy.data.images.remove(rough_img)
-    print("the skin's roughness as %s_MetallicSmoothness.png (smoothness %.2f to %.2f)" % (TITLE, ms[..., 3].min(), ms[..., 3].max()), flush=True)
+    print("%s's roughness as %s_MetallicSmoothness.png (smoothness %.2f to %.2f)" % (rough_of[0], TITLE, ms[..., 3].min(), ms[..., 3].max()), flush=True)
+    del ms
+
+
+def linear(c):
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+
+def encoded(c):
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * np.power(np.maximum(c, 0), 1 / 2.4) - 0.055)
+
+
+def tone_of(px):
+    """The median colour of a map's painted pixels, in linear light, over every 16th row and column."""
+    s = px[::16, ::16, :3]
+    return np.median(linear(s[s.sum(2) > 0.1]), axis=0)
+
+
+# every other type's maps: its own relief; its own paint when its Tripo body is painted, toned to the body's (the
+# skin's, median over median in linear light as skin_body.py tones), else the body's paint
+body_tone = tone_of(pixels_of(os.path.join(OUT, TITLE + "_Color.png"), "sRGB")) if face else None
 for t in forge_types:
     for slot in t["slots"]:
         shutil.copyfile(os.path.join(HERE, "build", "%s_normal.png" % t["name"]),
                         os.path.join(OUT, "Bodies", "%s_Normal.png" % slot["map"]))
-        shutil.copyfile(os.path.join(OUT, TITLE + "_Color.png"), os.path.join(OUT, "Bodies", "%s_Color.png" % slot["map"]))
+        own = os.path.join(HERE, "build", "%s_color.png" % t["name"])
+        if face and os.path.exists(own):
+            px = pixels_of(own, "sRGB")
+            gain = body_tone / np.maximum(tone_of(px), 1e-4)
+            px[..., :3] = np.clip(encoded(linear(px[..., :3]) * gain), 0, 1)
+            px[..., 3] = 1.0
+            bpy.data.images.remove(save_map(px, os.path.join(OUT, "Bodies", "%s_Color.png" % slot["map"]), "sRGB"))
+            del px
+            print("%s: its own paint, toned to the body's (gain %s)" % (t["name"], np.round(gain, 3).tolist()), flush=True)
+        else:
+            shutil.copyfile(os.path.join(OUT, TITLE + "_Color.png"), os.path.join(OUT, "Bodies", "%s_Color.png" % slot["map"]))
 with open(os.path.join(OUT, "Bodies", "types.json"), "w") as f:
     json.dump({"types": forge_types}, f, indent=1)
 

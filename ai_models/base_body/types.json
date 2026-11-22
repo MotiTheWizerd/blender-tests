@@ -6,13 +6,10 @@
   "faces": [
     { "name": "woman1", "source": "source_woman1.fbx" }
   ],
-  "skin": "woman2",
-  "skins": [
-    { "name": "woman2", "source": "source_woman2.fbx" }
-  ],
+  "skin": "skinny",
   "types": [
     { "name": "skinny", "source": "source_skinny.fbx" },
-    { "name": "fit", "source": "source_fit.glb" },
+    { "name": "fit", "source": "source_fit.fbx" },
     { "name": "built", "source": "source_built.fbx" },
     { "name": "overweight", "source": "source_overweight.fbx" }
   ]

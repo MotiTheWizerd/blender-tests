@@ -69,20 +69,29 @@ log("mpfb", N, "vertices, %.3f m%s" % (height, ", wrapped onto the Tripo body" i
 # --- 2. the Tripo body, her pose on it --------------------------------------------------------------------------------
 tripo = import_tripo(SOURCE, "Tripo " + TYPE)
 wrap_record = json.load(open(wrap_json)) if wrapped else {}
-# wrapped, she lies on the Tripo body placed and posed as the wrap had it: the same placement, the pose as it is
+# wrapped, she lies on the Tripo body placed as the wrap had it, and the bake lies on her as the wrap posed her
+# (build/wrap_<type>_posed.npy): no pose of the rig could put the moved bones back on that surface exactly
 T, tripo_bvh, T_sample, placement = place(tripo, rest_world, wrap_record.get("tripo_placement"))
 log("tripo", len(T), "vertices, scaled %.4f%s" % (placement["scale"], " (the wrap's placement)" if wrapped else ""))
-best, pose = fit(base, rig, tripo_bvh, T_sample, start=wrap_record.get("pose"), refine=not wrapped, log=log)
-co, _ = posed(base)
+if wrapped:
+    best, pose = wrap_record["pose_fit_cost"], wrap_record["pose"]
+    co = np.load(os.path.join(BUILD, "wrap_%s_posed.npy" % TYPE)).astype(np.float64)
+    posed_mesh = base.data.copy()
+    posed_mesh.vertices.foreach_set("co", co.ravel())
+    posed_mesh.update()
+    posed_obj = bpy.data.objects.new("posed", posed_mesh)
+else:
+    best, pose = fit(base, rig, tripo_bvh, T_sample, log=log)
+    co, _ = posed(base)
+    dg = bpy.context.evaluated_depsgraph_get()
+    posed_mesh = bpy.data.meshes.new_from_object(base.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+    posed_obj = bpy.data.objects.new("posed", posed_mesh)
+    posed_obj.matrix_world = base.matrix_world.copy()
 gap = np.array([tripo_bvh.find_nearest(Vector(p))[3] for p in co])
 log("posed, her surface to the Tripo one: median %.1f mm, p90 %.1f, p99 %.1f, max %.1f" % tuple(
     np.percentile(gap, [50, 90, 99, 100]) * 1000))
 
 # --- 4. the bake -----------------------------------------------------------------------------------------------------
-dg = bpy.context.evaluated_depsgraph_get()
-posed_mesh = bpy.data.meshes.new_from_object(base.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
-posed_obj = bpy.data.objects.new("posed", posed_mesh)
-posed_obj.matrix_world = base.matrix_world.copy()
 scene.collection.objects.link(posed_obj)
 image = bpy.data.images.new("%s_normal" % TYPE, MAP, MAP, alpha=False, float_buffer=False)
 image.colorspace_settings.name = "Non-Color"

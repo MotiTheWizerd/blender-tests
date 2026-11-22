@@ -18,8 +18,9 @@ her rest shape, so the body's muscle and form are in her mesh and not only in a 
 Pass bar, logged and in the json: her body's surface to the Tripo one at the median under GAP_MM, and no knee or
 elbow further from its limb's centre than it stood after the slider fit by more than OFF_CENTRE_MM.
 
-Writes build/wrap_<name>.npy (the delta, her local frame), checks/wrap_<name>.json (the pose, the gaps, the joints,
-the bones' moves, the verdict), checks/wrap_<name>_{front,side,wire}.png, build/wrap_<name>.blend.
+Writes build/wrap_<name>.npy (the delta, her local frame), build/wrap_<name>_posed.npy (her wrapped as posed on the
+Tripo body, world: what bake_detail.py lies on), checks/wrap_<name>.json (the pose, the Tripo's placement, the gaps,
+the joints, the bones' moves, the verdict), checks/wrap_<name>_{front,side,wire}.png, build/wrap_<name>.blend.
 """
 import bpy, json, os, sys, time
 import numpy as np
@@ -43,7 +44,8 @@ FREE = ["Head", "Neck", "Jaw", "LeftEye", "RightEye", "LeftOrbicularis", "RightO
         "LeftHandIndex", "LeftHandMiddle", "LeftHandRing", "LeftHandPinky", "LeftHandThumb",
         "RightHandIndex", "RightHandMiddle", "RightHandRing", "RightHandPinky", "RightHandThumb",
         "LeftToeBase", "RightToeBase", "LeftBreast", "RightBreast"]
-NEAR = 24  # skin vertices whose mean move a bone's head or tail takes
+REACH = 0.08  # m: how far along its skin a bone's end looks for its move (a Gaussian's width)
+NEAR = 24  # skin vertices whose mean move a bone with no skin of its own takes
 GAP_MM, OFF_CENTRE_MM = 1.0, 5.0
 T0 = time.time()
 
@@ -131,22 +133,29 @@ np.save(os.path.join(HERE, "build", "wrap_%s.npy" % NAME), delta_local.astype(np
 moved = np.linalg.norm(delta_world, axis=1)
 log("unpose round trip %.3f mm; the wrap moves her %.1f mm median, %.1f p95, %.1f max" % (1000 * roundtrip, *np.percentile(moved, [50, 95, 100]) * 1000))
 
-# the bones ride the same field: each head and tail moves as the NEAR nearest skin vertices moved on average, so a
-# joint keeps its place in its limb (s1026: the skin wrapped onto the Tripo knee while the bone stayed, 3 cm off)
+# the bones ride the same field: each bone's head and tail move as its own skin moved on average, the vertices
+# weighted to it, nearer the end counting more (REACH), so a joint keeps its place in its limb (s1026: the skin
+# wrapped onto the Tripo knee while the bone stayed, 3 cm off) and a bone deep in the trunk takes the trunk's move,
+# not the belly's alone (the nearest skin is one-sided there). A bone with no skin takes its nearest skin's move.
 tree = KDTree(N)
 for i in range(N):
     tree.insert(Vector(rest_world[i]), i)
 tree.balance()
+np.save(os.path.join(HERE, "build", "wrap_%s_posed.npy" % NAME), P.astype(np.float32))  # her wrapped, posed, world: what the bake lies on
 
 
-def move_at(p):
-    return delta_world[[idx for _, idx, _ in tree.find_n(Vector(p), NEAR)]].mean(0)
+def move_at(p, weights):
+    w = weights * np.exp(-(np.linalg.norm(rest_world - p, axis=1) / REACH) ** 2)
+    if w.sum() < 1e-3:
+        return delta_world[[idx for _, idx, _ in tree.find_n(Vector(p), NEAR)]].mean(0)
+    return (delta_world * w[:, None]).sum(0) / w.sum()
 
 
 bone_moves, H, H_after = {}, {}, {}
 for b in rig.data.bones:
     head, tail = np.array(rig.matrix_world @ b.head_local), np.array(rig.matrix_world @ b.tail_local)
-    mh, mt = move_at(head), move_at(tail)
+    own = skinning.W[:, skinning.bones.index(b.name)]
+    mh, mt = move_at(head, own), move_at(tail, own)
     bone_moves[b.name] = {"head": [round(float(v), 5) for v in mh], "tail": [round(float(v), 5) for v in mt]}
     H[b.name], H_after[b.name] = head, head + mh
 bone_moved = np.array([np.linalg.norm(m["head"]) for m in bone_moves.values()])
