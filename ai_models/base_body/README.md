@@ -54,6 +54,12 @@ are hers; the bust gives it its shape, paint and relief:
    wherever it reaches (its cut base taken off the source; a miss paints black, read as a miss), fading to its own skin
    tone. Writes `build/face_<name>_{color,normal}.png`, `build/body_<name>_color.png`, the UV fit and the tone into the
    face's json, `checks/bake_face_<name>_{face,quarter,whole}.png`. 2 min.
+7b. `skin_body.py <skin> <face>`: the body's colour is MPFB's own skin (a MakeHuman system asset, CC0: the pack
+   `makehuman_system_assets_cc0.zip` from static.makehumancommunity.org, unzipped into MPFB's user data folder,
+   `LocationService.get_user_data()`; 2K on her UV) shifted to the face paint's tone, median over median in linear
+   light (a gain on the encoded values went green), so the face slot and the body meet at the neck in one skin.
+   Overwrites `build/body_<face>_color.png`, so it runs after step 7. `skin_step1.py <skin>` puts her with the skin
+   through MPFB's skin shader beside the built body, to look at in Blender (`build/skin_step1.blend`).
 8. `build_body.py` reads the face: every type worn with it; the head's faces on a second slot `<Title>Face` with the
    square's UVs; Forge's face controls (`CONTROLS`: FaceEditorScreen's parts and controls, each an MPFB target pair,
    the shape named `PartControl`, the positive end at 100) as shape keys, the eyeballs carried with their sockets;
@@ -68,8 +74,10 @@ the rims of the eye cups and the mouth pocket).
 
 ## What is not done
 
-- Her skin is the bust's where it reaches (neck, shoulders) and flat beyond, in the bust's tone; MPFB's own skin
-  material is not wired in.
+- Her skin is MPFB's 2K paint in the face's tone: no pores (a tileable micro normal to come), one roughness, no
+  subsurface in the game (URP Lit has none).
+- Her head's size against the body is MPFB's, not the Tripo body's (the head is not in fit_macros' profile), and the
+  face is what MPFB's sliders can say: a residual pass onto the bust, as a shape key of her own, is the next step.
 - No blink, no eyes' colour choice, no brow thickness (MPFB has no target for it: the brows are paint on her).
 - Built and fit read soft where their muscle is only in the normal map; the shoulders are not in the fit's profile.
 - The Tripo fingers are fused, so her hands keep MPFB's own relief (masked in the bake).
