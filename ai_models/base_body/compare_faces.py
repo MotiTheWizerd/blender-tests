@@ -4,7 +4,7 @@ the right, each with its own maps, the heads framed together.
 
     blender -b -P compare_faces.py -- <tag of the snapshot> [<tag of the current, default types.json's face>]
 
-Writes build/faces.blend and checks/faces_{front,whole}.png (both) and checks/faces_quarter_<tag>.png (each head alone).
+Writes build/faces.blend, checks/faces_whole.png (both) and checks/faces_{front,quarter}_<tag>.png (each head alone).
 """
 import bpy, os, sys, json
 import numpy as np
@@ -47,14 +47,13 @@ def shoot(name, loc, turn, lens):
     bpy.ops.render.render(write_still=True)
 
 
-FRONT = ((0.0, -1.9, head_z), 0, 40)  # both heads, APART apart, in one frame with a head's width to spare each side
-shoot("front", *FRONT)
 shoot("whole", (0.0, -5.2, ground + height * 0.52), 0, 50)
-for tag, body, P in bodies:
+for tag, body, P in bodies:  # each head alone, from the front and from a quarter: the faces at a size to compare
     x = (body.parent or body).location.x
     a = 35.0
+    shoot("front_" + tag, (x, -0.9, head_z), 0, 85)
     shoot("quarter_" + tag, (x + 0.9 * np.sin(np.radians(a)), -0.9 * np.cos(np.radians(a)), head_z), a, 85)
-cam.location, cam.rotation_euler, cam.data.lens = FRONT[0], (np.radians(90), 0, 0), FRONT[2]
+cam.location, cam.rotation_euler, cam.data.lens = (0.0, -1.9, head_z), (np.radians(90), 0, 0), 40  # both, as the file opens
 path = os.path.join(HERE, "build", "faces.blend")
 bpy.ops.wm.save_as_mainfile(filepath=path)
 print("FACES saved", path, "left %s, right %s" % (BEFORE, NOW), flush=True)

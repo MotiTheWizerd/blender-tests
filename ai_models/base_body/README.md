@@ -134,7 +134,7 @@ the face without touching the body, the types or the wraps; done with woman2 (s1
    `bake_face.py` (1 min), `skin_body.py skinny <name>` (the face toned to the body's paint), `build_body.py` (2 min).
 4. To see the change: before the build, `cp -r build/forge/<Title> build/forge/<Title>_<old face>`; after it,
    `compare_faces.py <old face>` puts the snapshot on the left and the new build on the right (`build/faces.blend`,
-   `checks/faces_{front,whole}.png`, `checks/faces_quarter_<face>.png`). Then `status_scene.py` as always.
+   `checks/faces_whole.png`, each head alone in `checks/faces_{front,quarter}_<face>.png`). Then `status_scene.py` as always.
 
 The face's sliders, maps, tone and iris colour all come from the bust; what stays the same is MPFB's head mesh and
 rig under them, so the face controls, the eyeballs and the expressions work on any face. Neither the bust's neck nor
