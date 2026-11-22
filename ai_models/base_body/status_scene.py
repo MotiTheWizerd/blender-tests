@@ -10,32 +10,14 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from pose import import_tripo  # noqa: E402
+from built import import_build, light_and_camera  # noqa: E402
 
 types = json.load(open(os.path.join(HERE, "types.json")))
 TITLE = types["title"]
 OUT = os.path.join(HERE, "build", "forge", TITLE)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
-bpy.ops.import_scene.fbx(filepath=os.path.join(OUT, TITLE + ".fbx"))
-body = next(o for o in scene.objects if o.type == "MESH")
-body.name = "%s (built)" % TITLE
-for m in body.data.materials:
-    m.use_nodes = True
-    nodes, links = m.node_tree.nodes, m.node_tree.links
-    bsdf = nodes["Principled BSDF"]
-    bsdf.inputs["Roughness"].default_value = 0.55
-    c = nodes.new("ShaderNodeTexImage"); c.image = bpy.data.images.load(os.path.join(OUT, m.name + "_Color.png")); c.location = (-500, 300)
-    links.new(c.outputs["Color"], bsdf.inputs["Base Color"])
-    npath = os.path.join(OUT, m.name + "_Normal.png")
-    if os.path.exists(npath):
-        n = nodes.new("ShaderNodeTexImage"); n.image = bpy.data.images.load(npath); n.image.colorspace_settings.name = "Non-Color"; n.location = (-500, -100)
-        nm = nodes.new("ShaderNodeNormalMap"); nm.location = (-200, -100)
-        links.new(n.outputs["Color"], nm.inputs["Color"]); links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
-    spath = os.path.join(OUT, m.name + "_MetallicSmoothness.png")
-    if os.path.exists(spath):  # smoothness in the alpha, as URP reads it: roughness is 1 - alpha
-        s = nodes.new("ShaderNodeTexImage"); s.image = bpy.data.images.load(spath); s.image.colorspace_settings.name = "Non-Color"; s.location = (-500, -500)
-        inv = nodes.new("ShaderNodeMath"); inv.operation = "SUBTRACT"; inv.inputs[0].default_value = 1.0; inv.location = (-200, -500)
-        links.new(s.outputs["Alpha"], inv.inputs[1]); links.new(inv.outputs["Value"], bsdf.inputs["Roughness"])
+body = import_build(OUT, TITLE, "%s (built)" % TITLE)
 P = np.array([body.matrix_world @ v.co for v in body.data.vertices])
 ground, height = P[:, 2].min(), P[:, 2].max() - P[:, 2].min()
 
@@ -50,26 +32,8 @@ if skin:
     tripo.location.x = 1.0
     for p in tripo.data.polygons:
         p.use_smooth = True
-for p in body.data.polygons:
-    p.use_smooth = True
-for o in scene.objects:
-    if o.type == "ARMATURE":
-        o.hide_viewport = o.hide_render = True
 
-# light, world, camera
-sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN")); sun.data.energy = 3.0
-sun.rotation_euler = (np.radians(60), 0, np.radians(-30)); scene.collection.objects.link(sun)
-world = bpy.data.worlds.new("w"); world.use_nodes = True
-world.node_tree.nodes["Background"].inputs[0].default_value = (0.35, 0.35, 0.35, 1); scene.world = world
-cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); cam.data.lens = 50
-scene.collection.objects.link(cam); scene.camera = cam
-scene.render.engine = "BLENDER_EEVEE"
-scene.render.resolution_x, scene.render.resolution_y = 1600, 1000
-for area in bpy.context.screen.areas:
-    if area.type == "VIEW_3D":
-        for space in area.spaces:
-            if space.type == "VIEW_3D":
-                space.shading.type = "MATERIAL"
+cam = light_and_camera(scene)
 for name, loc, lens in (("whole", (0.5, -4.6, ground + height * 0.52), 50), ("torso", (0.5, -2.2, ground + height * 0.68), 85), ("face", (0.0, -1.0, ground + height * 0.91), 85)):
     cam.location = loc
     cam.rotation_euler = (np.radians(90), 0, 0)

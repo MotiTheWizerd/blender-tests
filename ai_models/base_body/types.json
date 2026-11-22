@@ -2,9 +2,10 @@
   "title": "BodyBaseF",
   "base": "skinny",
   "sources": ".",
-  "face": "woman1",
+  "face": "woman2",
   "faces": [
-    { "name": "woman1", "source": "source_woman1.fbx" }
+    { "name": "woman1", "source": "source_woman1.fbx" },
+    { "name": "woman2", "source": "source_woman2.fbx" }
   ],
   "skin": "skinny",
   "types": [

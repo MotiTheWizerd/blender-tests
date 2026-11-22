@@ -118,7 +118,28 @@ are hers; the bust gives it its shape, paint and relief:
    (`HumanoidTPose`): Unity keeps the stored one through every reimport, and her eyes and jaw moved with the fit.
 
 `her.py` is what the scripts share: `create` (her at a type's sliders and a face's), `settle`, `Head` (the skin island,
-the rims of the eye cups and the mouth pocket).
+the rims of the eye cups and the mouth pocket). `built.py` is how a build is brought back to look at (`import_build`:
+the FBX with its maps wired as URP reads them; `light_and_camera`), for `status_scene.py` and `compare_faces.py`.
+
+### Replacing the face
+
+A new Tripo bust (bald, neutral, unlit, 8K; colour alone is enough, the relief then comes from its geometry) replaces
+the face without touching the body, the types or the wraps; done with woman2 (s1031, `human face 3d model.zip`, a
+5k-quad bust with its two eyeballs as loose parts of the one mesh, 8K colour, no normal map):
+
+1. Unzip into this folder: the FBX as `source_<name>.fbx`, its `.fbm` folder kept under the name it came with (the FBX
+   finds its textures there). `probe_head.py source_<name>.fbx <name>`: bald, neutral, even paint, the eyes in it.
+2. `types.json`: the bust under `faces`, `"face"` set to it.
+3. `fit_face.py source_<name>.fbx <name>` (10 s; woman2: 0.9 mm median, 2.5 p90, the pupils 5 mm off, 96 sliders),
+   `bake_face.py` (1 min), `skin_body.py skinny <name>` (the face toned to the body's paint), `build_body.py` (2 min).
+4. To see the change: before the build, `cp -r build/forge/<Title> build/forge/<Title>_<old face>`; after it,
+   `compare_faces.py <old face>` puts the snapshot on the left and the new build on the right (`build/faces.blend`,
+   `checks/faces_{front,whole}.png`, `checks/faces_quarter_<face>.png`). Then `status_scene.py` as always.
+
+The face's sliders, maps, tone and iris colour all come from the bust; what stays the same is MPFB's head mesh and
+rig under them, so the face controls, the eyeballs and the expressions work on any face. Neither the bust's neck nor
+its shoulders reach the build when the skin is a painted body's (step 7b): under the chin the face bake's body colour
+can go dark where the bust is cut short (woman2's neck ends 2 cm under the chin), and `skin_body.py` paints over it.
 
 ## What is not done
 
