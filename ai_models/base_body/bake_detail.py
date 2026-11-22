@@ -34,6 +34,7 @@ BUILD = os.path.join(HERE, "build")
 os.makedirs(BUILD, exist_ok=True)
 MAP = 4096
 COLOUR_MAP = 8192  # the Tripo paint, when the body has it (Moti: 8K), baked onto her UV at this size
+DEBLOCK = 1.5  # px: the Gaussian that takes the JPEG blocks out of Tripo's maps before the bake
 HAND_CUT = 0.04  # m around her posed hands the Tripo body is cut away before the bake
 HAND_FADE = 0.05  # m beyond HAND_CUT over which the map fades from her own relief back to the Tripo one
 BREAST_CUT = 0.06  # m around the breasts (the vertices on their bones) that keep her own relief wholly: their own kind
@@ -68,6 +69,42 @@ log("mpfb", N, "vertices, %.3f m%s" % (height, ", wrapped onto the Tripo body" i
 
 # --- 2. the Tripo body, her pose on it --------------------------------------------------------------------------------
 tripo = import_tripo(SOURCE, "Tripo " + TYPE)
+# its paint, by the socket each map feeds, and the maps deblocked: Tripo's maps come as JPEGs whose steps at every
+# 8-pixel boundary are 2 to 4 times the steps inside (roughness 3.6, colour 3.2, normal 2.2, measured), squares of
+# 3 mm on the body that the bake would carry into the game; a DEBLOCK-pixel Gaussian takes them out, finer than
+# the game can show
+paint = {}
+if tripo.data.materials and tripo.data.materials[0].use_nodes:
+    for n in tripo.data.materials[0].node_tree.nodes:
+        if n.type == "TEX_IMAGE" and n.image:
+            for l in n.outputs[0].links:
+                paint[l.to_socket.name] = n.image
+
+
+def deblock(image, sigma):
+    w, h = image.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    image.pixels.foreach_get(px)
+    px = px.reshape(h, w, 4)
+    r = int(3 * sigma)
+    k = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma) ** 2)
+    k /= k.sum()
+    for c in range(3):
+        a = px[:, :, c]
+        b = np.zeros_like(a)
+        for i, kv in enumerate(k):
+            b += kv * np.roll(a, i - r, axis=1)
+        a2 = np.zeros_like(a)
+        for i, kv in enumerate(k):
+            a2 += kv * np.roll(b, i - r, axis=0)
+        px[:, :, c] = a2
+    image.pixels.foreach_set(px.ravel())
+    image.update()
+
+
+for socket, image in {id(im): (s, im) for s, im in paint.items()}.values():
+    deblock(image, DEBLOCK)
+    log("deblocked %s (%s, %dx%d), sigma %.1f px" % (image.name, socket, *image.size, DEBLOCK))
 wrap_record = json.load(open(wrap_json)) if wrapped else {}
 # wrapped, she lies on the Tripo body placed as the wrap had it, and the bake lies on her as the wrap posed her
 # (build/wrap_<type>_posed.npy): no pose of the rig could put the moved bones back on that surface exactly
@@ -207,12 +244,6 @@ log("baked", image_path)
 # --- 5. the paint, when the Tripo body has it: its colour and roughness onto her UV ------------------------------------
 # From the whole Tripo body (the hands too: fused fingers still have skin colour). The colour is the surface's own
 # (the diffuse pass's colour alone, no light); a pixel no ray painted (black) takes the paint's median.
-paint = {}
-if tripo.data.materials and tripo.data.materials[0].use_nodes:
-    for n in tripo.data.materials[0].node_tree.nodes:
-        if n.type == "TEX_IMAGE" and n.image:
-            for l in n.outputs[0].links:
-                paint[l.to_socket.name] = n.image
 maps = {"map": os.path.basename(image_path)}
 if "Base Color" in paint:
     log("the Tripo body is painted: %s %dx%d%s" % (paint["Base Color"].name, *paint["Base Color"].size,

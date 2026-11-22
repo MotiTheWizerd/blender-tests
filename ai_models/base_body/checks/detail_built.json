@@ -1,6 +1,6 @@
 {
  "type": "built",
- "pose_fit_cost": 0.000417042219112492,
+ "pose_fit_cost": 0.00041704203405438936,
  "pose": {
   "mixamorig:Spine1": [
    8.0,
@@ -83,10 +83,11 @@
    10.0
   ]
  },
+ "wrapped": true,
  "map": "built_normal.png",
  "gap_mm": {
-  "median": 5.9,
-  "p90": 18.4,
+  "median": 1.5,
+  "p90": 10.8,
   "max": 67.4
  }
 }

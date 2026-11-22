@@ -1,6 +1,6 @@
 {
  "type": "overweight",
- "pose_fit_cost": 0.0003409460192635716,
+ "pose_fit_cost": 0.00034094603445711176,
  "pose": {
   "mixamorig:Hips": [
    1.0,
@@ -93,10 +93,11 @@
    14.0
   ]
  },
+ "wrapped": true,
  "map": "overweight_normal.png",
  "gap_mm": {
-  "median": 5.4,
-  "p90": 15.7,
+  "median": 1.3,
+  "p90": 10.4,
   "max": 69.6
  }
 }

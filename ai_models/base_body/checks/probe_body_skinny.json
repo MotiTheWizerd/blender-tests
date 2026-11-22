@@ -1,0 +1,37 @@
+{
+ "name": "skinny",
+ "source": "source_skinny.fbx",
+ "vertices": 5245,
+ "faces": 5670,
+ "size": [
+  0.6639999747276306,
+  0.16899999976158142,
+  1.0
+ ],
+ "uv_layers": 1,
+ "maps": {
+  "Base Color": {
+   "image": "2a3dba76_f8d6_4b0d_9f9b_66dace146e0b_basecolor",
+   "size": [
+    8192,
+    8192
+   ],
+   "file": "2a3dba76-f8d6-4b0d-9f9b-66dace146e0b_basecolor.jpg"
+  }
+ },
+ "head": {
+  "chin_to_crown": 0.2362,
+  "heads_to_height": 7.2,
+  "width": 0.157,
+  "depth": 0.1993
+ },
+ "paint": {
+  "front": 0.573,
+  "back": 0.563,
+  "up": 0.568,
+  "down": 0.566,
+  "left": 0.556,
+  "right": 0.555,
+  "painted_share": 0.999
+ }
+}

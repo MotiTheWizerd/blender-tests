@@ -1,107 +1,95 @@
 {
  "type": "fit",
- "pose_fit_cost": 0.000319936288166765,
+ "pose_fit_cost": 0.0005135187589395437,
  "pose": {
-  "mixamorig:Spine": [
-   1.0,
-   -0.0,
-   0.0
-  ],
-  "mixamorig:Spine1": [
-   -3.0,
-   -0.0,
-   0.0
-  ],
-  "mixamorig:Spine2": [
-   2.0,
-   -0.0,
-   0.0
-  ],
   "mixamorig:LeftShoulder": [
-   -2.0,
-   5.0,
-   -13.0
+   3.0,
+   11.0,
+   -8.0
   ],
   "mixamorig:LeftArm": [
-   0.0,
-   -0.0,
-   9.0
-  ],
-  "mixamorig:LeftForeArm": [
-   -15.0,
+   -2.0,
    -0.0,
    0.0
   ],
-  "mixamorig:LeftHand": [
+  "mixamorig:LeftForeArm": [
    -10.0,
+   -0.0,
+   5.0
+  ],
+  "mixamorig:LeftHand": [
+   -19.0,
    7.0,
-   6.0
+   1.0
   ],
   "mixamorig:RightShoulder": [
-   -3.0,
-   -1.0,
-   12.0
+   4.0,
+   -16.0,
+   9.0
   ],
   "mixamorig:RightArm": [
    0.0,
    -0.0,
-   -10.0
+   -2.0
   ],
   "mixamorig:RightForeArm": [
-   -18.0,
+   -11.0,
    -0.0,
-   6.0
+   -9.0
   ],
   "mixamorig:RightHand": [
    -10.0,
-   -11.0,
-   -10.0
+   -8.0,
+   -1.0
   ],
   "mixamorig:Neck": [
-   6.0,
+   4.0,
    -0.0,
    0.0
   ],
   "mixamorig:Head": [
-   -8.0,
-   0.0,
-   -0.0
+   -4.0,
+   -2.0,
+   2.0
   ],
   "mixamorig:LeftUpLeg": [
-   2.0,
+   1.0,
    -0.0,
-   -1.0
+   0.0
   ],
   "mixamorig:LeftLeg": [
-   -1.0,
+   4.0,
    -0.0,
-   1.0
+   0.0
   ],
   "mixamorig:LeftFoot": [
-   -5.0,
-   -2.0,
-   -12.0
+   -8.0,
+   -6.0,
+   -14.0
   ],
   "mixamorig:RightUpLeg": [
-   3.0,
+   1.0,
    -0.0,
    0.0
   ],
   "mixamorig:RightLeg": [
-   -2.0,
+   4.0,
    -0.0,
-   2.0
+   -0.0
   ],
   "mixamorig:RightFoot": [
-   -3.0,
-   4.0,
-   13.0
+   -8.0,
+   3.0,
+   17.0
   ]
  },
+ "wrapped": true,
  "map": "fit_normal.png",
+ "color": "fit_color.png",
+ "roughness": "fit_roughness.png",
  "gap_mm": {
-  "median": 5.6,
-  "p90": 16.4,
-  "max": 65.6
+  "median": 1.7,
+  "p90": 12.0,
+  "max": 66.2
  }
 }

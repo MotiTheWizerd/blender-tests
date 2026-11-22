@@ -40,7 +40,7 @@ P = np.array([body.matrix_world @ v.co for v in body.data.vertices])
 ground, height = P[:, 2].min(), P[:, 2].max() - P[:, 2].min()
 
 # the painted Tripo body beside her, at her height, its own paint on
-skin = next((s for s in types.get("skins", []) if s["name"] == types.get("skin")), None)
+skin = next((t for t in types["types"] if t["name"] == types.get("skin")), None)
 if skin:
     tripo = import_tripo(os.path.join(HERE, os.path.expanduser(types["sources"]), skin["source"]), "Tripo %s (the skin's body)" % skin["name"])
     T = np.array([v.co for v in tripo.data.vertices])
