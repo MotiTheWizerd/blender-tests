@@ -66,6 +66,10 @@ are hers; the bust gives it its shape, paint and relief:
    repeats in the shader, PORE_TILES (36) across her UV, a bump over the baked normals (skin_step1.py wires it; the
    face's square takes fewer tiles, its island 1.465 times larger, so the pores keep one size). Unity's URP Lit
    carries it later as the detail normal.
+7d. Roughness by region (`skin_step1.py`, `ROUGH`): a vertex attribute, the nose 0.4, the forehead 0.44, the lips
+   0.38, the rest of the face 0.52, the body 0.6, smoothed six passes over the mesh so no region has an edge, and the
+   pore tile's grooves 0.2 rougher than its plateaus; the shader adds the two. Forge takes it later as the
+   `_MetallicSmoothness` map's alpha (1 - roughness).
 8. `build_body.py` reads the face: every type worn with it; the head's faces on a second slot `<Title>Face` with the
    square's UVs; Forge's face controls (`CONTROLS`: FaceEditorScreen's parts and controls, each an MPFB target pair,
    the shape named `PartControl`, the positive end at 100) as shape keys, the eyeballs carried with their sockets;

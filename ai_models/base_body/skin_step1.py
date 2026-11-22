@@ -14,12 +14,14 @@ ARGS = sys.argv[sys.argv.index("--") + 1:]
 SKIN = ARGS[0]
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from her import create, settle  # noqa: E402
+from her import create, settle, Head  # noqa: E402
 
 TYPES = json.load(open(os.path.join(HERE, "types.json")))
 BASE, FACE, TITLE = TYPES["base"], TYPES["face"], TYPES["title"]
 PORE_TILES = 36  # the pore tile repeats this often across her UV: 48 cells a tile, 1 UV about 1.8 m, so a cell is about 1 mm
 PORE_STRENGTH, PORE_DEPTH = 0.35, 0.0003  # the bump's strength and its height (m)
+# roughness by region (Principled: 0 a mirror, 1 matte), and how much rougher a pore groove is than its plateau
+ROUGH = {"body": 0.6, "face": 0.52, "nose": 0.4, "forehead": 0.44, "lips": 0.38, "groove": 0.2}
 OUT = os.path.join(HERE, "build", "forge", TITLE)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
@@ -42,6 +44,34 @@ before = set(scene.objects)
 bpy.ops.import_scene.fbx(filepath=os.path.join(OUT, TITLE + ".fbx"))
 built = [o for o in scene.objects if o not in before and o.type == "MESH"][0]
 built.name = "Built for Forge (face bake)"
+
+# roughness by region, a vertex attribute: skin shines unevenly (the nose, forehead and lips most, the cheeks less, the
+# body least); smoothed over the mesh so no region has an edge
+me_b = built.data
+P = np.array([built.matrix_world @ v.co for v in me_b.vertices])
+head_b = Head(built, me_b)
+rough = np.full(len(P), ROUGH["body"])
+rough[head_b.skin] = ROUGH["face"]
+marks = {k: np.array(v["her"]) for k, v in face["landmarks"].items()}
+nose, eyes_z = marks["nose"], (marks["eye_l"][2] + marks["eye_r"][2]) / 2
+near_nose = np.linalg.norm(P - nose, axis=1) < 0.035
+forehead = (P[:, 2] > eyes_z + 0.025) & (np.abs(P[:, 0]) < 0.045) & (P[:, 1] < nose[1] + 0.06)
+lips = np.linalg.norm(P[:, None, :] - P[head_b.mouth][None, :, :], axis=2).min(1) < 0.012
+rough[near_nose] = ROUGH["nose"]
+rough[forehead] = ROUGH["forehead"]
+rough[lips] = ROUGH["lips"]
+E = np.empty(len(me_b.edges) * 2, dtype=np.int64)
+me_b.edges.foreach_get("vertices", E)
+E = E.reshape(-1, 2)
+for _ in range(6):  # each vertex toward the mean of its neighbours
+    s = np.zeros(len(P)); n = np.zeros(len(P))
+    np.add.at(s, E[:, 0], rough[E[:, 1]]); np.add.at(s, E[:, 1], rough[E[:, 0]])
+    np.add.at(n, E[:, 0], 1); np.add.at(n, E[:, 1], 1)
+    rough = np.where(n > 0, 0.5 * rough + 0.5 * s / np.maximum(n, 1), rough)
+attr = me_b.color_attributes.new("roughness", "FLOAT_COLOR", "POINT")
+attr.data.foreach_set("color", np.repeat(rough, 4).astype(np.float32).ravel())
+print("roughness: nose %d, forehead %d, lips %d vertices; %.2f to %.2f" % (near_nose.sum(), forehead.sum(), lips.sum(), rough.min(), rough.max()), flush=True)
+
 for m in built.data.materials:
     m.use_nodes = True
     nodes, links = m.node_tree.nodes, m.node_tree.links
@@ -71,6 +101,16 @@ for m in built.data.materials:
             links.new(h.outputs["Color"], bump.inputs["Height"])
             links.new(nm.outputs["Normal"], bump.inputs["Normal"])
             links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+            # roughness: the region's, the pore tile's grooves rougher than its plateaus
+            ra = nodes.new("ShaderNodeAttribute"); ra.attribute_name = "roughness"; ra.location = (-700, -700)
+            groove = nodes.new("ShaderNodeMath"); groove.operation = "MULTIPLY_ADD"; groove.location = (-400, -700)
+            groove.inputs[1].default_value = -ROUGH["groove"]  # height 0.5 flat: a groove (low) adds roughness
+            groove.inputs[2].default_value = 0.5 * ROUGH["groove"]
+            links.new(h.outputs["Color"], groove.inputs[0])
+            total = nodes.new("ShaderNodeMath"); total.operation = "ADD"; total.location = (-200, -700)
+            links.new(ra.outputs["Fac"], total.inputs[0])
+            links.new(groove.outputs["Value"], total.inputs[1])
+            links.new(total.outputs["Value"], bsdf.inputs["Roughness"])
         else:
             links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
 for o in scene.objects:
