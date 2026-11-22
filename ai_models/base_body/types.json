@@ -2,6 +2,10 @@
   "title": "BodyBaseF",
   "base": "skinny",
   "sources": "~/Downloads",
+  "face": "woman1",
+  "faces": [
+    { "name": "woman1", "source": "woman head 3d model/woman_head_3d_model.fbx" }
+  ],
   "types": [
     { "name": "skinny", "source": "5ab2e08e-3991-416c-8b42-f0e1196ab270.fbx" },
     { "name": "fit", "source": "c6966c04-6702-4554-b5d2-b20849af1d24.glb" },
