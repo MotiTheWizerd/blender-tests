@@ -6,8 +6,9 @@ type's joint positions so the game moves the bones with the shape, her face on i
 Reads types.json (title, base, types, face), checks/fit_<type>.json (fit_macros.py), build/<type>_normal.png
 (bake_detail.py) and, with a face named, checks/face_<name>.json (fit_face.py: the face's sliders; bake_face.py: her
 head's UV square, her skin's tone) and its maps (build/face_<name>_{color,normal}.png, build/body_<name>_color.png).
-Every type is MPFB's female at its fitted sliders and the face's, so all share the vertex order; the base is the
-mesh, the others are shape keys named for them.
+Every type is MPFB's female at its fitted sliders and the face's, wrapped onto its Tripo body where wrap.py ran
+(build/wrap_<type>.npy), so all share the vertex order; the base is the mesh, the others are shape keys named for
+them.
 
 A type's skeleton stands elsewhere (a heavier body's knees are 45 mm from the base's), and in the game the bones are
 moved there by translation, rotations as they are. Moving a bone moves the skin weighted to it, so a shape key holds
@@ -40,15 +41,16 @@ from bl_ext.blender_org.mpfb.services.targetservice import TargetService
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.dirname(HERE))
-from her import create, settle, Head, body_of, targets_dir  # noqa: E402
+from her import create, settle, apply_wrap, Head, body_of, targets_dir  # noqa: E402
 from eyes import eyeball, eye_texture, save_map, SHINE, EYE_TEXTURE  # noqa: E402
 
 TYPES = json.load(open(os.path.join(HERE, "types.json")))
 TITLE, BASE = TYPES["title"], TYPES["base"]
 FACE = TYPES.get("face")
+SKIN = TYPES.get("skin")  # the painted Tripo body whose paint dresses her (skin_body.py took its colour already)
 OUT = os.path.join(HERE, "build", "forge", TITLE)
 os.makedirs(os.path.join(OUT, "Bodies"), exist_ok=True)
-SKIN = (0.80, 0.62, 0.52)  # a flat skin when there is no face to take the tone from
+FLAT_SKIN = (0.80, 0.62, 0.52)  # a flat skin when there is no face to take the tone from
 BONES_A_VERTEX = 4
 LANDMARKS = 48  # vertices spread over the body whose positions each type records, for the game's check
 LID_OVER = 0.0005  # m the lids' rims stand off the eyeball
@@ -120,6 +122,9 @@ def fitted(name, controls=False):
         is_body = body_of(body, me)
         deltas = {k: v[is_body] for k, v in deltas.items()}
     settle(body, rig)
+    delta = apply_wrap(body, rig, name)  # wrap.py: the rest of the way onto the Tripo body, the bones along
+    if delta is not None:
+        print("%s: wrapped onto its Tripo body, %.1f mm median" % (name, np.median(np.linalg.norm(delta, axis=1)) * 1000), flush=True)
     return body, rig, deltas
 
 
@@ -282,15 +287,28 @@ if face:
 # --- the maps ------------------------------------------------------------------------------------------------------------
 if face:
     shutil.copyfile(os.path.join(HERE, "build", "body_%s_color.png" % FACE), os.path.join(OUT, TITLE + "_Color.png"))
-    shutil.copyfile(os.path.join(HERE, "build", "face_%s_color.png" % FACE), os.path.join(OUT, TITLE + "Face_Color.png"))
+    toned_face = os.path.join(HERE, "build", "face_%s_skin.png" % FACE)  # skin_body.py: the face in the body's tone
+    shutil.copyfile(toned_face if os.path.exists(toned_face) else os.path.join(HERE, "build", "face_%s_color.png" % FACE),
+                    os.path.join(OUT, TITLE + "Face_Color.png"))
     shutil.copyfile(os.path.join(HERE, "build", "face_%s_normal.png" % FACE), os.path.join(OUT, TITLE + "Face_Normal.png"))
 else:
     colour = bpy.data.images.new(TITLE + "_Color", 256, 256)
-    colour.pixels.foreach_set(np.tile(np.array([*SKIN, 1.0], dtype=np.float32), 256 * 256))
+    colour.pixels.foreach_set(np.tile(np.array([*FLAT_SKIN, 1.0], dtype=np.float32), 256 * 256))
     colour.filepath_raw = os.path.join(OUT, TITLE + "_Color.png")
     colour.file_format = "PNG"
     colour.save()
 shutil.copyfile(os.path.join(HERE, "build", "%s_normal.png" % BASE), os.path.join(OUT, TITLE + "_Normal.png"))
+if SKIN and os.path.exists(os.path.join(HERE, "build", "%s_roughness.png" % SKIN)):
+    # the skin's roughness (bake_detail.py, the painted Tripo body's) as URP Lit reads it: smoothness in the alpha, no metal
+    rough_img = bpy.data.images.load(os.path.join(HERE, "build", "%s_roughness.png" % SKIN))
+    rough_img.colorspace_settings.name = "Non-Color"
+    rough = np.empty(rough_img.size[0] * rough_img.size[1] * 4, dtype=np.float32)
+    rough_img.pixels.foreach_get(rough)
+    ms = np.zeros((rough_img.size[1], rough_img.size[0], 4), np.float32)
+    ms[..., 3] = 1.0 - rough.reshape(-1, 4)[:, 0].reshape(rough_img.size[1], rough_img.size[0])
+    bpy.data.images.remove(save_map(ms, os.path.join(OUT, TITLE + "_MetallicSmoothness.png"), "Non-Color"))
+    bpy.data.images.remove(rough_img)
+    print("the skin's roughness as %s_MetallicSmoothness.png (smoothness %.2f to %.2f)" % (TITLE, ms[..., 3].min(), ms[..., 3].max()), flush=True)
 for t in forge_types:
     for slot in t["slots"]:
         shutil.copyfile(os.path.join(HERE, "build", "%s_normal.png" % t["name"]),

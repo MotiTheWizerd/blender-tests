@@ -1,11 +1,13 @@
-"""The body's colour: MPFB's own skin (a MakeHuman system asset, CC0, 4K on her UV) shifted to the face's tone, so her
-face slot (the Tripo paint, bake_face.py) and her body meet at the neck in one skin.
+"""The body's colour: a skin shifted to the face's tone, so her face slot (the Tripo paint, bake_face.py) and her body
+meet at the neck in one skin. The skin is a painted Tripo body's paint baked onto her UV (bake_detail.py's
+build/<name>_color.png, 8K) when there is one of that name, else MPFB's own skin (a MakeHuman system asset, CC0,
+2K on her UV).
 
-    blender -b -P skin_body.py -- <skin name, e.g. young_caucasian_female> <face name>
+    blender -b -P skin_body.py -- <skin: a baked Tripo body's name, or an MPFB skin, e.g. young_caucasian_female> <face name>
 
-The tone is skin against skin: the median of the face paint's pixels over the median of the MPFB skin's, in linear
-light, a gain per channel laid on the whole skin in linear light (a gain on the encoded values bent the hue green). The
-seam, the ring of head-island vertices that touch the body's faces, is read on both maps and logged. Writes
+The tone is skin against skin: the median of the face paint's pixels over the median of the skin's, in linear light, a
+gain per channel laid on the whole skin in linear light (a gain on the encoded values bent the hue green). The seam,
+the ring of head-island vertices that touch the body's faces, is read on both maps and logged. Writes
 build/body_<face>_color.png (what build_body.py takes for <Title>_Color.png and every type's) and
 checks/skin_body_<face>.json (the two tones, the gain).
 """
@@ -21,7 +23,6 @@ from her import create, settle, Head  # noqa: E402
 
 TYPES = json.load(open(os.path.join(HERE, "types.json")))
 BASE = TYPES["base"]
-MAP = 4096
 bpy.ops.wm.read_factory_settings(use_empty=True)
 fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % BASE)))["values"]
 face = json.load(open(os.path.join(HERE, "checks", "face_%s.json" % FACE)))
@@ -62,9 +63,17 @@ def sample(px, uvs):
     return px[y, x, :3]
 
 
-mhmat = os.path.join(LocationService.get_user_data("skins"), SKIN, SKIN + ".mhmat")
-diffuse = next(l.split(None, 1)[1].strip() for l in open(mhmat) if l.startswith("diffuseTexture"))
-skin_px, skin_img = pixels(os.path.join(os.path.dirname(mhmat), diffuse), True)
+baked = os.path.join(HERE, "build", "%s_color.png" % SKIN)
+tripo_skin = os.path.exists(baked)
+if tripo_skin:
+    skin_px, skin_img = pixels(baked, True)
+    print("the skin: the Tripo body %s's paint on her UV, %dx%d" % (SKIN, *skin_px.shape[1::-1]), flush=True)
+else:
+    mhmat = os.path.join(LocationService.get_user_data("skins"), SKIN, SKIN + ".mhmat")
+    assert os.path.exists(mhmat), "no baked paint %s (bake_detail.py) and no MPFB skin %s" % (baked, mhmat)
+    diffuse = next(l.split(None, 1)[1].strip() for l in open(mhmat) if l.startswith("diffuseTexture"))
+    skin_px, skin_img = pixels(os.path.join(os.path.dirname(mhmat), diffuse), True)
+    print("the skin: MPFB's %s" % SKIN, flush=True)
 face_px, _ = pixels(os.path.join(HERE, "build", "face_%s_color.png" % FACE), True)
 on_face = sample(face_px, seam_uv * face["uv"]["scale"] + face["uv"]["offset"])
 on_skin = sample(skin_px, seam_uv)
@@ -79,24 +88,43 @@ def encoded(c):
     return np.where(c <= 0.0031308, c * 12.92, 1.055 * np.power(np.maximum(c, 0), 1 / 2.4) - 0.055)
 
 
-# the tone: the face paint's skin against MPFB's skin, each the median of its painted pixels, in linear light; the gain
-# laid on the skin in linear light (a gain in the encoded values bends the hue: the first try went green)
+# the tone: the face paint's skin against the body skin, each the median of its painted pixels, in linear light; a gain
+# laid on one of them in linear light (a gain in the encoded values bends the hue: the first try went green). A
+# painted Tripo body sets the tone and the face follows it (its paint is the look, and nineteen twentieths of her);
+# MPFB's skin follows the face.
 painted = lambda px: px[:, :, :3][px[:, :, :3].sum(2) > 0.1]
 face_mean, skin_mean = np.median(linear(painted(face_px)), axis=0), np.median(linear(painted(skin_px)), axis=0)
-gain = face_mean / np.maximum(skin_mean, 1e-4)
-print("the tone: the face %s, the skin %s (linear), gain %s" % (face_mean.round(4), skin_mean.round(4), gain.round(3)), flush=True)
-out = skin_px.copy()
-out[:, :, :3] = np.clip(encoded(linear(out[:, :, :3]) * gain), 0, 1)
-if out.shape[0] != MAP:
-    print("skin map is %d, not %d" % (out.shape[0], MAP), flush=True)
-image = bpy.data.images.new("body_%s_color" % FACE, out.shape[1], out.shape[0], alpha=False, float_buffer=False)
-image.colorspace_settings.name = "sRGB"
-image.pixels.foreach_set(out.ravel())
-path = os.path.join(HERE, "build", "body_%s_color.png" % FACE)
-image.filepath_raw = path
-image.file_format = "PNG"
-image.save()
+print("the tone: the face %s, the skin %s (linear)" % (face_mean.round(4), skin_mean.round(4)), flush=True)
+
+
+def save(px, name):
+    px[:, :, 3] = 1.0
+    image = bpy.data.images.new(name, px.shape[1], px.shape[0], alpha=False, float_buffer=False)
+    image.colorspace_settings.name = "sRGB"
+    image.pixels.foreach_set(px.ravel())
+    path = os.path.join(HERE, "build", name + ".png")
+    image.filepath_raw = path
+    image.file_format = "PNG"
+    image.save()
+    bpy.data.images.remove(image)
+    print("wrote", path, flush=True)
+
+
+if tripo_skin:
+    gain = skin_mean / np.maximum(face_mean, 1e-4)
+    face_px[:, :, :3] = np.clip(encoded(linear(face_px[:, :, :3]) * gain), 0, 1)
+    save(face_px, "face_%s_skin" % FACE)  # build_body.py takes it for the face slot over face_<face>_color.png
+    save(skin_px, "body_%s_color" % FACE)
+    toned = "the face, to the body's tone"
+else:
+    gain = face_mean / np.maximum(skin_mean, 1e-4)
+    skin_px[:, :, :3] = np.clip(encoded(linear(skin_px[:, :, :3]) * gain), 0, 1)
+    save(skin_px, "body_%s_color" % FACE)
+    old = os.path.join(HERE, "build", "face_%s_skin.png" % FACE)
+    if os.path.exists(old):
+        os.remove(old)
+    toned = "the body, to the face's tone"
+print("toned %s: gain %s" % (toned, gain.round(3)), flush=True)
 with open(os.path.join(HERE, "checks", "skin_body_%s.json" % FACE), "w") as f:
     json.dump({"skin": SKIN, "face": FACE, "seam_vertices": len(seam), "face_tone_linear": face_mean.round(4).tolist(),
-               "skin_tone_linear": skin_mean.round(4).tolist(), "gain": gain.round(4).tolist()}, f, indent=1)
-print("wrote", path, flush=True)
+               "skin_tone_linear": skin_mean.round(4).tolist(), "toned": toned, "gain": gain.round(4).tolist()}, f, indent=1)

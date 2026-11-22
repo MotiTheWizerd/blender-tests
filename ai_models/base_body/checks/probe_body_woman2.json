@@ -1,0 +1,61 @@
+{
+ "name": "woman2",
+ "source": "source_woman2.fbx",
+ "vertices": 44930,
+ "faces": 44930,
+ "size": [
+  0.6690000295639038,
+  0.18700000643730164,
+  0.9789999723434448
+ ],
+ "uv_layers": 1,
+ "maps": {
+  "Base Color": {
+   "image": "tripo_image_e752492f_0",
+   "size": [
+    8192,
+    8192
+   ],
+   "file": "Color.jpg"
+  },
+  "Color": {
+   "image": "tripo_image_e752492f_3",
+   "size": [
+    4096,
+    4096
+   ],
+   "file": "Normal.jpg"
+  },
+  "Roughness": {
+   "image": "dd786df9-b67d-42ed-abe4-36672e58f611_roughness",
+   "size": [
+    4096,
+    4096
+   ],
+   "file": "dd786df9-b67d-42ed-abe4-36672e58f611_roughness.jpg"
+  },
+  "Metallic": {
+   "image": "dd786df9-b67d-42ed-abe4-36672e58f611_metallic",
+   "size": [
+    4096,
+    4096
+   ],
+   "file": "dd786df9-b67d-42ed-abe4-36672e58f611_metallic.jpg"
+  }
+ },
+ "head": {
+  "chin_to_crown": 0.2425,
+  "heads_to_height": 7.01,
+  "width": 0.1649,
+  "depth": 0.2059
+ },
+ "paint": {
+  "front": 0.558,
+  "back": 0.549,
+  "up": 0.563,
+  "down": 0.559,
+  "left": 0.54,
+  "right": 0.543,
+  "painted_share": 0.999
+ }
+}

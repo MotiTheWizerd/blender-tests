@@ -1,0 +1,95 @@
+{
+ "type": "woman2",
+ "pose_fit_cost": 0.000549208609649226,
+ "pose": {
+  "mixamorig:LeftShoulder": [
+   3.0,
+   11.0,
+   -8.0
+  ],
+  "mixamorig:LeftArm": [
+   -2.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:LeftForeArm": [
+   -10.0,
+   -0.0,
+   5.0
+  ],
+  "mixamorig:LeftHand": [
+   -19.0,
+   7.0,
+   1.0
+  ],
+  "mixamorig:RightShoulder": [
+   4.0,
+   -16.0,
+   9.0
+  ],
+  "mixamorig:RightArm": [
+   0.0,
+   -0.0,
+   -2.0
+  ],
+  "mixamorig:RightForeArm": [
+   -11.0,
+   -0.0,
+   -9.0
+  ],
+  "mixamorig:RightHand": [
+   -10.0,
+   -8.0,
+   -1.0
+  ],
+  "mixamorig:Neck": [
+   4.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:Head": [
+   -4.0,
+   -2.0,
+   2.0
+  ],
+  "mixamorig:LeftUpLeg": [
+   1.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:LeftLeg": [
+   4.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:LeftFoot": [
+   -8.0,
+   -6.0,
+   -14.0
+  ],
+  "mixamorig:RightUpLeg": [
+   1.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:RightLeg": [
+   4.0,
+   -0.0,
+   -0.0
+  ],
+  "mixamorig:RightFoot": [
+   -8.0,
+   3.0,
+   17.0
+  ]
+ },
+ "wrapped": true,
+ "map": "woman2_normal.png",
+ "color": "woman2_color.png",
+ "roughness": "woman2_roughness.png",
+ "gap_mm": {
+  "median": 9.0,
+  "p90": 17.5,
+  "max": 71.2
+ }
+}

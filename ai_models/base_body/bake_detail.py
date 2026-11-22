@@ -22,22 +22,18 @@ import bmesh
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
-from bl_ext.blender_org.mpfb.services.targetservice import TargetService
-from bl_ext.blender_org.mpfb.services.locationservice import LocationService
 
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 SOURCE, TYPE = ARGS[0], ARGS[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from her import create, settle, apply_wrap  # noqa: E402
+from pose import place, fit, posed, world_points, import_tripo  # noqa: E402
+
 BUILD = os.path.join(HERE, "build")
 os.makedirs(BUILD, exist_ok=True)
-MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
-FOLDER = {"measure-bust-circ": "torso", "measure-underbust-circ": "torso", "measure-waist-circ": "torso",
-          "measure-hips-circ": "torso", "torso-scale-depth": "torso", "torso-scale-horiz": "torso",
-          "torso-vshape": "torso", "hip-scale-depth": "hip", "hip-scale-horiz": "hip",
-          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast"}
-ENDS = {"breast-volume-vert": ("down", "up")}
 MAP = 4096
+COLOUR_MAP = 8192  # the Tripo paint, when the body has it (Moti: 8K), baked onto her UV at this size
 HAND_CUT = 0.04  # m around her posed hands the Tripo body is cut away before the bake
 HAND_FADE = 0.05  # m beyond HAND_CUT over which the map fades from her own relief back to the Tripo one
 BREAST_CUT = 0.06  # m around the breasts (the vertices on their bones) that keep her own relief wholly: their own kind
@@ -55,134 +51,29 @@ def log(*a):
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
-TARGETS = LocationService.get_mpfb_data("targets")
 
-# --- 1. the fitted MPFB body ----------------------------------------------------------------------------------------
-fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % TYPE)))["values"]
-macro = TargetService.get_default_macro_info_dict()
-macro.update({"gender": 0.0, "age": 0.5})
-macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
-macro.update({k: fit[k] for k in MACRO})
-base = HumanService.create_human(mask_helpers=True, macro_detail_dict=macro)
-for slider, value in fit.items():
-    if slider in MACRO or abs(value) < 1e-3:
-        continue
-    decr, incr = ENDS.get(slider, ("decr", "incr"))
-    end = incr if value > 0 else decr
-    folder = FOLDER.get(slider, "arms" if "arm" in slider else "legs")
-    sided = os.path.exists(os.path.join(TARGETS, folder, "l-%s-%s.target.gz" % (slider, end)))
-    for side in (["l-", "r-"] if sided else [""]):
-        TargetService.load_target(base, os.path.join(TARGETS, folder, "%s%s-%s.target.gz" % (side, slider, end)),
-                                  weight=abs(value))
-rig = HumanService.add_builtin_rig(base, "mixamo_unity")
-for m in base.modifiers:
-    if m.type == "ARMATURE":
-        m.show_viewport = False
-dg = bpy.context.evaluated_depsgraph_get()
-baked = bpy.data.meshes.new_from_object(base.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
-base.shape_key_clear()
-base.modifiers.clear()
-base.data = baked
-mod = base.modifiers.new("Armature", "ARMATURE")
-mod.object = rig
+# --- 1. the fitted MPFB body, wrapped onto the Tripo body where wrap.py ran ------------------------------------------
+fit_values = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % TYPE)))["values"]
+base, rig = create(fit_values)
+settle(base, rig)
 base.name, rig.name = "MPFB " + TYPE, "rig " + TYPE
 N = len(base.data.vertices)
+wrap_json = os.path.join(HERE, "checks", "wrap_%s.json" % TYPE)
+wrapped = apply_wrap(base, rig, TYPE) is not None
 bpy.context.view_layer.update()
-rest_world = np.array([base.matrix_world @ v.co for v in base.data.vertices])
+rest_world = world_points(base)
 height = rest_world[:, 2].max() - rest_world[:, 2].min()
 ground = rest_world[:, 2].min()
-log("mpfb", N, "vertices, %.3f m" % height)
+log("mpfb", N, "vertices, %.3f m%s" % (height, ", wrapped onto the Tripo body" if wrapped else ""))
 
-# --- 2. the Tripo body -----------------------------------------------------------------------------------------------
-before = set(scene.objects)
-if SOURCE.endswith(".glb"):
-    bpy.ops.import_scene.gltf(filepath=SOURCE)
-else:
-    bpy.ops.import_scene.fbx(filepath=SOURCE)
-tripo = [o for o in scene.objects if o not in before and o.type == "MESH"][0]
-for o in scene.objects:
-    if o not in before and o is not tripo:
-        bpy.data.objects.remove(o)
-tm = tripo.matrix_world.copy()
-tripo.parent = None
-tripo.matrix_world = tm
-bpy.ops.object.select_all(action="DESELECT")
-tripo.select_set(True)
-bpy.context.view_layer.objects.active = tripo
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-tripo.name = "Tripo " + TYPE
-T = np.array([v.co for v in tripo.data.vertices])
-k = height / (T[:, 2].max() - T[:, 2].min())
-T = (T - [0, 0, T[:, 2].min()]) * k + [0, 0, ground]
-band = lambda P: P[(P[:, 2] > ground + 0.45 * height) & (P[:, 2] < ground + 0.75 * height) & (np.abs(P[:, 0]) < 0.15)]
-T[:, :2] += band(rest_world)[:, :2].mean(0) - band(T)[:, :2].mean(0)
-tripo.data.vertices.foreach_set("co", T.ravel())
-tripo.data.update()
-tripo_bvh = BVHTree.FromObject(tripo, bpy.context.evaluated_depsgraph_get())
-rng = np.random.default_rng(1)
-T_sample = T[rng.choice(len(T), min(4500, len(T)), replace=False)]
-log("tripo", len(T), "vertices")
-
-
-# --- 3. pose fit -----------------------------------------------------------------------------------------------------
-def posed():
-    bpy.context.view_layer.update()
-    dg = bpy.context.evaluated_depsgraph_get()
-    ev = base.evaluated_get(dg)
-    co = np.empty(N * 3)
-    ev.data.vertices.foreach_get("co", co)
-    mw = np.array(base.matrix_world)
-    return co.reshape(N, 3) @ mw[:3, :3].T + mw[:3, 3], BVHTree.FromObject(base, dg)
-
-
-EVERY = np.arange(0, N, 3)
-
-
-def cost():
-    co, bvh = posed()
-    there = sum(min(h[3], 0.08) ** 2 if h[0] else 0.0064 for h in (tripo_bvh.find_nearest(Vector(p)) for p in co[EVERY]))
-    back = sum(min(h[3], 0.08) ** 2 if h[0] else 0.0064 for h in (bvh.find_nearest(Vector(p)) for p in T_sample))
-    return there / len(EVERY) + back / len(T_sample)
-
-
-FIT = ["Hips", "Spine", "Spine1", "Spine2", "Neck", "Head", "LeftShoulder", "RightShoulder", "LeftArm", "RightArm",
-       "LeftForeArm", "RightForeArm", "LeftHand", "RightHand", "LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg",
-       "LeftFoot", "RightFoot"]
-NO_TWIST = {"Spine", "Spine1", "Spine2", "Neck", "LeftArm", "RightArm", "LeftForeArm", "RightForeArm",
-            "LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg"}
-for pb in rig.pose.bones:
-    pb.rotation_mode = "XYZ"
-start_pose = os.path.join(HERE, "checks", "wrap_%s.json" % TYPE)
-if os.path.exists(start_pose):
-    for name, angles in json.load(open(start_pose))["pose"].items():
-        rig.pose.bones[name].rotation_euler = [np.radians(a) for a in angles]
-    first_step = 2.0
-else:
-    first_step = 8.0
-best = cost()
-log("pose fit: start cost %.6f" % best)
-step = np.radians(first_step)
-while step > np.radians(0.5):
-    improved = False
-    for name in FIT:
-        pb = rig.pose.bones["mixamorig:" + name]
-        for axis in range(3):
-            if axis == 1 and name in NO_TWIST:
-                continue
-            for sign in (1, -1):
-                old = pb.rotation_euler[axis]
-                pb.rotation_euler[axis] = old + sign * step
-                c = cost()
-                if c < best - 1e-9:
-                    best, improved = c, True
-                    break
-                pb.rotation_euler[axis] = old
-    log("  step %.2f deg: cost %.6f" % (np.degrees(step), best))
-    if not improved:
-        step /= 2
-pose = {pb.name: [round(np.degrees(a), 1) for a in pb.rotation_euler] for pb in rig.pose.bones
-        if any(abs(a) > 1e-6 for a in pb.rotation_euler)}
-co, _ = posed()
+# --- 2. the Tripo body, her pose on it --------------------------------------------------------------------------------
+tripo = import_tripo(SOURCE, "Tripo " + TYPE)
+wrap_record = json.load(open(wrap_json)) if wrapped else {}
+# wrapped, she lies on the Tripo body placed and posed as the wrap had it: the same placement, the pose as it is
+T, tripo_bvh, T_sample, placement = place(tripo, rest_world, wrap_record.get("tripo_placement"))
+log("tripo", len(T), "vertices, scaled %.4f%s" % (placement["scale"], " (the wrap's placement)" if wrapped else ""))
+best, pose = fit(base, rig, tripo_bvh, T_sample, start=wrap_record.get("pose"), refine=not wrapped, log=log)
+co, _ = posed(base)
 gap = np.array([tripo_bvh.find_nearest(Vector(p))[3] for p in co])
 log("posed, her surface to the Tripo one: median %.1f mm, p90 %.1f, p99 %.1f, max %.1f" % tuple(
     np.percentile(gap, [50, 90, 99, 100]) * 1000))
@@ -304,6 +195,56 @@ image.filepath = image_path
 image.source = "FILE"
 log("baked", image_path)
 
+# --- 5. the paint, when the Tripo body has it: its colour and roughness onto her UV ------------------------------------
+# From the whole Tripo body (the hands too: fused fingers still have skin colour). The colour is the surface's own
+# (the diffuse pass's colour alone, no light); a pixel no ray painted (black) takes the paint's median.
+paint = {}
+if tripo.data.materials and tripo.data.materials[0].use_nodes:
+    for n in tripo.data.materials[0].node_tree.nodes:
+        if n.type == "TEX_IMAGE" and n.image:
+            for l in n.outputs[0].links:
+                paint[l.to_socket.name] = n.image
+maps = {"map": os.path.basename(image_path)}
+if "Base Color" in paint:
+    log("the Tripo body is painted: %s %dx%d%s" % (paint["Base Color"].name, *paint["Base Color"].size,
+                                                   ", roughness too" if "Roughness" in paint else ""))
+    for kind, size, space, bake_type in (("color", COLOUR_MAP, "sRGB", "DIFFUSE"), ("roughness", MAP, "Non-Color", "ROUGHNESS")):
+        if kind == "roughness" and "Roughness" not in paint:
+            continue
+        target = bpy.data.images.new("%s_%s" % (TYPE, kind), size, size, alpha=False, float_buffer=False)
+        target.colorspace_settings.name = space
+        bake_mat = bpy.data.materials.new("bake " + kind)
+        bake_mat.use_nodes = True
+        node = bake_mat.node_tree.nodes.new("ShaderNodeTexImage")
+        node.image = target
+        bake_mat.node_tree.nodes.active = node
+        posed_obj.data.materials[0] = bake_mat
+        scene.render.bake.use_selected_to_active = True
+        scene.render.bake.use_pass_direct = scene.render.bake.use_pass_indirect = False
+        scene.render.bake.use_pass_color = True
+        bpy.ops.object.select_all(action="DESELECT")
+        tripo.select_set(True)
+        posed_obj.select_set(True)
+        bpy.context.view_layer.objects.active = posed_obj
+        log("baking %s %d x %d" % (kind, size, size))
+        bpy.ops.object.bake(type=bake_type)
+        px = np.empty(size * size * 4, dtype=np.float32)
+        target.pixels.foreach_get(px)
+        px = px.reshape(-1, 4)
+        miss = px[:, :3].sum(1) < 0.02
+        px[miss, :3] = np.median(px[~miss, :3], axis=0)
+        px[:, 3] = 1.0
+        target.pixels.foreach_set(px.ravel())
+        log("%s: %.1f%% of the map unpainted, filled with the median %s" % (kind, 100 * miss.mean(), np.round(px[~miss, :3].mean(0), 3).tolist()))
+        path = os.path.join(BUILD, "%s_%s.png" % (TYPE, kind))
+        target.filepath_raw = path
+        target.file_format = "PNG"
+        target.save()
+        maps[kind] = os.path.basename(path)
+        bpy.data.images.remove(target)
+        del px
+        log("baked", path)
+
 # --- the file to look at: her at rest, the map on, the Tripo body beside her -----------------------------------------
 bpy.data.objects.remove(posed_obj)
 bpy.data.objects.remove(source)
@@ -314,7 +255,7 @@ for o in (base, tripo):
     for p in o.data.polygons:
         p.use_smooth = True
 with open(os.path.join(HERE, "checks", "detail_%s.json" % TYPE), "w") as f:
-    json.dump({"type": TYPE, "pose_fit_cost": best, "pose": pose, "map": os.path.basename(image_path),
+    json.dump({"type": TYPE, "pose_fit_cost": best, "pose": pose, "wrapped": wrapped, **maps,
                "gap_mm": {"median": round(float(np.median(gap)) * 1000, 1),
                           "p90": round(float(np.percentile(gap, 90)) * 1000, 1),
                           "max": round(float(gap.max()) * 1000, 1)}}, f, indent=1)

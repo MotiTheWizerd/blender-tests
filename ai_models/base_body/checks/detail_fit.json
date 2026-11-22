@@ -1,26 +1,31 @@
 {
  "type": "fit",
- "pose_fit_cost": 0.0003830935716607494,
+ "pose_fit_cost": 0.000319936288166765,
  "pose": {
+  "mixamorig:Spine": [
+   1.0,
+   -0.0,
+   0.0
+  ],
   "mixamorig:Spine1": [
-   -2.0,
+   -3.0,
    -0.0,
    0.0
   ],
   "mixamorig:Spine2": [
-   3.0,
+   2.0,
    -0.0,
    0.0
   ],
   "mixamorig:LeftShoulder": [
    -2.0,
    5.0,
-   -15.0
+   -13.0
   ],
   "mixamorig:LeftArm": [
    0.0,
    -0.0,
-   11.0
+   9.0
   ],
   "mixamorig:LeftForeArm": [
    -15.0,
@@ -28,54 +33,54 @@
    0.0
   ],
   "mixamorig:LeftHand": [
-   -8.0,
-   9.0,
-   7.0
+   -10.0,
+   7.0,
+   6.0
   ],
   "mixamorig:RightShoulder": [
    -3.0,
-   -3.0,
-   16.0
+   -1.0,
+   12.0
   ],
   "mixamorig:RightArm": [
    0.0,
    -0.0,
-   -14.0
+   -10.0
   ],
   "mixamorig:RightForeArm": [
-   -15.0,
+   -18.0,
    -0.0,
    6.0
   ],
   "mixamorig:RightHand": [
-   -13.0,
+   -10.0,
    -11.0,
    -10.0
   ],
   "mixamorig:Neck": [
-   7.0,
+   6.0,
    -0.0,
    0.0
   ],
   "mixamorig:Head": [
-   -9.0,
-   -1.0,
-   1.0
+   -8.0,
+   0.0,
+   -0.0
   ],
   "mixamorig:LeftUpLeg": [
    2.0,
    -0.0,
-   0.0
+   -1.0
   ],
   "mixamorig:LeftLeg": [
-   1.0,
+   -1.0,
    -0.0,
-   0.0
+   1.0
   ],
   "mixamorig:LeftFoot": [
-   -7.0,
+   -5.0,
    -2.0,
-   -16.0
+   -12.0
   ],
   "mixamorig:RightUpLeg": [
    3.0,
@@ -83,20 +88,20 @@
    0.0
   ],
   "mixamorig:RightLeg": [
-   -1.0,
+   -2.0,
    -0.0,
    2.0
   ],
   "mixamorig:RightFoot": [
-   -5.0,
-   5.0,
-   15.0
+   -3.0,
+   4.0,
+   13.0
   ]
  },
  "map": "fit_normal.png",
  "gap_mm": {
-  "median": 5.8,
-  "p90": 17.3,
-  "max": 67.9
+  "median": 5.6,
+  "p90": 16.4,
+  "max": 65.6
  }
 }

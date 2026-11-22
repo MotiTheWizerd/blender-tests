@@ -8,54 +8,23 @@ Writes build/forge/<Title>/. Settings as ai_models/pieces.py's export().
 """
 import bpy, json, os, shutil, sys
 import numpy as np
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
-from bl_ext.blender_org.mpfb.services.targetservice import TargetService
-from bl_ext.blender_org.mpfb.services.locationservice import LocationService
 
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 TYPE, TITLE = ARGS[0], ARGS[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from her import create, settle  # noqa: E402
+
 OUT = os.path.join(HERE, "build", "forge", TITLE)
 os.makedirs(OUT, exist_ok=True)
-MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
-FOLDER = {"measure-bust-circ": "torso", "measure-underbust-circ": "torso", "measure-waist-circ": "torso",
-          "measure-hips-circ": "torso", "torso-scale-depth": "torso", "torso-scale-horiz": "torso",
-          "torso-vshape": "torso", "hip-scale-depth": "hip", "hip-scale-horiz": "hip",
-          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast"}
-ENDS = {"breast-volume-vert": ("down", "up")}
 SKIN = (0.80, 0.62, 0.52)  # a flat skin until MPFB's own skin is wired in
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
-TARGETS = LocationService.get_mpfb_data("targets")
 
 fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % TYPE)))["values"]
-macro = TargetService.get_default_macro_info_dict()
-macro.update({"gender": 0.0, "age": 0.5})
-macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
-macro.update({k: fit[k] for k in MACRO})
-body = HumanService.create_human(mask_helpers=True, macro_detail_dict=macro)
-for slider, value in fit.items():
-    if slider in MACRO or abs(value) < 1e-3:
-        continue
-    decr, incr = ENDS.get(slider, ("decr", "incr"))
-    end = incr if value > 0 else decr
-    folder = FOLDER.get(slider, "arms" if "arm" in slider else "legs")
-    sided = os.path.exists(os.path.join(TARGETS, folder, "l-%s-%s.target.gz" % (slider, end)))
-    for side in (["l-", "r-"] if sided else [""]):
-        TargetService.load_target(body, os.path.join(TARGETS, folder, "%s%s-%s.target.gz" % (side, slider, end)),
-                                  weight=abs(value))
-rig = HumanService.add_builtin_rig(body, "mixamo_unity")
-for m in body.modifiers:
-    if m.type == "ARMATURE":
-        m.show_viewport = False
-dg = bpy.context.evaluated_depsgraph_get()
-baked = bpy.data.meshes.new_from_object(body.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
-body.shape_key_clear()
-body.modifiers.clear()
-body.data = baked
-mod = body.modifiers.new("Armature", "ARMATURE")
-mod.object = rig
+body, rig = create(fit)
+settle(body, rig)
 body.name = body.data.name = "Body"
 rig.name = TITLE
 for p in body.data.polygons:

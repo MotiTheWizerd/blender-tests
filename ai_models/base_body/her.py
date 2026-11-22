@@ -4,6 +4,7 @@ rims of its pockets.
 
     sys.path.insert(0, <this folder>); from her import create, settle, head_of, uv_islands
 """
+import json
 import os
 import bpy
 import numpy as np
@@ -12,10 +13,12 @@ from bl_ext.blender_org.mpfb.services.targetservice import TargetService
 from bl_ext.blender_org.mpfb.services.locationservice import LocationService
 
 MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
+# a body slider's target folder: the arms' and legs' by their names, the rest here
 FOLDER = {"measure-bust-circ": "torso", "measure-underbust-circ": "torso", "measure-waist-circ": "torso",
           "measure-hips-circ": "torso", "torso-scale-depth": "torso", "torso-scale-horiz": "torso",
           "torso-vshape": "torso", "hip-scale-depth": "hip", "hip-scale-horiz": "hip",
-          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast"}
+          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast",
+          "head-scale-vert": "head", "head-scale-horiz": "head", "head-scale-depth": "head"}
 ENDS = {"breast-volume-vert": ("down", "up")}
 
 
@@ -23,10 +26,15 @@ def targets_dir():
     return LocationService.get_mpfb_data("targets")
 
 
+def folder_of(slider):
+    return FOLDER.get(slider, "arms" if "arm" in slider else "legs")
+
+
 def create(fit, face=None, rig="mixamo_unity", mask_helpers=True):
     """The MPFB female at the body sliders `fit` (checks/fit_<type>.json's "values": the macros and the detail
     sliders) and, given, at a face's sliders (checks/face_<name>.json, fit_face.py: its "values" and the target
-    files each stands for), helpers masked, the rig added with its modifier hidden. Returns (her, the rig)."""
+    files each stands for), helpers masked, the rig added with its modifier hidden (none when rig is None).
+    Returns (her, the rig)."""
     targets = targets_dir()
     macro = TargetService.get_default_macro_info_dict()
     macro.update({"gender": 0.0, "age": 0.5})
@@ -38,7 +46,7 @@ def create(fit, face=None, rig="mixamo_unity", mask_helpers=True):
             continue
         decr, incr = ENDS.get(slider, ("decr", "incr"))
         end = incr if value > 0 else decr
-        folder = FOLDER.get(slider, "arms" if "arm" in slider else "legs")
+        folder = folder_of(slider)
         sided = os.path.exists(os.path.join(targets, folder, "l-%s-%s.target.gz" % (slider, end)))
         for side in (["l-", "r-"] if sided else [""]):
             TargetService.load_target(base, os.path.join(targets, folder, "%s%s-%s.target.gz" % (side, slider, end)),
@@ -49,11 +57,51 @@ def create(fit, face=None, rig="mixamo_unity", mask_helpers=True):
             for key in face["targets"][name]["pos" if value > 0 else "neg"]:
                 TargetService.load_target(base, os.path.join(targets, folder, key + ".target.gz"), weight=abs(value),
                                           name="face-" + key)
+    if rig is None:
+        return base, None
     armature = HumanService.add_builtin_rig(base, rig)
     for m in base.modifiers:
         if m.type == "ARMATURE":
             m.show_viewport = False
     return base, armature
+
+
+def apply_wrap(base, rig, name, where=None):
+    """Her wrapped onto her Tripo body (wrap.py): the skin delta on her settled mesh, and every bone moved as the
+    skin around it moved, so the joints keep their place in their limbs. Nothing when no wrap of that name exists.
+    Returns the delta or None."""
+    where = where or os.path.dirname(os.path.abspath(__file__))
+    npy = os.path.join(where, "build", "wrap_%s.npy" % name)
+    if not os.path.exists(npy):
+        return None
+    delta = np.load(npy)
+    me = base.data
+    assert len(delta) == len(me.vertices), "%s: the wrap is on %d vertices, she has %d" % (name, len(delta), len(me.vertices))
+    co = np.empty(len(me.vertices) * 3)
+    me.vertices.foreach_get("co", co)
+    me.vertices.foreach_set("co", (co.reshape(-1, 3) + delta).ravel())
+    me.update()
+    moves = json.load(open(os.path.join(where, "checks", "wrap_%s.json" % name)))["bones"]
+    move_bones(rig, moves)
+    return delta
+
+
+def move_bones(rig, moves):
+    """Each bone's head and tail moved by the world vectors in moves ({bone: {"head": [x, y, z], "tail": [...]}}), in
+    the rig's rest; a connected child's head is its parent's tail, moved once."""
+    from mathutils import Vector
+    view = bpy.context.view_layer
+    was_active = view.objects.active
+    view.objects.active = rig
+    bpy.ops.object.mode_set(mode="EDIT")
+    R_inv = rig.matrix_world.inverted().to_3x3()
+    for eb in rig.data.edit_bones:
+        m = moves.get(eb.name)
+        if m:
+            eb.head += R_inv @ Vector(m["head"])
+            eb.tail += R_inv @ Vector(m["tail"])
+    bpy.ops.object.mode_set(mode="OBJECT")
+    view.objects.active = was_active
 
 
 def settle(base, rig=None):

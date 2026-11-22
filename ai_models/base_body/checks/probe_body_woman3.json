@@ -1,0 +1,37 @@
+{
+ "name": "woman3",
+ "source": "source_woman3.fbx",
+ "vertices": 5199,
+ "faces": 5553,
+ "size": [
+  0.6690000295639038,
+  0.1940000057220459,
+  1.0
+ ],
+ "uv_layers": 1,
+ "maps": {
+  "Base Color": {
+   "image": "16d36aff_b76a_4b1d_964f_a757b0f0a01e_basecolor",
+   "size": [
+    8192,
+    8192
+   ],
+   "file": "16d36aff-b76a-4b1d-964f-a757b0f0a01e_basecolor.jpg"
+  }
+ },
+ "head": {
+  "chin_to_crown": 0.2335,
+  "heads_to_height": 7.28,
+  "width": 0.1586,
+  "depth": 0.1985
+ },
+ "paint": {
+  "front": 0.534,
+  "back": 0.495,
+  "up": 0.526,
+  "down": 0.475,
+  "left": 0.482,
+  "right": 0.501,
+  "painted_share": 0.999
+ }
+}

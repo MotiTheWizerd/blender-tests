@@ -5,58 +5,28 @@ where does each type's rig put its joints, and how far is each knee and elbow fr
 
 Reads types.json (the types, the base) and checks/fit_<type>.json. Prints the numbers; writes checks/probe_types.json.
 """
-import bpy, json, os
+import bpy, json, os, sys
 import numpy as np
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
-from bl_ext.blender_org.mpfb.services.targetservice import TargetService
-from bl_ext.blender_org.mpfb.services.locationservice import LocationService
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from her import create, settle  # noqa: E402
+
 TYPES = json.load(open(os.path.join(HERE, "types.json")))
-MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
-FOLDER = {"measure-bust-circ": "torso", "measure-underbust-circ": "torso", "measure-waist-circ": "torso",
-          "measure-hips-circ": "torso", "torso-scale-depth": "torso", "torso-scale-horiz": "torso",
-          "torso-vshape": "torso", "hip-scale-depth": "hip", "hip-scale-horiz": "hip",
-          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast"}
-ENDS = {"breast-volume-vert": ("down", "up")}
 # a joint, the two joints its limb runs between, and the side its slice lies on (x sign in Blender)
 JOINTS = [("LeftLeg", "LeftUpLeg", "LeftFoot", 1), ("RightLeg", "RightUpLeg", "RightFoot", -1),
           ("LeftForeArm", "LeftArm", "LeftHand", 1), ("RightForeArm", "RightArm", "RightHand", -1)]
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
-TARGETS = LocationService.get_mpfb_data("targets")
 
 
 def fitted(name):
     """The MPFB female at a type's fitted sliders, with the mixamo_unity rig, helpers dropped, targets baked in."""
     fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % name)))["values"]
-    macro = TargetService.get_default_macro_info_dict()
-    macro.update({"gender": 0.0, "age": 0.5})
-    macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
-    macro.update({k: fit[k] for k in MACRO})
-    body = HumanService.create_human(mask_helpers=True, macro_detail_dict=macro)
-    for slider, value in fit.items():
-        if slider in MACRO or abs(value) < 1e-3:
-            continue
-        decr, incr = ENDS.get(slider, ("decr", "incr"))
-        end = incr if value > 0 else decr
-        folder = FOLDER.get(slider, "arms" if "arm" in slider else "legs")
-        sided = os.path.exists(os.path.join(TARGETS, folder, "l-%s-%s.target.gz" % (slider, end)))
-        for side in (["l-", "r-"] if sided else [""]):
-            TargetService.load_target(body, os.path.join(TARGETS, folder, "%s%s-%s.target.gz" % (side, slider, end)),
-                                      weight=abs(value))
-    rig = HumanService.add_builtin_rig(body, "mixamo_unity")
-    for m in body.modifiers:
-        if m.type == "ARMATURE":
-            m.show_viewport = False
-    dg = bpy.context.evaluated_depsgraph_get()
-    baked = bpy.data.meshes.new_from_object(body.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
-    body.shape_key_clear()
-    body.modifiers.clear()
-    body.data = baked
+    body, rig = create(fit)
+    settle(body)
     body.name, rig.name = "body " + name, "rig " + name
-    bpy.context.view_layer.update()
     return body, rig
 
 

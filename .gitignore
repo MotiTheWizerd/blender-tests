@@ -6,3 +6,7 @@ __pycache__/
 # ai_models: the private AI source, and build/ (everything the steps make again: python ai_models/run.py <name>)
 ai_models/*/source_*
 ai_models/*/build/
+# FBX texture folders: private source material, like source_*
+*.fbm/
+# step logs, regenerated with the steps
+*.log

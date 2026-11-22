@@ -5,13 +5,14 @@ with this head's shape.
 
 The MPFB female at the base type's fitted sliders (checks/fit_<base>.json), every face target under FOLDERS loaded as
 a slider (a decr/incr pair one slider from -1 to 1, left and right as one; a one-sided shape 0 to 1). The Tripo bust
-is scaled and moved onto her head (uniform scale and a translation, found with the sliders: the bust says nothing
-about the head's size against the body, so head-scale and head-trans stay out). Landmarks in the bust's paint: the
-pupils (the darkest points above the nose), each eye's opening (the sclera flooded from the pupil), the mouth's
-corners (the dark line between the lips); on her, the lid rims and the lip line are the vertices her head island
-shares with its eye cups and mouth pocket. Gauss-Newton: every head vertex to the bust's surface along its normal
-there (a hit whose surface faces more than STRAY degrees from hers dropped), the landmarks pulled together, the
-sliders held near 0 by RIDGE.
+is scaled onto her head by chin to crown, as fit_macros sized the head from the Tripo body (the bust says nothing
+about the head's size against the body, and its scale stays put: let float, it followed the head-shrinking sliders
+down and she lost a tenth of her head's height and a sixth of its width), and moved onto it with the sliders (a
+translation; head-scale-vert and head-trans stay out). Landmarks in the bust's paint: the pupils (the darkest
+points above the nose), each eye's opening (the sclera flooded from the pupil), the mouth's corners (the dark line
+between the lips); on her, the lid rims and the lip line are the vertices her head island shares with its eye cups
+and mouth pocket. Gauss-Newton: every head vertex to the bust's surface along its normal there (a hit whose surface
+faces more than STRAY degrees from hers dropped), the landmarks pulled together, the sliders held near 0 by RIDGE.
 
 Writes checks/face_<name>.json (the sliders, the bust's scale and shift, the landmarks, the distances) and
 checks/face_<name>_{front,side}.png (her head in blue over the bust in orange, landmarks as dots).
@@ -20,24 +21,19 @@ import bpy, json, os, sys, time
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
 from bl_ext.blender_org.mpfb.services.targetservice import TargetService
 from bl_ext.blender_org.mpfb.services.locationservice import LocationService
 
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 SOURCE, NAME = ARGS[0], ARGS[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.dirname(HERE))
 from face import profile  # noqa: E402
+from her import create  # noqa: E402
 
 TYPES = json.load(open(os.path.join(HERE, "types.json")))
 BASE = TYPES["base"]
-MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
-FOLDER = {"measure-bust-circ": "torso", "measure-underbust-circ": "torso", "measure-waist-circ": "torso",
-          "measure-hips-circ": "torso", "torso-scale-depth": "torso", "torso-scale-horiz": "torso",
-          "torso-vshape": "torso", "hip-scale-depth": "hip", "hip-scale-horiz": "hip",
-          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast"}
-ENDS = {"breast-volume-vert": ("down", "up")}
 # the face's sliders: every target in these folders but the ones that place or size the whole head or neck against
 # the body (the bust cannot say), and age
 FOLDERS = ["head", "forehead", "eyebrows", "eyes", "nose", "mouth", "chin", "cheek", "ears", "neck"]
@@ -46,6 +42,9 @@ PAIRS = [("decr", "incr"), ("down", "up"), ("in", "out"), ("backward", "forward"
          ("compress", "uncompress")]
 RIDGE = 0.03  # a slider at 1 is worth this much surface error (3000 surface terms at 2 mm sum to 0.012): keeps them few
 STRAY = 60.0  # degrees: a bust surface facing further from hers than this is the wrong surface
+# her chin is read with her neck in (everything above NECK of her height, as fit_macros reads it): the head island
+# ends right under the chin, and over it alone the profile takes the lip crease for the chin, 3 cm up
+NECK = 0.84
 LANDMARK = 4.0  # a landmark's pull against one surface point's
 PUPIL = 6.0
 ITERATIONS = 30
@@ -62,22 +61,7 @@ TARGETS = LocationService.get_mpfb_data("targets")
 
 # --- 1. her, at the base type's sliders, the face targets loaded at 0 ----------------------------------------------
 fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % BASE)))["values"]
-macro = TargetService.get_default_macro_info_dict()
-macro.update({"gender": 0.0, "age": 0.5})
-macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
-macro.update({k: fit[k] for k in MACRO})
-base = HumanService.create_human(mask_helpers=True, macro_detail_dict=macro)
-for slider, value in fit.items():
-    if slider in MACRO or abs(value) < 1e-3:
-        continue
-    decr, incr = ENDS.get(slider, ("decr", "incr"))
-    end = incr if value > 0 else decr
-    folder = FOLDER.get(slider, "arms" if "arm" in slider else "legs")
-    sided = os.path.exists(os.path.join(TARGETS, folder, "l-%s-%s.target.gz" % (slider, end)))
-    for side in (["l-", "r-"] if sided else [""]):
-        TargetService.load_target(base, os.path.join(TARGETS, folder, "%s%s-%s.target.gz" % (side, slider, end)),
-                                  weight=abs(value))
-rig = HumanService.add_builtin_rig(base, "mixamo_unity")
+base, rig = create(fit)
 me = base.data
 N = len(me.vertices)
 blocks = me.shape_keys.key_blocks
@@ -336,14 +320,22 @@ def jac(x):
     return np.where((x >= 0)[:, None, None], Dp, -Dn)
 
 
+# her nose tip and chin front: read once, with her neck in, and kept as the head vertices nearest them (the same
+# points of her through the fit, whatever the sliders do to them)
+skin = P_fit[body]
+h_crown, h_chin_z, h_nose, h_chin = profile(skin[skin[:, 2] > skin[:, 2].min() + NECK * (skin[:, 2].max() - skin[:, 2].min())])
+P_head0 = P_fit[head]
+mid = np.abs(P_head0[:, 0]) < 0.02
+NOSE_V = int(np.where(mid)[0][np.linalg.norm(P_head0[mid][:, 1:] - h_nose[1:], axis=1).argmin()])
+CHIN_V = int(np.where(mid)[0][np.linalg.norm(P_head0[mid][:, 1:] - h_chin[1:], axis=1).argmin()])
+log("her head: crown %.3f, chin %.3f (%.3f m chin to crown), nose tip %.3f; chin vertex %.1f mm from the profile's chin front" % (
+    h_crown, h_chin_z, h_crown - h_chin_z, h_nose[2], np.linalg.norm(P_head0[CHIN_V] - h_chin) * 1000))
+
+
 def her_marks(P):
     """Her landmarks as vertex indices into the head: crown, nose tip, chin front, each eye's rim middle (the rim's
     vertices, averaged), each rim's inner and outer vertex, the mouth's corners."""
-    crown, chin_z, nose, chin = profile(P)
-    mid = np.abs(P[:, 0]) < 0.02
-    nose_v = np.where(mid)[0][np.linalg.norm(P[mid][:, 1:] - nose[1:], axis=1).argmin()]
-    chin_v = np.where(mid)[0][np.linalg.norm(P[mid][:, 1:] - chin[1:], axis=1).argmin()]
-    marks = {"crown": [int(P[:, 2].argmax())], "nose": [int(nose_v)], "chin": [int(chin_v)]}
+    marks = {"crown": [int(P[:, 2].argmax())], "nose": [NOSE_V], "chin": [CHIN_V]}
     for side, r in zip(("l", "r"), rim_idx):
         marks["eye_" + side] = r.tolist()
         marks["eye_%s_in" % side] = [int(r[P[r, 0].argmax() if side == "l" else P[r, 0].argmin()])]
@@ -367,15 +359,14 @@ def bust_marks():
 BM = bust_marks()
 WEIGHT = {"crown": 0.5, "nose": LANDMARK, "chin": LANDMARK, "eye_l": PUPIL, "eye_r": PUPIL, "eye_l_in": 0.0,
           "eye_r_in": 0.0, "eye_l_out": 0.0, "eye_r_out": 0.0, "mouth_l": LANDMARK, "mouth_r": LANDMARK}
-# the start: the bust scaled by chin to crown, her eyes' middle on its pupils' middle
+# the bust's scale: chin to crown onto her head's, as fit_macros sized it from the Tripo body; the start shift puts
+# her eyes' middle on its pupils' middle
 x = np.zeros(K)
 P0 = her(x)
-h_crown, h_chin_z, _, _ = profile(P0)
 s = (h_crown - h_chin_z) / t_head_h
 eyes_her = np.mean([P0[r].mean(0) for r in rim_idx], axis=0)
 t = eyes_her - s * t_pupils.mean(0)
-s0 = s
-log("start: scale %.3f, shift %s" % (s, t.round(3).tolist()))
+log("scale %.3f (her head %.3f m chin to crown, the bust's %.3f), start shift %s" % (s, h_crown - h_chin_z, t_head_h, t.round(3).tolist()))
 
 
 def nearest(P, s, t, n_her):
@@ -410,18 +401,16 @@ def residual(x, s, t, marks, Q, Nn, ok):
 
 
 def jacobian(x, s, t, marks, Q, Nn, ok):
+    """d(residual)/d(x, t): the sliders' columns, then the shift's three (the scale is not fitted)."""
     J = jac(x)
     rows = [np.einsum("ij,kij->ik", Nn, J) * ok[:, None]]
-    rows_s = [-np.einsum("ij,ij->i", Nn, (Q - t) / s) * ok]
     rows_t = [-Nn * ok[:, None]]
     for k, verts in marks.items():
         rows.append(WEIGHT[k] * J[:, verts, :].mean(1).T)
-        rows_s.append(-WEIGHT[k] * BM[k])
         rows_t.append(-WEIGHT[k] * np.eye(3))
     rows.append(RIDGE * np.eye(K))
-    rows_s.append(np.zeros(K))
     rows_t.append(np.zeros((K, 3)))
-    return np.column_stack([np.vstack(rows), np.concatenate(rows_s), np.vstack(rows_t)])
+    return np.column_stack([np.vstack(rows), np.vstack(rows_t)])
 
 
 def cost(x, s, t):
@@ -453,22 +442,21 @@ for it in range(ITERATIONS):
     for _ in range(8):
         step = np.linalg.solve(A + mu * np.diag(np.diag(A) + 1e-9), -g)
         x1 = np.clip(x + step[:K], LO, HI)
-        s1 = float(np.clip(s + step[K], 0.7 * s0, 1.4 * s0))
-        t1 = t + step[K + 1:]
-        c1, corr = cost(x1, s1, t1)
+        t1 = t + step[K:]
+        c1, corr = cost(x1, s, t1)
         if it == 0:
-            applied = np.concatenate([x1 - x, [s1 - s], t1 - t])
+            applied = np.concatenate([x1 - x, t1 - t])
             r_lin = r + J @ applied
-            r_same = residual(x1, s1, t1, marks, Q, Nn, ok)
-            log("    debug: cost %.6f, linear model %.6f, same correspondences %.6f, new ones %.6f; |step| x %.3f s %.4f t %.4f" % (
-                r @ r, r_lin @ r_lin, r_same @ r_same, c1, np.abs(applied[:K]).max(), applied[K], np.abs(applied[K + 1:]).max()))
+            r_same = residual(x1, s, t1, marks, Q, Nn, ok)
+            log("    debug: cost %.6f, linear model %.6f, same correspondences %.6f, new ones %.6f; |step| x %.3f t %.4f" % (
+                r @ r, r_lin @ r_lin, r_same @ r_same, c1, np.abs(applied[:K]).max(), np.abs(applied[K:]).max()))
         if c1 < c:
-            x, s, t, c, (Q, Nn, ok) = x1, s1, t1, c1, corr
+            x, t, c, (Q, Nn, ok) = x1, t1, c1, corr
             mu = max(mu / 3, 1e-6)
             improved = True
             break
         mu *= 4
-    log("  %2d: cost %.6f, scale %.3f, %d sliders in use, mu %.0e" % (it, c, s, int((np.abs(x) > 0.01).sum()), mu))
+    log("  %2d: cost %.6f, %d sliders in use, mu %.0e" % (it, c, int((np.abs(x) > 0.01).sum()), mu))
     if not improved or np.abs(step[:K]).max() < 1e-3:
         break
 final_gap = gap_mm(x, s, t)

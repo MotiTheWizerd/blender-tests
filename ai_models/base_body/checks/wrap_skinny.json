@@ -1,0 +1,108 @@
+{
+ "type": "skinny",
+ "base_vertices": 13380,
+ "tripo_vertices": 44802,
+ "pose_fit_cost": 0.00047417363423805697,
+ "pose": {
+  "mixamorig:Spine2": [
+   4.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:LeftShoulder": [
+   0.0,
+   9.0,
+   -10.0
+  ],
+  "mixamorig:LeftArm": [
+   0.0,
+   -0.0,
+   2.0
+  ],
+  "mixamorig:LeftForeArm": [
+   -14.0,
+   -0.0,
+   8.0
+  ],
+  "mixamorig:LeftHand": [
+   -10.0,
+   1.0,
+   1.0
+  ],
+  "mixamorig:RightShoulder": [
+   -1.0,
+   -7.0,
+   16.0
+  ],
+  "mixamorig:RightArm": [
+   0.0,
+   -0.0,
+   -16.0
+  ],
+  "mixamorig:RightForeArm": [
+   -17.0,
+   -0.0,
+   6.0
+  ],
+  "mixamorig:RightHand": [
+   -11.0,
+   -3.0,
+   -10.0
+  ],
+  "mixamorig:Neck": [
+   -3.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:Head": [
+   -0.0,
+   -2.0,
+   2.0
+  ],
+  "mixamorig:LeftUpLeg": [
+   1.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:LeftLeg": [
+   5.0,
+   -0.0,
+   2.0
+  ],
+  "mixamorig:LeftFoot": [
+   -9.0,
+   -3.0,
+   -13.0
+  ],
+  "mixamorig:RightUpLeg": [
+   1.0,
+   -0.0,
+   0.0
+  ],
+  "mixamorig:RightLeg": [
+   5.0,
+   -0.0,
+   -1.0
+  ],
+  "mixamorig:RightFoot": [
+   -8.0,
+   3.0,
+   12.0
+  ]
+ },
+ "tripo_to_wrapped_mm_body": {
+  "median": 0.49,
+  "p95": 1.8,
+  "p99": 3.36,
+  "max": 14.27
+ },
+ "tripo_to_wrapped_mm_head_hands_feet": {
+  "median": 10.35,
+  "p95": 66.87
+ },
+ "shape_moves_mm": {
+  "median": 2.62,
+  "max": 51.95
+ },
+ "unpose_roundtrip_mm": 0.0003
+}

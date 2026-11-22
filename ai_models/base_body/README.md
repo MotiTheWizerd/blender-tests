@@ -7,18 +7,40 @@ type's skeleton, exported for Forge as `Content/Characters/<Title>/`. The skelet
 
 ## The recipe
 
-`types.json` names the title, the base type (the mesh; the others are shapes of it) and each type's Tripo file in
-`~/Downloads`. Blender headless, `blender -b -P <script> -- <args>`:
+`types.json` names the title, the base type (the mesh; the others are shapes of it) and each type's Tripo file,
+`source_<type>.fbx|glb` in this folder (`"sources"`; private and git-ignored like every `ai_models/*/source_*`: the
+Downloads copies went to the Recycle Bin once, and a type cannot be refitted without its file). Blender headless,
+`blender -b -P <script> -- <args>`:
 
-1. `fit_macros.py <tripo file> <type>`: MPFB's sliders (5 macros, 25 detail targets) fitted to the Tripo body by
-   cross-sections (trunk, legs, arms, breasts), damped Gauss-Newton. Writes `checks/fit_<type>.json` (the sliders,
-   the profiles) and `checks/fit_<type>_front/side.png` (MPFB left, overlaid, Tripo right). Bar: a few mm RMS (6-10
-   so far). ~1 min.
-2. `bake_detail.py <tripo file> <type>`: her pose fitted onto the Tripo body (bones turned), the Tripo normals baked
-   onto a posed copy of her, tangent space, 4096. The Tripo hands cut off the source (they hang before the hips), her
-   hands and wrists masked, and every pixel whose Tripo surface leans more than 35 degrees from hers flattened (a
-   wrong surface hit: an upper arm from the armpit). Writes `build/<type>_normal.png`, `build/detail_<type>.blend`
-   (look at her beside the Tripo body), `checks/detail_<type>_{torso,whole,side}.png`. 1-4 min.
+1. `fit_macros.py <tripo file> <type>`: MPFB's sliders (5 macros, 26 detail targets) fitted to the Tripo body by
+   cross-sections (trunk, legs, arms, breasts) and the head's size (chin to crown, the skull's width and depth over
+   the ears, read with `face.profile` over everything above 0.84 of the height: MPFB's head stands 7.8 heads to the
+   height where the Tripo bodies stand 6.8 to 7.1, and read as too small; `head-scale-vert/horiz/depth` take it to
+   the Tripo body's within 4 mm), damped Gauss-Newton. Writes `checks/fit_<type>.json` (the sliders, the profiles,
+   the head's measures) and `checks/fit_<type>_front/side.png` (MPFB left, overlaid, Tripo right). Bar: a few mm RMS
+   (6-10 so far). ~1 min. `probe_head_size.py` tables every body's head against its height (`checks/head_size.json`).
+1b. `wrap.py <tripo file> <type>`: her skin the rest of the way onto the Tripo body, so its muscle and form are in her
+   mesh and not only in a normal map over a smooth one. Her bones stand where the slider fit put them; the Tripo body
+   is placed at her height and her bones turned until she lies on it (`pose.py`); then each vertex is pulled to the
+   nearest Tripo surface facing its way, the pull smoothed over the mesh as a membrane, stiff first and looser each
+   round; the head and neck (the bust's), fingers and toes (Tripo's are fused) and the breasts (one chest) take no
+   pull and follow; unposed through the inverse skinning, kept as a delta on the slider fit. Every bone's head and
+   tail move as the skin around them moved, so the joints keep their place in their limbs (s1026: the skin wrapped
+   onto the Tripo knee while the bone stayed, 3 cm off). Pass bar, logged: the body's surface within 1 mm of the
+   Tripo one at the median, no knee or elbow more than 5 mm further from its limb's centre than after the slider fit
+   (woman2: 0.54 mm; knees 16.7 to 17.7 mm, MPFB's own rig stands 10-16 off). `her.apply_wrap` puts the delta and
+   the bone moves on wherever a type is created. Writes `build/wrap_<type>.npy`, `checks/wrap_<type>.json` (the pose,
+   the Tripo's placement, the gaps, the joints, the bones' moves, the verdict), `checks/wrap_<type>_{front,side,wire}.png`.
+   2-3 min.
+2. `bake_detail.py <tripo file> <type>`: her (wrapped, where 1b ran: the Tripo body placed and posed as the wrap had
+   it) on the Tripo body, its normals baked onto a posed copy of her, tangent space, 4096 (the Tripo's own normal map
+   in them when it has one). The Tripo hands cut off the source (they hang before the hips), her hands and wrists
+   masked, and every pixel whose Tripo surface leans more than 35 degrees from hers flattened (a wrong surface hit:
+   an upper arm from the armpit). A painted Tripo body (Base Color in its material) also gives its colour at 8192
+   (the diffuse pass's colour alone, no light; the hands in, fused fingers still have skin colour; an unpainted pixel
+   takes the median) and its roughness at 4096. Writes `build/<type>_normal.png` (`_color.png`, `_roughness.png`),
+   `build/detail_<type>.blend` (look at her beside the Tripo body), `checks/detail_<type>_{torso,whole,side}.png`.
+   1-5 min.
 3. `probe_types.py`: all types share the vertex order, where each type's joints stand, and how far each knee and
    elbow is from its limb's centre (`checks/probe_types.json`). MPFB's rig: knees 10-16 mm, elbows 5-7 mm.
 4. `build_body.py`: `build/forge/<Title>/`: the FBX (the base as "Body" on the rig, the other types as shape keys,
@@ -31,35 +53,49 @@ type's skeleton, exported for Forge as `Content/Characters/<Title>/`. The skelet
    `git checkout` Humanoid.controller if it only re-serialized, EditMode (`BodyTypesContentTests`: every bone within
    1 mm of its joint, the skin within 3 mm of where built, knees and elbows centred, each type's avatar its own).
 
-Adding a type: a line in `types.json`, steps 1, 2, 4, 5. `show_types.py` puts every fitted type beside its Tripo body
-in one `.blend` to look at; `export_forge.py` exports one type alone (step 1 of the base, before the types).
+Adding a type: a line in `types.json`, steps 1, 1b, 2, 4, 5. `show_types.py` puts every fitted type beside its Tripo
+body in one `.blend` to look at; `export_forge.py` exports one type alone (step 1 of the base, before the types).
+`her.py` (her at a type's sliders and a face's, settled, wrapped) and `pose.py` (the Tripo body placed, her posed
+onto it, her skinning as matrices) are what the steps share.
 
 ## Her face
 
-`types.json` names the face (`"face"`, one of `"faces"`: a Tripo bust in `~/Downloads`, bald, neutral, 8K unlit paint;
+`types.json` names the face (`"face"`, one of `"faces"`: a Tripo bust, `source_<name>.fbx` with its texture folder beside
+it under the name the FBX carries inside, `woman_head_3d_model.fbm` (git-ignored as `*.fbm/`), bald, neutral, 8K
+unlit paint;
 `probe_head.py <bust> <tag>` looks one over first). Her head stays MPFB's own, so its face sliders, rig and expressions
 are hers; the bust gives it its shape, paint and relief:
 
 6. `fit_face.py <bust> <name>`: MPFB's face sliders (every target under head, forehead, eyebrows, eyes, nose, mouth,
-   chin, cheek, ears, neck but the head's and neck's own size and place against the body: 124, a decr/incr pair one
+   chin, cheek, ears, neck but the head's and neck's own height and place against the body: 124, a decr/incr pair one
    slider, left and right as one) fitted to the bust, Gauss-Newton: every head vertex to the bust's surface along its
-   normal there, the bust scaled and moved onto her head with them, the landmarks in its paint pulled together (the
+   normal there, the bust scaled onto her head by chin to crown (her chin read with her neck in, as step 1 reads it:
+   the head island ends under the chin and over it alone the profile takes the lip crease for the chin, 3 cm up; the
+   scale then stays put: let float, it followed the head-shrinking sliders down and she lost a tenth of her head's
+   height and a sixth of its width) and moved onto it with them, the landmarks in its paint pulled together (the
    pupils, the darkest points above the nose; the mouth's corners, the dark line between the lips; the nose tip, chin
-   and crown from the profile), the sliders held near 0. Her head 1 mm off the bust at the median, 2.6 at p90. Writes
-   `checks/face_<name>.json` (the sliders and their target files, the bust's scale and shift, the iris's colour),
-   `checks/face_<name>_{front,side}.png` (her head in blue over the bust, landmarks as dots). 15 s.
+   and crown from the profile, her nose and chin vertices kept from the start), the sliders held near 0. Her head
+   0.8 mm off the bust at the median, 2.4 at p90, the crown, nose and chin within 2 mm. Writes `checks/face_<name>.json`
+   (the sliders and their target files, the bust's scale and shift, the iris's colour), `checks/face_<name>_{front,side}.png`
+   (her head in blue over the bust, landmarks as dots). 15 s.
 7. `bake_face.py <bust> <name>`: her head's skin island (one UV island, the eye cups and the mouth pocket islands of
    their own) scaled to fill a square of its own (`her.head_uv_fit`), and Cycles bakes the bust's normals and colour
    onto a copy of her head alone, 4096, stray hits flattened as in step 2; the body's colour on her own UV, the bust
    wherever it reaches (its cut base taken off the source; a miss paints black, read as a miss), fading to its own skin
    tone. Writes `build/face_<name>_{color,normal}.png`, `build/body_<name>_color.png`, the UV fit and the tone into the
    face's json, `checks/bake_face_<name>_{face,quarter,whole}.png`. 2 min.
-7b. `skin_body.py <skin> <face>`: the body's colour is MPFB's own skin (a MakeHuman system asset, CC0: the pack
+7b. `skin_body.py <skin> <face>`: the body's colour. The skin is a painted Tripo body of the same woman (`"skin"` in
+   `types.json`, one of `"skins"`: `probe_body.py <file> <name>` looks a candidate over first, the mesh, the maps, the
+   head to the height, and how even the paint is, a lit render baked into it showing as a darker back and
+   underside; then steps 1, 1b and 2 on it, which bake its 8K paint and roughness onto her UV; the four types share
+   one UV, so one skin dresses them all), or else MPFB's own skin (a MakeHuman system asset, CC0: the pack
    `makehuman_system_assets_cc0.zip` from static.makehumancommunity.org, unzipped into MPFB's user data folder,
-   `LocationService.get_user_data()`; 2K on her UV) shifted to the face paint's tone, median over median in linear
-   light (a gain on the encoded values went green), so the face slot and the body meet at the neck in one skin.
-   Overwrites `build/body_<face>_color.png`, so it runs after step 7. `skin_step1.py <skin>` puts her with the skin
-   through MPFB's skin shader beside the built body, to look at in Blender (`build/skin_step1.blend`).
+   `LocationService.get_user_data()`; 2K on her UV). The tone is matched median over median in linear light (a gain
+   on the encoded values went green): a painted body sets the tone and the face follows it (`build/face_<face>_skin.png`,
+   which the build takes for the face slot), MPFB's skin follows the face. Writes `build/body_<face>_color.png` after
+   step 7. `skin_step1.py <skin>` puts her with an MPFB skin through MPFB's skin shader beside the built body, to look
+   at in Blender (`build/skin_step1.blend`); `status_scene.py` puts the built body beside the painted Tripo body
+   at her height (`build/status.blend`, `checks/status_{whole,torso,face}.png`): the comparison that decides.
 7c. `skin_pores.py [size] [cells]`: a tileable height tile of skin's micro relief (periodic Worley cells: grooves
    where the second point is as near as the first, a pore at each point, three scales of periodic noise), 1024 px,
    48 cells. At 4K over her whole UV a millimetre is two pixels, so pores cannot live in the baked map: the tile
@@ -70,8 +106,9 @@ are hers; the bust gives it its shape, paint and relief:
    0.38, the rest of the face 0.52, the body 0.6, smoothed six passes over the mesh so no region has an edge, and the
    pore tile's grooves 0.2 rougher than its plateaus; the shader adds the two. Forge takes it later as the
    `_MetallicSmoothness` map's alpha (1 - roughness).
-8. `build_body.py` reads the face: every type worn with it; the head's faces on a second slot `<Title>Face` with the
-   square's UVs; Forge's face controls (`CONTROLS`: FaceEditorScreen's parts and controls, each an MPFB target pair,
+8. `build_body.py` reads the face: every type worn with it, wrapped where 1b ran (the delta and the bones' moves),
+   the skin's roughness as `<Title>_MetallicSmoothness.png` (smoothness in the alpha, as URP Lit reads it); the
+   head's faces on a second slot `<Title>Face` with the square's UVs; Forge's face controls (`CONTROLS`: FaceEditorScreen's parts and controls, each an MPFB target pair,
    the shape named `PartControl`, the positive end at 100) as shape keys, the eyeballs carried with their sockets;
    eyeballs (`eyes.py`'s) on the LeftEye and RightEye bones, their radius the rims' least distance less 0.5 mm, a third
    slot `<Title>Eyes` with `eye_texture` in the paint's iris colour. Every shape key is pinned at 0 after the eyeballs
@@ -84,10 +121,10 @@ the rims of the eye cups and the mouth pocket).
 
 ## What is not done
 
-- Her skin is MPFB's 2K paint in the face's tone with the pore tile over it: one roughness still, no subsurface in
-  the game (URP Lit has none), and the pore tile is not in the Forge build yet.
-- Her head's size against the body is MPFB's, not the Tripo body's (the head is not in fit_macros' profile), and the
-  face is what MPFB's sliders can say: a residual pass onto the bust, as a shape key of her own, is the next step.
+- No subsurface in the game (URP Lit has none); the pore tile (7c) is superseded by the painted body's own normal map
+  where there is one.
+- The face is what MPFB's sliders can say: a residual pass onto the bust, as a shape key of her own (the wrap, 1b, on
+  the head), is the next step.
 - No blink, no eyes' colour choice, no brow thickness (MPFB has no target for it: the brows are paint on her).
-- Built and fit read soft where their muscle is only in the normal map; the shoulders are not in the fit's profile.
+- The shoulders are not in the fit's profile (the wrap carries them now).
 - The Tripo fingers are fused, so her hands keep MPFB's own relief (masked in the bake).

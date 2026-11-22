@@ -3,30 +3,22 @@ its Tripo body beside it, scaled to the same height.
 
     blender -b -P show_types.py
 
-Reads checks/fit_<type>.json (fit_macros.py). Writes build/body_types.blend.
+Reads types.json (each type's Tripo file) and checks/fit_<type>.json (fit_macros.py). Writes build/body_types.blend.
 """
-import bpy, json, os
+import bpy, json, os, sys
 import numpy as np
-from bl_ext.blender_org.mpfb.services.humanservice import HumanService
-from bl_ext.blender_org.mpfb.services.targetservice import TargetService
-from bl_ext.blender_org.mpfb.services.locationservice import LocationService
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DOWNLOADS = os.path.join(os.path.expanduser("~"), "Downloads")
-TYPES = [("skinny", "5ab2e08e-3991-416c-8b42-f0e1196ab270.fbx"), ("fit", "c6966c04-6702-4554-b5d2-b20849af1d24.glb"),
-         ("built", "b7f39db5-cd1d-43bb-b2c5-0e768aa5a3db.fbx"), ("overweight", "2d2dda91-5b56-42c5-a992-6c2a4d8e24be.fbx")]
-MACRO = ["weight", "muscle", "proportions", "cupsize", "firmness"]
-# the detail sliders' folders and ends, as fit_macros.py has them
-FOLDER = {"measure-bust-circ": "torso", "measure-underbust-circ": "torso", "measure-waist-circ": "torso",
-          "measure-hips-circ": "torso", "torso-scale-depth": "torso", "torso-scale-horiz": "torso",
-          "torso-vshape": "torso", "hip-scale-depth": "hip", "hip-scale-horiz": "hip",
-          "stomach-pregnant": "stomach", "buttocks-volume": "buttocks", "breast-volume-vert": "breast"}
-ENDS = {"breast-volume-vert": ("down", "up")}
+sys.path.insert(0, HERE)
+from her import create  # noqa: E402
+
+_TYPES = json.load(open(os.path.join(HERE, "types.json")))
+SOURCES = os.path.join(HERE, os.path.expanduser(_TYPES["sources"]))
+TYPES = [(t["name"], t["source"]) for t in _TYPES["types"]]
 SPACING = 1.8  # m between types; each Tripo body stands 0.8 m to the right of its MPFB one
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
-TARGETS = LocationService.get_mpfb_data("targets")
 
 
 def body_extent(obj):
@@ -53,29 +45,14 @@ def label(text, x):
 for i, (name, source) in enumerate(TYPES):
     fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % name)))["values"]
     x0 = i * SPACING
-
-    macro = TargetService.get_default_macro_info_dict()
-    macro.update({"gender": 0.0, "age": 0.5})
-    macro["race"] = {"asian": 0.0, "caucasian": 1.0, "african": 0.0}
-    macro.update({k: fit[k] for k in MACRO})
-    human = HumanService.create_human(mask_helpers=True, macro_detail_dict=macro)
-    for slider, value in fit.items():
-        if slider in MACRO or abs(value) < 1e-3:
-            continue
-        decr, incr = ENDS.get(slider, ("decr", "incr"))
-        end = incr if value > 0 else decr
-        folder = FOLDER.get(slider, "arms" if "arm" in slider else "legs")
-        sided = os.path.exists(os.path.join(TARGETS, folder, "l-%s-%s.target.gz" % (slider, end)))
-        for side in (["l-", "r-"] if sided else [""]):
-            TargetService.load_target(human, os.path.join(TARGETS, folder, "%s%s-%s.target.gz" % (side, slider, end)),
-                                      weight=abs(value))
+    human, _ = create(fit, rig=None)
     human.name = "MPFB " + name
     human.location.x += x0
     bpy.context.view_layer.update()
     lo, hi = body_extent(human)
 
     before = set(scene.objects)
-    path = os.path.join(DOWNLOADS, source)
+    path = os.path.join(SOURCES, source)
     if path.endswith(".glb"):
         bpy.ops.import_scene.gltf(filepath=path)
     else:

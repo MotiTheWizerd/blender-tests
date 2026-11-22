@@ -4,15 +4,17 @@
 
 Both bodies at 1.70 m, feet on the ground. Each is measured as a profile: the trunk's width and depth at twenty
 levels from the crotch to under the armpits, each leg's from the ankle to the crotch, each arm's depth from the
-forearm to the armpit, and how far the breasts stand forward of the breastbone level by level (BREAST_WEIGHT).
-MPFB's female (gender 0) is then fitted by damped Gauss-Newton over its macro sliders (weight, muscle,
-proportions, 0 to 1; the chest held at CHEST, since the breasts are their own kind) and the detail sliders in
-DETAIL (-1 to 1, left and right as one), the profile's squared differences the loss (the breasts and the trunk's
-depth at chest height weighed nothing), the detail sliders held near 0 by RIDGE. Each is one of MPFB's own
-targets, so the rig refits to the result.
+forearm to the armpit, how far the breasts stand forward of the breastbone level by level (BREAST_WEIGHT), and
+the head's size (HEAD_WEIGHT): chin to crown, and the skull's width and depth above the ears. MPFB's female
+(gender 0) is then fitted by damped Gauss-Newton over its macro sliders (weight, muscle, proportions, 0 to 1; the
+chest held at CHEST, since the breasts are their own kind) and the detail sliders in DETAIL (-1 to 1, left and
+right as one; the head's three scales among them, so her head is the Tripo body's own against the body: MPFB's
+stands 7.8 heads to the height where the Tripo bodies stand 7.0, and read as too small), the profile's squared
+differences the loss (the breasts and the trunk's depth at chest height weighed nothing), the detail sliders held
+near 0 by RIDGE. Each is one of MPFB's own targets, so the rig refits to the result.
 
-Writes checks/fit_<type>.json (the values, the profile before and after) and checks/fit_<type>_front/side.png
-(MPFB left, Tripo right, both overlaid in the middle).
+Writes checks/fit_<type>.json (the values, the profile before and after, the head's measures) and
+checks/fit_<type>_front/side.png (MPFB left, Tripo right, both overlaid in the middle).
 """
 import bpy, json, os, sys, time
 import numpy as np
@@ -24,6 +26,9 @@ from bl_ext.blender_org.mpfb.entities.objectproperties import HumanObjectPropert
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 SOURCE, TYPE = ARGS[0], ARGS[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+from face import profile as head_profile  # noqa: E402
+
 HEIGHT = 1.70
 MACRO = ["weight", "muscle", "proportions"]
 # the chest is not the body's to fit: the breasts are their own kind (Moti: "they all have replacable breasts"), so
@@ -40,9 +45,13 @@ DETAIL = [("torso", "measure-underbust-circ"), ("torso", "measure-waist-circ"),
           ("legs", "upperleg-scale-horiz"), ("legs", "lowerleg-fat"), ("legs", "lowerleg-muscle"),
           ("legs", "lowerleg-scale-depth"), ("legs", "lowerleg-scale-horiz"), ("legs", "measure-knee-circ"),
           ("arms", "upperarm-fat"), ("arms", "upperarm-muscle"), ("arms", "lowerarm-fat"),
-          ("arms", "lowerarm-muscle")]
+          ("arms", "lowerarm-muscle"),
+          ("head", "head-scale-vert"), ("head", "head-scale-horiz"), ("head", "head-scale-depth")]
 BREAST_LEVELS = 12
 BREAST_WEIGHT = 3.0  # the breasts' entries count this much more: few, small numbers that make the figure
+HEAD_WEIGHT = 3.0  # and the head's three: few, and what reads first
+NECK = 0.84  # of the height: the head on its neck, nothing below the collarbones, stands above this
+SKULL = 0.7  # of the head's height above the chin: over the ears, where the skull is widest and deepest
 RIDGE = 0.004  # m of profile error a detail slider at 1 is worth: keeps them from fighting each other
 T0 = time.time()
 
@@ -190,9 +199,24 @@ def profile(P, E):
     return np.array(out), c
 
 
+def head(P):
+    """The head's chin to crown, and the skull's width and depth above the ears, of a body's skin vertices standing
+    HEIGHT tall on the ground (the chin from face.profile over what stands above NECK)."""
+    above = P[P[:, 2] > NECK * HEIGHT]
+    crown, chin_z, _, _ = head_profile(above)
+    skull = above[above[:, 2] > chin_z + SKULL * (crown - chin_z)]
+    return np.array([crown - chin_z, skull[:, 0].max() - skull[:, 0].min(), skull[:, 1].max() - skull[:, 1].min()])
+
+
+def measures(P, E, skin=slice(None)):
+    """The profile and the head's measures as one vector, and the crotch's height."""
+    body, c = profile(P, E)
+    return np.concatenate([body, head(P[skin])]), c
+
+
 TE = Mesh(tripo)
-TP, tc = profile(T, TE)
-log("tripo", len(T), "vertices, crotch", round(tc, 3))
+TP, tc = measures(T, TE)
+log("tripo", len(T), "vertices, crotch", round(tc, 3), "head", np.round(TP[-3:], 3).tolist())
 
 # --- MPFB ----------------------------------------------------------------------------------------------------------
 macro = TargetService.get_default_macro_info_dict()
@@ -263,7 +287,8 @@ def mpfb_points(x):
 
 
 WEIGHTS = np.ones(len(TP))
-WEIGHTS[-BREAST_LEVELS:] = 0.0  # the breasts: not the body's
+WEIGHTS[-3:] = HEAD_WEIGHT  # the head's three
+WEIGHTS[-3 - BREAST_LEVELS:-3] = 0.0  # the breasts: not the body's
 # nor the trunk's depth from the underbust up (the chest's reach is in it): the levels at f >= CHEST_FROM of the
 # twenty, their depth the odd entries
 CHEST_FROM = 0.70
@@ -272,17 +297,22 @@ for k, f in enumerate(np.arange(0.02, 1.0001, 0.05)):
         WEIGHTS[2 * k + 1] = 0.0
 
 
+def her_measures(x):
+    return measures(mpfb_points(x), ME, body)[0]
+
+
 def residual(x):
-    return np.concatenate([WEIGHTS * (profile(mpfb_points(x), ME)[0] - TP), RIDGE * x[NM:]])
+    return np.concatenate([WEIGHTS * (her_measures(x) - TP), RIDGE * x[NM:]])
 
 
 def rms_mm(x):
-    d = profile(mpfb_points(x), ME)[0] - TP
+    d = her_measures(x) - TP
     return float(np.sqrt(np.mean(d * d))) * 1000
 
 
 x = np.array([0.5] * NM + [0.0] * len(DETAIL))
-before = profile(mpfb_points(x), ME)[0]
+before = her_measures(x)
+log("head: mpfb", np.round(before[-3:], 3).tolist(), "tripo", np.round(TP[-3:], 3).tolist())
 r = residual(x)
 mu = 1e-4
 log("start", round(rms_mm(x), 2), "mm")
@@ -312,12 +342,15 @@ values.update(CHEST)
 values.update({name: round(float(v), 3) for (_, name, *_e), v in zip(DETAIL, x[NM:])})
 best = rms_mm(x)
 log("fit", values)
-M = mpfb_points(x)
-after = profile(M, ME)[0]
+after = her_measures(x)
+log("head: fit", np.round(after[-3:], 3).tolist(), "tripo", np.round(TP[-3:], 3).tolist(),
+    "(%.2f heads to the height)" % (HEIGHT / after[-3]))
 os.makedirs(os.path.join(HERE, "checks"), exist_ok=True)
 with open(os.path.join(HERE, "checks", "fit_%s.json" % TYPE), "w") as f:
     json.dump({"type": TYPE, "source": os.path.basename(SOURCE), "rms_mm": round(best, 2),
                "values": {k: round(v, 3) for k, v in values.items()},
+               "head": {k: dict(zip(("height", "width", "depth"), np.round(v[-3:], 4).tolist()))
+                        for k, v in (("tripo", TP), ("start", before), ("fit", after))},
                "profile": {"tripo": np.round(TP, 4).tolist(), "start": np.round(before, 4).tolist(),
                            "fit": np.round(after, 4).tolist()}}, f, indent=1)
 
