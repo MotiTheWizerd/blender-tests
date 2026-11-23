@@ -20,18 +20,26 @@ Her face: the head's skin island wears a slot of its own, <Title>Face, on its ow
 Forge's face controls (FaceEditorScreen's parts and controls, a blend shape each named for them, -100 to 100) are
 MPFB's own targets (CONTROLS: a pair's two ends as one shape, the positive end at 100), each carrying the eyeballs
 along with their sockets. Her eyes: eyeballs (eyes.py's, the iris in the paint's colour) on the LeftEye and RightEye
-bones, their radius from the lid rims, a slot <Title>Eyes with maps of their own.
+bones, their radius from the lid rims, a slot <Title>Eyes with maps of their own. Her other faces (types.json
+"faces", each fitted and baked as the one she is made with, "face"): each a shape of her named for it, her head at
+that face's sliders against the one she wears, on her base type (MPFB's targets add, so it holds on every type and
+under every control; the eyeballs carried with their sockets as a control carries them, the eye bones staying where
+her own face has them), with the face's own maps for her face and eyes slots: a type of the kind "face" for Forge,
+worn one at a time as a body type is (the face editor's Face choice).
 
-Writes build/forge/<Title>/:
+Writes build/forge/<Title>/, its colour maps no larger than MAP_SIZE (types.json "mapSize", 4096: the game imports
+them at its textureSize anyway, and an 8K paint is 24 MB in git for a 4K import; the 8K bakes stay in build/):
   <Title>.fbx                     "Body" on the rig, the shape keys; feet at the origin, metres, facing -Y
   <Title>_Color.png, _Normal.png  the base's maps (bake_face.py's body colour, or a flat skin; bake_detail.py's map)
   <Title>Face_Color.png, _Normal.png, <Title>Eyes_Color.png, _MetallicSmoothness.png   the face's and the eyes'
   Bodies/<Type>_Color.png, _Normal.png   the other types' maps (drawn in the body's one slot)
-  Bodies/types.json               the types for Forge as CharacterBuilder reads them: name, shape, kind, slots,
-                                  softTissue, "joints": every bone's rest position in Unity's frame (as the FBX lands:
-                                  x right, y up, z forward; metres from the feet) and "landmarks": positions on the
-                                  type's skin (x y z, flat) for the game's check that the shape and the moved bones
-                                  give the type.
+  Bodies/<Face>Face_Color.png, _Normal.png, <Face>Eyes_Color.png, _MetallicSmoothness.png   the other faces' maps
+  Bodies/types.json               "face": the face she is made with (the first Face choice's name); "types": the
+                                  types for Forge as CharacterBuilder reads them: name, shape, kind (body, face),
+                                  slots, softTissue, "joints": every bone's rest position in Unity's frame (as the
+                                  FBX lands: x right, y up, z forward; metres from the feet; a face moves none) and
+                                  "landmarks": positions on the type's skin (x y z, flat; a face's on its head) for the
+                                  game's check that the shape and the moved bones give the type.
 """
 import bpy, json, os, shutil, sys, bmesh
 import numpy as np
@@ -50,6 +58,7 @@ FACE = TYPES.get("face")
 SKIN = TYPES.get("skin")  # the painted Tripo body whose paint dresses her (skin_body.py took its colour already)
 OUT = os.path.join(HERE, "build", "forge", TITLE)
 os.makedirs(os.path.join(OUT, "Bodies"), exist_ok=True)
+MAP_SIZE = int(TYPES.get("mapSize", 4096))  # the colour maps shipped to Forge, at most this on a side
 FLAT_SKIN = (0.80, 0.62, 0.52)  # a flat skin when there is no face to take the tone from
 BONES_A_VERTEX = 4
 LANDMARKS = 48  # vertices spread over the body whose positions each type records, for the game's check
@@ -93,11 +102,12 @@ def control_keys(folder, stem, ends=("decr", "incr")):
     return ["%s%s-%s" % (s, stem, ends[0]) for s in sides], ["%s%s-%s" % (s, stem, ends[1]) for s in sides]
 
 
-def fitted(name, controls=False):
-    """The MPFB female at a type's fitted sliders and the face's, with the mixamo_unity rig, settled; with
-    controls, each Forge control's shape as a delta (full mesh, world frame) before settling."""
+def fitted(name, controls=False, wearing=None):
+    """The MPFB female at a type's fitted sliders and the face's (or, given, another face's sliders), with the
+    mixamo_unity rig, settled; with controls, each Forge control's shape as a delta (full mesh, world frame) before
+    settling."""
     fit = json.load(open(os.path.join(HERE, "checks", "fit_%s.json" % name)))["values"]
-    body, rig = create(fit, face)
+    body, rig = create(fit, wearing if wearing is not None else face)
     deltas = {}
     if controls:
         me = body.data
@@ -221,6 +231,23 @@ for t in TYPES["types"]:
     bpy.data.objects.remove(other)
     bpy.data.objects.remove(other_rig)
 
+# --- her other faces: each her head at that face's sliders, as a delta on her base type (world) -------------------
+other_faces = {}
+for entry in (TYPES.get("faces", []) if face else []):
+    if entry["name"] == FACE:
+        continue
+    name = entry["name"]
+    worn = json.load(open(os.path.join(HERE, "checks", "face_%s.json" % name)))
+    wearer, wearer_rig, _ = fitted(BASE, wearing=worn)
+    P = world_points(wearer)
+    assert len(P) == N, "the face %s has %d vertices, the base %d" % (name, len(P), N)
+    delta = P - P0
+    moved = np.linalg.norm(delta, axis=1)
+    print("face %s: moves her %.1f mm at most, %d vertices by more than a tenth" % (name, moved.max() * 1000, int((moved > 1e-4).sum())), flush=True)
+    other_faces[name] = (delta, worn)
+    bpy.data.objects.remove(wearer)
+    bpy.data.objects.remove(wearer_rig)
+
 # --- her face: its slot and square, the controls' shapes ------------------------------------------------------------
 head = Head(body, me) if face else None
 mat = bpy.data.materials.new(TITLE)
@@ -246,6 +273,12 @@ if face:
         rim_moves[control] = [delta[r].mean(0) @ to_local[:3, :3].T for r in head.eyes]
     print("%d face controls as shapes: %s" % (len(controls), ", ".join(
         "%s %.1f mm" % (c, np.linalg.norm(d, axis=1).max() * 1000) for c, d in list(controls.items())[:6])), flush=True)
+    # each other face: its shape, local, the eyeballs following its sockets' rims as under a control
+    for name, (delta, _) in other_faces.items():
+        key = body.shape_key_add(name=name, from_mix=False)
+        local = (P0 + delta) @ to_local[:3, :3].T + to_local[:3, 3]
+        key.data.foreach_set("co", local.ravel().astype(np.float32))
+        rim_moves[name] = [delta[r].mean(0) @ to_local[:3, :3].T for r in head.eyes]
 
 # --- her eyes ----------------------------------------------------------------------------------------------------------
 if face:
@@ -278,19 +311,36 @@ if face:
     for kb in me.shape_keys.key_blocks:  # written back from bmesh, every key's value comes out 1.0
         kb.value = 0.0
     print("eyeballs of %.1f mm on the eye bones; %d vertices now" % (radius * 1000, len(me.vertices)), flush=True)
-    iris = face.get("iris", [0.35, 0.3, 0.25])
-    bpy.data.images.remove(save_map(eye_texture(iris, radius), os.path.join(OUT, TITLE + "Eyes_Color.png"), "sRGB"))
     shine = np.zeros((EYE_TEXTURE, EYE_TEXTURE, 4), np.float32)
     shine[..., 3] = SHINE
-    bpy.data.images.remove(save_map(shine, os.path.join(OUT, TITLE + "Eyes_MetallicSmoothness.png"), "Non-Color"))
+    for name, worn, where in [(FACE, face, OUT)] + [(n, w, os.path.join(OUT, "Bodies")) for n, (_, w) in other_faces.items()]:
+        stem = TITLE if name == FACE else name  # her own face's maps are the slots' own; another's are named for it
+        iris = worn.get("iris", [0.35, 0.3, 0.25])
+        bpy.data.images.remove(save_map(eye_texture(iris, radius), os.path.join(where, stem + "Eyes_Color.png"), "sRGB"))
+        bpy.data.images.remove(save_map(shine, os.path.join(where, stem + "Eyes_MetallicSmoothness.png"), "Non-Color"))
+
+
+def ship(src, dst, srgb=True):
+    """A map copied for Forge, no larger than MAP_SIZE on a side (scaled down when the bake is larger)."""
+    img = bpy.data.images.load(src)
+    img.colorspace_settings.name = "sRGB" if srgb else "Non-Color"
+    if max(img.size) > MAP_SIZE:
+        img.scale(MAP_SIZE, MAP_SIZE)
+    img.filepath_raw = dst
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+
 
 # --- the maps ------------------------------------------------------------------------------------------------------------
 if face:
-    shutil.copyfile(os.path.join(HERE, "build", "body_%s_color.png" % FACE), os.path.join(OUT, TITLE + "_Color.png"))
-    toned_face = os.path.join(HERE, "build", "face_%s_skin.png" % FACE)  # skin_body.py: the face in the body's tone
-    shutil.copyfile(toned_face if os.path.exists(toned_face) else os.path.join(HERE, "build", "face_%s_color.png" % FACE),
-                    os.path.join(OUT, TITLE + "Face_Color.png"))
-    shutil.copyfile(os.path.join(HERE, "build", "face_%s_normal.png" % FACE), os.path.join(OUT, TITLE + "Face_Normal.png"))
+    ship(os.path.join(HERE, "build", "body_%s_color.png" % FACE), os.path.join(OUT, TITLE + "_Color.png"))
+    for name in [FACE] + list(other_faces):
+        where, stem = (OUT, TITLE) if name == FACE else (os.path.join(OUT, "Bodies"), name)
+        toned = os.path.join(HERE, "build", "face_%s_skin.png" % name)  # skin_body.py: the face in the body's tone
+        ship(toned if os.path.exists(toned) else os.path.join(HERE, "build", "face_%s_color.png" % name),
+             os.path.join(where, stem + "Face_Color.png"))
+        ship(os.path.join(HERE, "build", "face_%s_normal.png" % name), os.path.join(where, stem + "Face_Normal.png"), srgb=False)
 else:
     colour = bpy.data.images.new(TITLE + "_Color", 256, 256)
     colour.pixels.foreach_set(np.tile(np.array([*FLAT_SKIN, 1.0], dtype=np.float32), 256 * 256))
@@ -300,9 +350,12 @@ else:
 shutil.copyfile(os.path.join(HERE, "build", "%s_normal.png" % BASE), os.path.join(OUT, TITLE + "_Normal.png"))
 
 
-def pixels_of(path, space):
+def pixels_of(path, space, size=None):
+    """A map's pixels (rows, columns, RGBA), scaled down to `size` on a side first when given and the map is larger."""
     img = bpy.data.images.load(path)
     img.colorspace_settings.name = space
+    if size and max(img.size) > size:
+        img.scale(size, size)
     px = np.empty(img.size[0] * img.size[1] * 4, dtype=np.float32)
     img.pixels.foreach_get(px)
     px = px.reshape(img.size[1], img.size[0], 4)
@@ -347,7 +400,7 @@ for t in forge_types:
                         os.path.join(OUT, "Bodies", "%s_Normal.png" % slot["map"]))
         own = os.path.join(HERE, "build", "%s_color.png" % t["name"])
         if face and os.path.exists(own):
-            px = pixels_of(own, "sRGB")
+            px = pixels_of(own, "sRGB", MAP_SIZE)
             gain = body_tone / np.maximum(tone_of(px), 1e-4)
             px[..., :3] = np.clip(encoded(linear(px[..., :3]) * gain), 0, 1)
             px[..., 3] = 1.0
@@ -356,8 +409,16 @@ for t in forge_types:
             print("%s: its own paint, toned to the body's (gain %s)" % (t["name"], np.round(gain, 3).tolist()), flush=True)
         else:
             shutil.copyfile(os.path.join(OUT, TITLE + "_Color.png"), os.path.join(OUT, "Bodies", "%s_Color.png" % slot["map"]))
+# her other faces for Forge: a shape each, drawing its own maps in her face and eyes slots, no bones moved, its
+# landmarks points of her head's skin as that face has it
+if face:
+    marks = np.sort(rng.choice(head.skin, LANDMARKS, replace=False))
+    for name, (delta, _) in other_faces.items():
+        forge_types.append({"name": name, "shape": name, "kind": "face", "softTissue": 1.0, "joints": [],
+                            "slots": [{"slot": TITLE + "Face", "map": name + "Face"}, {"slot": TITLE + "Eyes", "map": name + "Eyes"}],
+                            "landmarks": [c for i in marks for c in unity(P0[i] + delta[i])]})
 with open(os.path.join(OUT, "Bodies", "types.json"), "w") as f:
-    json.dump({"types": forge_types}, f, indent=1)
+    json.dump({"face": FACE or "", "types": forge_types}, f, indent=1)
 
 # --- the check: her mesh and her Basis are the settled body, every key at 0 ----------------------------------------
 P0_local = P0 @ to_local[:3, :3].T + to_local[:3, 3]

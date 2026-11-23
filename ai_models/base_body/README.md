@@ -137,7 +137,15 @@ the face without touching the body, the types or the wraps; done with woman2 (s1
    `checks/faces_whole.png`, each head alone in `checks/faces_{front,quarter}_<face>.png`). Then `status_scene.py` as always.
 
 The face's sliders, maps, tone and iris colour all come from the bust; what stays the same is MPFB's head mesh and
-rig under them, so the face controls, the eyeballs and the expressions work on any face. Neither the bust's neck nor
+rig under them, so the face controls, the eyeballs and the expressions work on any face.
+
+**Both faces in the game (s1031):** `build_body.py` makes every face under `faces` but `"face"` (the one she is made
+with) a type of the kind `face` for Forge: a shape key named for the face (her head at its sliders against her own
+face's, on the base type; MPFB's targets add, so it holds on every body type and under every control; the eyeballs
+follow their sockets' rims as under a control, the eye bones staying put), its maps under `Bodies/<face>Face_*.png`
+and `<face>Eyes_*.png`, and `Bodies/types.json` `"face"` naming her own face (the face editor's first Face choice).
+Forge: `CharacterBodies` wears one face as it wears one body type (`BodyTypeKind.Face`), the Head part's Face
+chooses it. The colour maps shipped to Forge are scaled to `"mapSize"` (4096; the 8K bakes stay in `build/`). Neither the bust's neck nor
 its shoulders reach the build when the skin is a painted body's (step 7b): under the chin the face bake's body colour
 can go dark where the bust is cut short (woman2's neck ends 2 cm under the chin), and `skin_body.py` paints over it.
 
