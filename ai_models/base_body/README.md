@@ -73,8 +73,11 @@ are hers; the bust gives it its shape, paint and relief:
    the head island ends under the chin and over it alone the profile takes the lip crease for the chin, 3 cm up; the
    scale then stays put: let float, it followed the head-shrinking sliders down and she lost a tenth of her head's
    height and a sixth of its width) and moved onto it with them, the landmarks in its paint pulled together (the
-   pupils, the darkest points above the nose; the mouth's corners, the dark line between the lips; the nose tip, chin
-   and crown from the profile, her nose and chin vertices kept from the start), the sliders held near 0. Her head
+   pupils, the darkest points above the nose; the mouth's corners, the dark line between the lips, every piece of it
+   at one height, a side it misses mirrored; the nose tip, chin and crown from the profile, her nose and chin vertices
+   kept from the start), the sliders held near 0. Only paint seen from in front counts (a ray from before the face
+   meets it first): woman3's bust carries 34 loose parts, dark ones inside the skull and mouth. The iris is the eye's
+   cool paint, or for a brown eye (as warm as skin) its paint far darker than the face, whichever the eye has more of. Her head
    0.8 mm off the bust at the median, 2.4 at p90, the crown, nose and chin within 2 mm. Writes `checks/face_<name>.json`
    (the sliders and their target files, the bust's scale and shift, the iris's colour), `checks/face_<name>_{front,side}.png`
    (her head in blue over the bust, landmarks as dots). 15 s.

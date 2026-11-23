@@ -5,7 +5,8 @@
   "face": "woman2",
   "faces": [
     { "name": "woman1", "source": "source_woman1.fbx" },
-    { "name": "woman2", "source": "source_woman2.fbx" }
+    { "name": "woman2", "source": "source_woman2.fbx" },
+    { "name": "woman3", "source": "source_woman3.fbx" }
   ],
   "skin": "skinny",
   "types": [

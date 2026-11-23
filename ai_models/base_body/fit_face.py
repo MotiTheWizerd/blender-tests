@@ -260,6 +260,16 @@ def clusters(points, link):
 
 
 front = LP[:, 1] < (T[:, 1].min() + T[:, 1].max()) / 2
+# and seen from in front: the first surface a ray from before the face meets at that point. A bust may carry parts
+# inside it (bald human head: 34 loose parts, the dark ones inside the skull and mouth took the pupils 21 cm behind
+# the nose tip and the mouth's corners onto the cheeks); paint nobody sees is no landmark.
+seen = np.zeros(len(T), dtype=bool)
+y0 = T[:, 1].min() - 0.1 * t_head_h
+for i in np.unique(tlv[front]):
+    hit = tripo_bvh.ray_cast(Vector((T[i, 0], y0, T[i, 2])), Vector((0.0, 1.0, 0.0)))[0]
+    seen[i] = hit is not None and hit.y > T[i, 1] - 0.005 * t_head_h
+front &= seen[tlv]
+log("seen from in front: %d of %d vertices" % (int(seen.sum()), len(T)))
 # pupils: the darkest paint above the nose tip, in two clusters mirrored about the middle
 band = front & (LP[:, 2] > t_nose[2] + 0.1 * t_head_h) & (LP[:, 2] < t_nose[2] + 0.45 * t_head_h) & (np.abs(LP[:, 0]) < 0.35 * t_head_h)
 dark = np.where(band & (V < np.percentile(V[band], 1.5)))[0]
@@ -286,16 +296,33 @@ for p in t_pupils:
 band = front & (LP[:, 2] > t_chin_z + 0.08 * t_head_h) & (LP[:, 2] < t_nose[2] - 0.02 * t_head_h) & (np.abs(LP[:, 0]) < 0.3 * t_head_h)
 line = np.where(band & (V < np.percentile(V[band], 4)))[0]
 groups = sorted([line[g] for g in clusters(LP[line], 0.03 * t_head_h)], key=lambda g: -len(g))
-mouth = LP[groups[0]]
-t_mouth = np.array([mouth[mouth[:, 0].argmin()], mouth[mouth[:, 0].argmax()]])
-# the iris's colour: the paint round each pupil that is an eye's and not skin (cool: red over blue by less than
-# WARM of the brightest channel, as eyes.py tells an eye from skin), neither the pupil's black nor the white
+# a closed mouth's line can break where the lips press (bald human head: the biggest piece was its left half), so
+# the line is every piece at the biggest's height; a side it misses mirrors the other about the pupils' middle
+z0 = LP[groups[0], 2].mean()
+mouth = LP[np.concatenate([g for g in groups if abs(LP[g, 2].mean() - z0) < 0.03 * t_head_h])]
+mid = t_pupils[:, 0].mean()
+left, right = mouth[mouth[:, 0].argmin()], mouth[mouth[:, 0].argmax()]
+if left[0] > mid:
+    left = right * [-1, 1, 1] + [2 * mid, 0, 0]
+if right[0] < mid:
+    right = left * [-1, 1, 1] + [2 * mid, 0, 0]
+t_mouth = np.array([left, right])
+# the iris's colour: the paint round each pupil, seen from in front, that is an eye's and not skin, neither the
+# pupil's black nor the white. An eye is told from skin by being cool (red over blue by less than WARM of the
+# brightest channel, as eyes.py tells them); a brown eye is as warm as skin, and there the iris is the warm paint far
+# darker than the face (bald human head: 53 cool points, the lids' grey shadow, against 588 brown). Whichever of the
+# two the eye has more of is its iris, so a blue eye's lash shadows don't darken it.
 WARM = 0.16
 warmth = (C[:, 0] - C[:, 2]) / np.maximum(V, 1e-6)
-ring = np.zeros(len(LP), dtype=bool)
+skin_v = np.median(V[front & (np.abs(LP[:, 0]) < 0.3 * t_head_h)])
+eye = np.zeros(len(LP), dtype=bool)
 for p in t_pupils:
     d = np.linalg.norm(LP - p, axis=1)
-    ring |= (d < 0.035 * t_head_h) & (warmth < WARM) & (V > 0.12) & ((V < 0.7) | (S > 0.12))
+    eye |= front & (d < 0.035 * t_head_h) & (V > 0.12) & ((V < 0.7) | (S > 0.12))
+cool = eye & (warmth < WARM)
+brown = eye & (warmth >= WARM) & (V < 0.55 * skin_v)
+ring = cool if cool.sum() >= brown.sum() else brown
+log("iris: %d cool points, %d brown; %s" % (int(cool.sum()), int(brown.sum()), "cool" if ring is cool else "brown"))
 t_iris = np.median(C[ring], axis=0) if ring.sum() >= 6 else np.array([0.35, 0.3, 0.25])
 log("iris from %d painted points" % int(ring.sum()))
 log("paint: pupils %s, eye widths %s, mouth corners %s, iris %s" % (t_pupils.round(3).tolist(), np.round(t_eye_width, 3).tolist(),
