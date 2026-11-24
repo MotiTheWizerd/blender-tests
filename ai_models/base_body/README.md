@@ -139,6 +139,14 @@ the face without touching the body, the types or the wraps; done with woman2 (s1
    `compare_faces.py <old face>` puts the snapshot on the left and the new build on the right (`build/faces.blend`,
    `checks/faces_whole.png`, each head alone in `checks/faces_{front,quarter}_<face>.png`). Then `status_scene.py` as always.
 
+woman4 (s1033, `head-f-4.zip`: 22k vertices, 8K colour, teeth and the mouth's inside as parts of it) needed three
+fixes, each for every bust: `face.profile` takes the chin's front as the frontmost of the first slices over its underside
+(the first alone stood 15 cm back, a gap in the strip: the bust 10% small, the chin's sliders at their end); the pupils
+are each side's darkest paint (one a shade lighter had none of the darkest share over both); the iris is the paint in a
+ring round each pupil whatever its colour (read by colour, a pale grey-green one lost to the lids' brown shadow). And
+`bake_face.py` leaves out the bust's parts seen from nowhere outside it (woman4: 33 of 38). The committed fits of
+woman1-3 are kept (their chin fronts move 2-5 thousandths of a bust's height under the new rule).
+
 The face's sliders, maps, tone and iris colour all come from the bust; what stays the same is MPFB's head mesh and
 rig under them, so the face controls, the eyeballs and the expressions work on any face.
 

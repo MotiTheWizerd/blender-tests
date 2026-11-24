@@ -286,3 +286,32 @@ for view, toward in {"front": -f, "side": -r, "back": f, "quarter": -(f - r).nor
     scene.render.filepath = os.path.join(HERE, "checks", "hair_%s_%s.jpg" % (NAME.lower(), view))
     bpy.ops.render.render(write_still=True)
 print("checks written", flush=True)
+
+# Her other faces (types.json "faces", each a shape key of hers with maps of its own): the side and the ear close, with
+# the cap and without, so what the cap does there shows apart from what the face does.
+ear_at = Vector(tuple(co[ears].mean(axis=0)))
+cap_keys = cap.data.shape_keys.key_blocks
+for other in [f["name"] for f in SPEC.get("faces", []) if f["name"] != SPEC.get("face")]:
+    me.shape_keys.key_blocks[other].value = cap_keys[other].value = 1.0
+    for slot in body.material_slots:
+        base = slot.material.name.replace("_check", "")
+        part = base[len(TITLE):]  # "Face", "Eyes" or ""
+        path = os.path.join(maps, "Bodies", other + part + "_Color.png")
+        if part and os.path.exists(path):
+            slot.material.node_tree.nodes["Image Texture"].image = bpy.data.images.load(path)
+    for shown in (True, False):
+        cap.hide_render = not shown
+        for view, toward, scale, at in (("front", -f, 0.34, centre), ("side", -r, 0.34, centre), ("ear", -r, 0.12, ear_at)):
+            toward = toward.normalized()
+            cam.data.ortho_scale = scale
+            cam.location = at - toward * 1.0
+            cam.rotation_euler = toward.to_track_quat("-Z", "Y").to_euler()
+            scene.render.filepath = os.path.join(HERE, "checks", "hair_%s_%s_%s%s.jpg" % (
+                NAME.lower(), other, view, "" if shown else "_bare"))
+            bpy.ops.render.render(write_still=True)
+    me.shape_keys.key_blocks[other].value = cap_keys[other].value = 0.0
+    for slot in body.material_slots:
+        base = slot.material.name.replace("_check", "")
+        slot.material.node_tree.nodes["Image Texture"].image = bpy.data.images.load(os.path.join(maps, base + "_Color.png"))
+    cap.hide_render = False
+print("faces' checks written", flush=True)

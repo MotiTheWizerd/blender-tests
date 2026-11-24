@@ -272,8 +272,16 @@ front &= seen[tlv]
 log("seen from in front: %d of %d vertices" % (int(seen.sum()), len(T)))
 # pupils: the darkest paint above the nose tip, in two clusters mirrored about the middle
 band = front & (LP[:, 2] > t_nose[2] + 0.1 * t_head_h) & (LP[:, 2] < t_nose[2] + 0.45 * t_head_h) & (np.abs(LP[:, 0]) < 0.35 * t_head_h)
-dark = np.where(band & (V < np.percentile(V[band], 1.5)))[0]
-groups = [dark[g] for g in clusters(LP[dark], 0.02 * t_head_h) if len(g) >= 3]
+# each side's own darkest: one pupil a shade lighter than the other (woman4) left none of it in a darkest share taken
+# over both
+groups, dark = [], np.zeros(0, int)
+for side in (LP[:, 0] < 0, LP[:, 0] >= 0):
+    near = band & side
+    if not near.any():
+        continue
+    darkest = np.where(near & (V < np.percentile(V[near], 1.5)))[0]
+    dark = np.concatenate([dark, darkest])
+    groups += [darkest[g] for g in clusters(LP[darkest], 0.02 * t_head_h) if len(g) >= 3]
 centres = [LP[g].mean(0) for g in groups]
 best, pupils = None, None
 for i in range(len(centres)):
@@ -283,6 +291,9 @@ for i in range(len(centres)):
             score = len(groups[i]) + len(groups[j]) - abs(a[0] + b[0]) * 100
             if best is None or score > best:
                 best, pupils = score, sorted([a, b], key=lambda p: p[0])
+if pupils is None:
+    log("no pupils: %d in the band, %d darkest (value under %.3f), groups %s" % (int(band.sum()), len(dark),
+        float(np.percentile(V[band], 1.5)), [(len(g), np.round(c, 3).tolist()) for g, c in zip(groups, centres)]))
 assert pupils is not None, "no pupils found in the paint"
 t_pupils = np.array(pupils)
 # each eye's opening: the sclera (light, unsaturated) within reach of the pupil, with the pupil: its width across
@@ -307,24 +318,16 @@ if left[0] > mid:
 if right[0] < mid:
     right = left * [-1, 1, 1] + [2 * mid, 0, 0]
 t_mouth = np.array([left, right])
-# the iris's colour: the paint round each pupil, seen from in front, that is an eye's and not skin, neither the
-# pupil's black nor the white. An eye is told from skin by being cool (red over blue by less than WARM of the
-# brightest channel, as eyes.py tells them); a brown eye is as warm as skin, and there the iris is the warm paint far
-# darker than the face (bald human head: 53 cool points, the lids' grey shadow, against 588 brown). Whichever of the
-# two the eye has more of is its iris, so a blue eye's lash shadows don't darken it.
-WARM = 0.16
-warmth = (C[:, 0] - C[:, 2]) / np.maximum(V, 1e-6)
-skin_v = np.median(V[front & (np.abs(LP[:, 0]) < 0.3 * t_head_h)])
-eye = np.zeros(len(LP), dtype=bool)
-for p in t_pupils:
-    d = np.linalg.norm(LP - p, axis=1)
-    eye |= front & (d < 0.035 * t_head_h) & (V > 0.12) & ((V < 0.7) | (S > 0.12))
-cool = eye & (warmth < WARM)
-brown = eye & (warmth >= WARM) & (V < 0.55 * skin_v)
-ring = cool if cool.sum() >= brown.sum() else brown
-log("iris: %d cool points, %d brown; %s" % (int(cool.sum()), int(brown.sum()), "cool" if ring is cool else "brown"))
+# the iris's colour: the paint in a ring round each pupil, seen from in front: past the pupil, inside the iris, both
+# measured on the eye's opening (an iris is about two fifths of it across, its pupil a third of the iris at most).
+# The ring is the iris whatever its colour; read by colour (cool for an eye, warm and dark for a brown one) a pale
+# grey-green iris lost to the lids' brown shadow round it (woman4: 99 cool points against 919 brown, iris brown).
+ring = np.zeros(len(LP), dtype=bool)
+for p, w in zip(t_pupils, t_eye_width):
+    d = np.linalg.norm((LP - p)[:, [0, 2]], axis=1)
+    ring |= front & (d > 0.07 * w) & (d < 0.18 * w)
+log("iris: %d points in the rings round the pupils" % int(ring.sum()))
 t_iris = np.median(C[ring], axis=0) if ring.sum() >= 6 else np.array([0.35, 0.3, 0.25])
-log("iris from %d painted points" % int(ring.sum()))
 log("paint: pupils %s, eye widths %s, mouth corners %s, iris %s" % (t_pupils.round(3).tolist(), np.round(t_eye_width, 3).tolist(),
                                                                      t_mouth.round(3).tolist(), t_iris.round(3).tolist()))
 

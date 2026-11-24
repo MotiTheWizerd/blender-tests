@@ -41,7 +41,10 @@ def profile(co):
     under = max(below, key=falls)
     chin_k = max((k for k in below if under - window <= k <= under), key=lambda k: bins[k - 3] - bins[k])
     nose_tip = np.array([0.0, bins[nose], nose * step])
-    # Its front just above the underside: the first slice up that has a point (a lighter mesh's line has gaps).
-    front_k = next(k for k in levels if k > chin_k)
+    # Its front just above the underside: the frontmost of the first slices up that have a point (a lighter mesh's
+    # line has gaps, and a slice the strip barely grazes holds only a point far back: woman4's first slice up stood
+    # 15 cm behind her chin, which made her bust 10% small and pushed the chin's sliders to their end).
+    above = [k for k in levels if k > chin_k][:3]
+    front_k = min(above, key=lambda k: bins[k])
     chin_front = np.array([0.0, bins[front_k], front_k * step])
     return crown, chin_k * step, nose_tip, chin_front

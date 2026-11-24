@@ -80,8 +80,53 @@ bust.data.vertices.foreach_set("co", T.ravel())
 bust.data.update()
 for p in bust.data.polygons:
     p.use_smooth = True
+
+# Only what of the bust is seen from outside it. A part wholly inside (woman4's teeth and the inside of her mouth,
+# woman3's 34 loose parts) is paint nobody sees, and where her surface lies under the bust's (woman4's chin, up to 9 mm
+# behind it) the bake's rays met that part first: a brown patch on her chin. A part is seen when rays from round the
+# head (26 ways) meet it first at a share of its points; the largest part, the bust's skin, always is.
+bm = bmesh.new()
+bm.from_mesh(bust.data)
+bm.faces.ensure_lookup_table()
+island = np.full(len(bm.faces), -1)
+for start in bm.faces:
+    if island[start.index] >= 0:
+        continue
+    label, stack = island.max() + 1, [start]
+    island[start.index] = label
+    while stack:
+        f = stack.pop()
+        for e in f.edges:
+            for g in e.link_faces:
+                if island[g.index] < 0:
+                    island[g.index] = label
+                    stack.append(g)
+part_bvh = BVHTree.FromBMesh(bm)
+ways = [Vector((x, y, z)).normalized() for x in (-1, 0, 1) for y in (-1, 0, 1) for z in (-1, 0, 1) if (x, y, z) != (0, 0, 0)]
+sizes = np.bincount(island)
+inner = []
+for label in range(len(sizes)):
+    if label == int(np.argmax(sizes)):
+        continue
+    faces = np.where(island == label)[0]
+    points = [bm.faces[i].calc_center_median() for i in faces[:: max(1, len(faces) // 60)]]
+    seen = 0
+    for c in points:
+        for w in ways:
+            hit = part_bvh.ray_cast(c + w * 0.5, -w, 0.6)
+            if hit[0] is not None and island[hit[2]] == label and (hit[0] - c).length < 1e-3:
+                seen += 1
+                break
+    if seen < 0.1 * len(points):
+        inner.append(label)
+bmesh.ops.delete(bm, geom=[f for f in bm.faces if island[f.index] in inner], context="FACES")
+bm.to_mesh(bust.data)
+bm.free()
+bust.data.update()
+log("bust: %d of its %d parts left out, inside it and seen from nowhere (%d faces)" % (
+    len(inner), len(sizes), int(np.isin(island, inner).sum())))
 bust_bvh = BVHTree.FromObject(bust, bpy.context.evaluated_depsgraph_get())
-log("bust: %d vertices at scale %.3f" % (len(T), face["bust"]["scale"]))
+log("bust: %d vertices at scale %.3f" % (len(bust.data.vertices), face["bust"]["scale"]))
 
 
 # --- 3. the face's maps -----------------------------------------------------------------------------------------------
