@@ -174,6 +174,15 @@ part hung rigid on the head bone floats or sinks; a part made of her own vertice
   brown with their alpha. Writes `build/forge/<Title>/Hair/<Name>.fbx` and `_Color.png` (copy them to Forge's
   `Content/Characters/<Title>/Hair/`, Build Characters) and `checks/hair_<name>_*.jpg`. Forge stitches it on her
   bones and keeps its shapes at hers (`CharacterHair.IsSkin`). Run it again after every `build_body.py`.
+- `hair_part.py -- <Name> <folder>` (after `build_body.py`): a hair Iris paints on her sheet (front, side, back; the
+  other side mirrored) and Tripo makes as a whole head (multi-view). Its skin laid on hers (haircut.py's fit: 1.3 mm)
+  and cut away by its paint; what lies on her skull drawn on a cap of her scalp (Tripo's paint carried onto it, or,
+  model.json `"cap": "cornrows"`, rows drawn from her hairline to each lock's root), what hangs free kept as Tripo
+  made it on chains under her Head bone (locks.py; `"each_piece"`: each braid its own), carrying her scalp's shapes.
+  First try, `hair/braids_long` (cornrows into long braids, 2026-11-25), NOT good enough and not in Forge: Tripo
+  guessed the crown (no picture of it), so its cornrows came out in blocks; the drawn rows only covered the skin
+  under Tripo's hair (the crown bare); the braids end at her shoulders (the sheet's frame) and the ones over her
+  shoulders swung through her face in Forge.
 
 ## What is not done
 

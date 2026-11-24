@@ -152,10 +152,12 @@ def thickness(points, head_points, head_bvh):
     return off, spread[spot]
 
 
-def find(points, edges, head_points, head_bvh, skull_base, roots=None):
+def find(points, edges, head_points, head_bvh, skull_base, roots=None, each_piece=False):
     """points (n, 3), the hair's, in the world's frame; edges: (a, b) point pairs; head_points, head_bvh: the head it
     lies on; skull_base: the height (z) below which the head is no skull to lie on; roots: where gathered hair is held
-    (a ponytail's tie: [x, y, z] or {"at": [x, y, z], "reach": metres}). Returns the locks (a list of dicts: "joints"
+    (a ponytail's tie: [x, y, z] or {"at": [x, y, z], "reach": metres}); each_piece: every free piece is one lock,
+    held all along where it meets the cap and running down its own middle however it curves (braids, each apart: a
+    curtain's columns round the head would cut a braid that curves forward over the shoulder between two). Returns the locks (a list of dicts: "joints"
     (k+1, 3) from root to tip, "radii" (k,) at joints 1..k, "piece", "kind"), the links between neighbouring locks
     (pairs), the weights (n, locks, MOST_BONES + 1: the share of each lock's bones; the rest the hair's bone), each
     point's distance off the head, which points are free, and a report."""
@@ -195,14 +197,17 @@ def find(points, edges, head_points, head_bvh, skull_base, roots=None):
         extent = float(np.linalg.norm(points[line].max(0) - points[line].min(0)))
         # Gathered hair: held at a given root (the line's points within its reach), or, with none here, a piece that rises
         # from the line (a bun) held all along it. The rest of the line holds hanging hair: a curtain.
-        held = [r for r in given if np.linalg.norm(points[line] - r["at"], axis=1).min() <= r["reach"]]
+        held = [] if each_piece else [r for r in given if np.linalg.norm(points[line] - r["at"], axis=1).min() <= r["reach"]]
         taken = np.zeros(len(line), bool)
         starts = []
+        if each_piece:
+            starts.append(line)
+            taken[:] = True
         for r in held:
             mine = np.linalg.norm(points[line] - r["at"], axis=1) <= r["reach"]
             starts.append(line[mine])
             taken |= mine
-        if not held and np.median(points[idx, 2]) > np.median(points[line, 2]):
+        if not held and not each_piece and np.median(points[idx, 2]) > np.median(points[line, 2]):
             # A piece that rises from where it meets the cap (a bun, a topknot) is gathered there, all along it.
             starts.append(line)
             taken[:] = True
