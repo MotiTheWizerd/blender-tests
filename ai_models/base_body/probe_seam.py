@@ -37,9 +37,15 @@ lv = np.empty(len(me.loops), dtype=np.int64)
 me.loops.foreach_get("vertex_index", lv)
 in_head = np.zeros(len(me.polygons), dtype=bool)
 in_head[head.faces] = True
+poly_of_loop = np.repeat(np.arange(len(me.polygons)), [p.loop_total for p in me.polygons])
+in_pocket = np.zeros(len(me.polygons), dtype=bool)
+for loops, _ in head.pockets:  # the eye cups and the mouth pocket: their rims are not where face meets body
+    in_pocket[np.unique(poly_of_loop[loops])] = True
 skin = set(head.skin.tolist())
 head_uv, body_uv = {}, {}
 for p in me.polygons:
+    if in_pocket[p.index]:
+        continue
     for li in p.loop_indices:
         (head_uv if in_head[p.index] else body_uv).setdefault(int(lv[li]), uv[li])
 seam = np.array(sorted(v for v in body_uv if v in head_uv and v in skin))
