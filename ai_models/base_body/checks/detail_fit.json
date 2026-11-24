@@ -88,8 +88,8 @@
  "color": "fit_color.png",
  "roughness": "fit_roughness.png",
  "gap_mm": {
-  "median": 1.7,
-  "p90": 12.0,
+  "median": 1.9,
+  "p90": 12.2,
   "max": 66.2
  }
 }

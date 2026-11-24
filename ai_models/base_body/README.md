@@ -152,6 +152,21 @@ chooses it. The colour maps shipped to Forge are scaled to `"mapSize"` (4096; th
 its shoulders reach the build when the skin is a painted body's (step 7b): under the chin the face bake's body colour
 can go dark where the bust is cut short (woman2's neck ends 2 cm under the chin), and `skin_body.py` paints over it.
 
+## Hair parts
+
+Hair is made in parts that sit on one another, the first a cap every style starts from. Her scalp moves under her
+shapes (`sheet_base.py` measured up to 23 mm under HeadHeight, 10 between her faces, 9 between the body types), so a
+part hung rigid on the head bone floats or sinks; a part made of her own vertices follows.
+
+- `sheet_base.py`: her head drawn flat from the front, side, back and three quarters (`build/sheet/`, 3000 px), what
+  Iris draws a part with volume on (a fringe, a bun), one part a picture; and the scalp's moves per shape key.
+- `hair_cap.py [-- <Name> <strands.png>]` (after `build_body.py`; 40 s): the buzz cut, `HairBuzz`. Her scalp's faces
+  under a hairline drawn round her head (the ears found as what stands out of her skull), lifted 1.2 mm, her weights
+  and every shape key kept, its own UV and a map of Iris's strands (`hair/buzz_strands.png`, black on white) in a mid
+  brown with their alpha. Writes `build/forge/<Title>/Hair/<Name>.fbx` and `_Color.png` (copy them to Forge's
+  `Content/Characters/<Title>/Hair/`, Build Characters) and `checks/hair_<name>_*.jpg`. Forge stitches it on her
+  bones and keeps its shapes at hers (`CharacterHair.IsSkin`). Run it again after every `build_body.py`.
+
 ## What is not done
 
 - No subsurface in the game (URP Lit has none); the pore tile (7c) is superseded by the painted body's own normal map

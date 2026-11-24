@@ -86,8 +86,8 @@
  "wrapped": true,
  "map": "built_normal.png",
  "gap_mm": {
-  "median": 1.5,
-  "p90": 10.8,
+  "median": 1.8,
+  "p90": 11.5,
   "max": 67.4
  }
 }

@@ -92,8 +92,8 @@
  "map": "skinny_normal.png",
  "color": "skinny_color.png",
  "gap_mm": {
-  "median": 0.8,
-  "p90": 7.0,
+  "median": 1.0,
+  "p90": 8.0,
   "max": 43.1
  }
 }

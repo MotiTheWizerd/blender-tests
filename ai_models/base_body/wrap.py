@@ -9,7 +9,7 @@ her rest shape, so the body's muscle and form are in her mesh and not only in a 
 2. The Tripo body at her height, its trunk over hers; her bones turned until she lies on it (pose.fit).
 3. The wrap, in that pose: each vertex pulled to the nearest Tripo surface that faces its way, the pull smoothed
    over the mesh as a membrane, stiff first and looser each round. Free of any pull, following what they hang on:
-   the head and neck (the face is the bust's), the fingers and toes (Tripo's are fused), the breasts (their own
+   the head and neck (the face is the bust's), the hands whole and the toes (Tripo's are fused), the breasts (their own
    kind, one chest for every type).
 4. Unposed through the inverse of each vertex's skinning: her rest shape. Kept as a delta on the slider fit, so
    the face's sliders and the controls go on as before; and every bone's head and tail move as the skin around them
@@ -41,9 +41,12 @@ FAR = 0.08  # m: a Tripo surface further than this is not hers
 FACING = 0.3  # cosine: a Tripo surface facing less than this her way is the wrong surface
 STIFF, LOOSE = 0.05, 2.0  # the data's pull against the membrane, first round and last
 SMOOTH = 60  # relaxations of the membrane a round
+# the hands whole, the palm with the fingers: a Tripo hand is a mitten, the fingers fused, and with only the fingers
+# free the palm's pull dragged their roots onto it (built's index root 23 mm at p90, 41 at most, its tip 0.3 mm: the
+# knuckles swollen and the fingers kinked when they bend, Moti: "why are they deformed while the mesh itself has
+# perfectly good looking fingers?"); free, her hand keeps the sliders' shape and goes where her wrist goes
 FREE = ["Head", "Neck", "Jaw", "LeftEye", "RightEye", "LeftOrbicularis", "RightOrbicularis",
-        "LeftHandIndex", "LeftHandMiddle", "LeftHandRing", "LeftHandPinky", "LeftHandThumb",
-        "RightHandIndex", "RightHandMiddle", "RightHandRing", "RightHandPinky", "RightHandThumb",
+        "LeftHand", "RightHand",
         "LeftToeBase", "RightToeBase", "LeftBreast", "RightBreast"]
 REACH = 0.08  # m: how far along its skin a bone's end looks for its move (a Gaussian's width)
 NEAR = 24  # skin vertices whose mean move a bone with no skin of its own takes
