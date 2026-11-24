@@ -111,25 +111,25 @@
  "joints_off_centre_mm": {
   "LeftLeg": {
    "slider_fit": 16.7,
-   "wrapped": 16.9
+   "wrapped": 16.7
   },
   "RightLeg": {
    "slider_fit": 16.7,
-   "wrapped": 16.8
+   "wrapped": 16.7
   },
   "LeftForeArm": {
    "slider_fit": 5.3,
-   "wrapped": 9.4
+   "wrapped": 5.3
   },
   "RightForeArm": {
    "slider_fit": 5.3,
-   "wrapped": 8.7
+   "wrapped": 5.3
   }
  },
  "verdict": {
   "gap_median_mm": 0.54,
   "gap_bar_mm": 1.0,
-  "joint_moved_off_centre_mm": 4.1,
+  "joint_moved_off_centre_mm": 0.0,
   "joint_bar_mm": 5.0,
   "pass": true
  },
@@ -237,16 +237,16 @@
     -0.00408
    ],
    "tail": [
-    -0.00715,
-    0.00065,
-    -0.0073
+    -0.00914,
+    -0.00649,
+    -0.00623
    ]
   },
   "mixamorig:LeftForeArm": {
    "head": [
-    -0.00605,
-    -0.00293,
-    -0.00514
+    -0.00914,
+    -0.00649,
+    -0.00623
    ],
    "tail": [
     0.00411,
@@ -465,16 +465,16 @@
     -0.00228
    ],
    "tail": [
-    0.00433,
-    0.00245,
-    -0.00536
+    0.00575,
+    -0.00461,
+    -0.00354
    ]
   },
   "mixamorig:RightForeArm": {
    "head": [
-    0.00428,
-    -0.00148,
-    -0.0038
+    0.00575,
+    -0.00461,
+    -0.00354
    ],
    "tail": [
     -0.0006,
@@ -789,9 +789,9 @@
     -0.0066
    ],
    "tail": [
-    -0.00424,
-    0.01955,
-    0.00377
+    -0.00608,
+    0.02462,
+    0.00471
    ]
   },
   "mixamorig:LeftButtock": {
@@ -808,9 +808,9 @@
   },
   "mixamorig:LeftLeg": {
    "head": [
-    -0.00607,
-    0.02374,
-    0.0047
+    -0.00608,
+    0.02462,
+    0.00471
    ],
    "tail": [
     -0.00377,
@@ -849,9 +849,9 @@
     -0.00597
    ],
    "tail": [
-    -0.00043,
-    0.01935,
-    0.00425
+    0.00133,
+    0.02434,
+    0.00521
    ]
   },
   "mixamorig:RightButtock": {
@@ -868,9 +868,9 @@
   },
   "mixamorig:RightLeg": {
    "head": [
-    0.00143,
-    0.02362,
-    0.00519
+    0.00133,
+    0.02434,
+    0.00521
    ],
    "tail": [
     -0.00084,

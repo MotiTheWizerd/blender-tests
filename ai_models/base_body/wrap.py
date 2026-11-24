@@ -13,7 +13,8 @@ her rest shape, so the body's muscle and form are in her mesh and not only in a 
    kind, one chest for every type).
 4. Unposed through the inverse of each vertex's skinning: her rest shape. Kept as a delta on the slider fit, so
    the face's sliders and the controls go on as before; and every bone's head and tail move as the skin around them
-   moved, so the joints keep their place in their limbs (her.apply_wrap puts both on).
+   moved, the knees and elbows across their limbs as the limb's cross-section there moved, so the joints keep their
+   place in their limbs (her.apply_wrap puts both on).
 
 Pass bar, logged and in the json: her body's surface to the Tripo one at the median under GAP_MM, and no knee or
 elbow further from its limb's centre than it stood after the slider fit by more than OFF_CENTRE_MM.
@@ -158,6 +159,36 @@ for b in rig.data.bones:
     mh, mt = move_at(head, own), move_at(tail, own)
     bone_moves[b.name] = {"head": [round(float(v), 5) for v in mh], "tail": [round(float(v), 5) for v in mt]}
     H[b.name], H_after[b.name] = head, head + mh
+# a knee or an elbow stands across its limb where MPFB put it in its limb: its offset from the centre of the limb's
+# cross-section (the skin within 1 cm of its level, as off_centre slices it) on the slider fit, kept from the centre
+# of the wrapped limb's cross-section at its new level (a few rounds: the slice follows the joint); along the limb, as
+# its own skin moved. The skin-weighted move alone let them drift: built's right elbow 6.0 mm off centre on the slider
+# fit and 10.9 wrapped, overweight's knees 6 mm further out; following the slice's own vertices still left the knees
+# up to 5 mm, the wrap sliding skin along the leg. Its parent's tail, the same point (the bones are not connected).
+def slice_centre(P, J, axis, side):
+    near = (np.abs((P - J) @ axis) < 0.01) & (np.linalg.norm(P - J, axis=1) < 0.15) & (side * P[:, 0] > 0)
+    return P[near].mean(0)
+
+
+for j, a, c, side in JOINTS:
+    name = "mixamorig:" + j
+    axis = H["mixamorig:" + c] - H["mixamorig:" + a]
+    axis /= np.linalg.norm(axis)
+    J = H[name]
+    offset = J - slice_centre(rest_world, J, axis, side)
+    offset -= (offset @ axis) * axis
+    axis_after = H_after["mixamorig:" + c] - H_after["mixamorig:" + a]
+    axis_after /= np.linalg.norm(axis_after)
+    J_after = H_after[name].copy()
+    for _ in range(5):
+        d = slice_centre(rest_shape, J_after, axis_after, side) + offset - J_after
+        J_after += d - (d @ axis_after) * axis_after
+    m = J_after - J
+    bone_moves[name]["head"] = [round(float(v), 5) for v in m]
+    parent = rig.data.bones[name].parent
+    if parent is not None and np.linalg.norm(np.array(rig.matrix_world @ parent.tail_local) - J) < 1e-3:
+        bone_moves[parent.name]["tail"] = bone_moves[name]["head"]
+    H_after[name] = J + m
 bone_moved = np.array([np.linalg.norm(m["head"]) for m in bone_moves.values()])
 log("the bones move with the skin: %.1f mm median, %.1f max (%s)" % (np.median(bone_moved) * 1000, bone_moved.max() * 1000,
                                                                       max(bone_moves, key=lambda n: np.linalg.norm(bone_moves[n]["head"]))))
